@@ -2394,10 +2394,6 @@ window.renderPmgVisualTree = function(activities) {
             ${sharedBadge}
             ${calledElementBadge}
             <span style="background:rgba(255,255,255,0.05); color:${lvlColor}; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid ${lvlColor}44; margin-left:auto;">Niveau ${node.level || 1}</span>
-            
-            <!-- Quick Action Buttons -->
-            <button class="btn-ghost" style="padding:2px 6px; font-size:10px; height:24px; color:var(--brand-primary); border:1px solid var(--border-color);" data-act-id="${escAttr(safeId)}" onclick="openPmgEditTreeNodeModalFromEl(this)" title="Éditer / Réorganiser">✏️ Éditer</button>
-            <button class="btn-ghost" style="padding:2px 6px; font-size:10px; height:24px; color:var(--ok); border:1px solid var(--border-color);" data-act-id="${escAttr(safeId)}" onclick="addNewPmgSubactivityFromEl(this)" title="Ajouter une sous-activité enfant">➕ Enfant</button>
           </div>
           ${hasChildren ? buildTreeHTML(visibleChildren) : ''}
         </li>
@@ -4522,7 +4518,7 @@ window.renderPmgBatchSummary = function(batchResult) {
         🔄 Variables I/O : <strong>${totalIoVars.size}</strong>
       </div>
       <div style="background: var(--bg-card); padding: 8px 14px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); font-size: 12px; display: flex; align-items: center; gap: 6px;">
-        👥 Acteurs (couleurs) : <strong title="DCI / CDD / OPS détectés via codes couleur des activités">${uniqueLanes.size}</strong>
+        👥 Acteurs : <strong title="DCI / CDD / OPS détectés via codes couleur des activités">${uniqueLanes.size}</strong>
       </div>
     </div>
     ${missingHtml}
