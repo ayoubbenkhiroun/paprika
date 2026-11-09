@@ -3307,25 +3307,61 @@ window.renderPmgStep3ManualTable = function() {
     return;
   }
 
+  // Hiérarchie relative aux lignes visibles (évite les └─ orphelins sous filtre)
+  const actByKey = new Map();
+  activities.forEach(a => {
+    const key = a.uniqueId || a.id;
+    if (key) actByKey.set(key, a);
+  });
+  const filteredKeys = new Set(filtered.map(a => a.uniqueId || a.id).filter(Boolean));
+
+  function getVisibleDepth(act) {
+    let depth = 0;
+    let pid = act.parentId;
+    const seen = new Set();
+    while (pid && !seen.has(pid)) {
+      seen.add(pid);
+      if (filteredKeys.has(pid)) depth++;
+      const parent = actByKey.get(pid);
+      pid = parent ? parent.parentId : null;
+      if (depth > 30) break;
+    }
+    return depth;
+  }
+
   let html = '';
   filtered.forEach((act) => {
     const origIdx = activities.indexOf(act);
     const inputsVal = (act.inputs || []).join(', ');
     const outputsVal = (act.outputs || []).join(', ');
+    const visibleDepth = getVisibleDepth(act);
+    const typeKey = window.getPmgTypeKey ? window.getPmgTypeKey(act.type || act.typeLabel) : '';
+    const isUserTask = typeKey === 'usertask';
+    const isScriptTask = typeKey === 'scripttask';
+    const isCallAct = typeKey === 'callactivity' || typeKey === 'subprocess';
+
+    let typeBadgeStyle = 'background: rgba(59, 130, 246, 0.1); color: var(--brand-primary); border: 1px solid rgba(59, 130, 246, 0.25);';
+    if (isUserTask) {
+      typeBadgeStyle = 'background: rgba(234, 91, 12, 0.1); color: #ea5b0c; border: 1px solid rgba(234, 91, 12, 0.25);';
+    } else if (isScriptTask) {
+      typeBadgeStyle = 'background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3);';
+    } else if (isCallAct) {
+      typeBadgeStyle = 'background: rgba(16, 185, 129, 0.12); color: var(--ok); border: 1px solid rgba(16, 185, 129, 0.3);';
+    }
 
     const parentProcLabel = act.parentProcessName || act.rootParentName || 'Processus Principal';
     html += `
       <tr style="border-bottom: 1px solid var(--border-color);">
         <td style="padding: 8px; vertical-align: top;">
-          <span style="display:inline-block; margin-left:${(act.level - 1) * 12}px;">
-            ${act.level > 1 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
+          <span style="display:inline-block; margin-left:${visibleDepth * 12}px;">
+            ${visibleDepth > 0 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
           </span>
-          <div style="font-size:10.5px; color:#94a3b8; margin-left:${(act.level - 1) * 12}px; margin-top:2px;">
+          <div style="font-size:10.5px; color:#94a3b8; margin-left:${visibleDepth * 12}px; margin-top:2px;">
             id: <code>${escHtml(act.id)}</code> • <em style="color:#009cd7; font-weight:500;">🏛️ ${escHtml(parentProcLabel)}</em>
           </div>
         </td>
         <td style="padding: 8px;">
-          <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(59, 130, 246, 0.1); color: var(--brand-primary); font-weight:600;">
+          <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight:700; ${typeBadgeStyle}">
             ${escHtml(act.typeLabel || act.type)}
           </span>
         </td>
@@ -3511,6 +3547,28 @@ window.renderPmgStep4ManualTable = function() {
     return;
   }
 
+  // Hiérarchie relative aux lignes visibles (évite les └─ orphelins sous filtre)
+  const actByKey = new Map();
+  activities.forEach(a => {
+    const key = a.uniqueId || a.id;
+    if (key) actByKey.set(key, a);
+  });
+  const filteredKeys = new Set(filtered.map(a => a.uniqueId || a.id).filter(Boolean));
+
+  function getVisibleDepth(act) {
+    let depth = 0;
+    let pid = act.parentId;
+    const seen = new Set();
+    while (pid && !seen.has(pid)) {
+      seen.add(pid);
+      if (filteredKeys.has(pid)) depth++;
+      const parent = actByKey.get(pid);
+      pid = parent ? parent.parentId : null;
+      if (depth > 30) break;
+    }
+    return depth;
+  }
+
   let html = '';
   filtered.forEach((act) => {
     const origIdx = activities.indexOf(act);
@@ -3518,6 +3576,7 @@ window.renderPmgStep4ManualTable = function() {
     const defaultMode = act.realizationMode || (isSub ? 'Call Activity' : 'Manuelle');
     const caseVal = act.applicableCase || '';
     const commentVal = act.comment || '';
+    const visibleDepth = getVisibleDepth(act);
 
     let optionsHtml = '';
     modes.forEach(m => {
@@ -3529,10 +3588,10 @@ window.renderPmgStep4ManualTable = function() {
     html += `
       <tr style="border-bottom: 1px solid var(--border-color);">
         <td style="padding: 8px; vertical-align: top;">
-          <span style="display:inline-block; margin-left:${(act.level - 1) * 12}px;">
-            ${act.level > 1 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
+          <span style="display:inline-block; margin-left:${visibleDepth * 12}px;">
+            ${visibleDepth > 0 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
           </span>
-          <div style="font-size:10.5px; color:#94a3b8; margin-left:${(act.level - 1) * 12}px; margin-top:2px;">
+          <div style="font-size:10.5px; color:#94a3b8; margin-left:${visibleDepth * 12}px; margin-top:2px;">
             id: <code>${escHtml(act.id)}</code> • <em style="color:#009cd7; font-weight:500;">🏛️ ${escHtml(parentProcLabel)}</em>
           </div>
         </td>
