@@ -134,6 +134,89 @@ window.sortPmgActivities = function(acts, mode) {
   return list;
 };
 
+/**
+ * Construit la même forêt parent/enfants que l'arborescence visuelle (étape 2).
+ * @returns {{ roots: Array, nodeMap: Map }}
+ */
+window.buildPmgActivityForest = function(activities) {
+  const acts = activities || [];
+  const nodeMap = new Map();
+
+  acts.forEach(act => {
+    const key = act.uniqueId || act.id || act.name;
+    if (!key) return;
+    nodeMap.set(key, { ...act, children: [] });
+  });
+
+  const roots = [];
+  acts.forEach(act => {
+    const key = act.uniqueId || act.id || act.name;
+    const node = nodeMap.get(key);
+    if (!node) return;
+
+    if (act.parentId) {
+      let parentNode = nodeMap.get(act.parentId);
+      if (!parentNode) {
+        for (const n of nodeMap.values()) {
+          if (n.uniqueId === act.parentId || n.id === act.parentId ||
+            (n.name && act.parentId && String(n.name).toLowerCase() === String(act.parentId).toLowerCase())) {
+            parentNode = n;
+            break;
+          }
+        }
+      }
+      if (parentNode && parentNode !== node) {
+        if (!parentNode.children.includes(node)) parentNode.children.push(node);
+      } else if (!roots.includes(node)) {
+        roots.push(node);
+      }
+    } else if (!roots.includes(node)) {
+      roots.push(node);
+    }
+  });
+
+  return { roots, nodeMap };
+};
+
+/**
+ * Aplatit la forêt en parcours DFS (ordre arborescence étape 2).
+ * Conserve les ancêtres hors filtre comme contexte (Call Activity parents, etc.).
+ * @param {Function} matchFn - (act) => boolean
+ * @returns {Array<{ act, depth, isMatch, isContextOnly }>}
+ */
+window.flattenPmgForestForTable = function(activities, matchFn) {
+  const sorted = window.sortPmgActivities
+    ? window.sortPmgActivities(activities || [], window.pmgActivityOrderMode)
+    : (activities || []);
+  const { roots } = window.buildPmgActivityForest(sorted);
+  const isMatch = typeof matchFn === 'function' ? matchFn : (() => true);
+
+  function nodeMatches(node) {
+    return isMatch(node);
+  }
+
+  function hasMatchingDescendant(node) {
+    if (nodeMatches(node)) return true;
+    return (node.children || []).some(hasMatchingDescendant);
+  }
+
+  const rows = [];
+  function walk(node, depth) {
+    if (!hasMatchingDescendant(node)) return;
+    const matched = nodeMatches(node);
+    rows.push({
+      act: node,
+      depth,
+      isMatch: matched,
+      isContextOnly: !matched
+    });
+    (node.children || []).forEach(child => walk(child, depth + 1));
+  }
+
+  roots.forEach(r => walk(r, 0));
+  return rows;
+};
+
 window.setPmgActivityOrderMode = function(mode) {
   if (!window.PMG_ORDER_MODES[mode]) return;
   window.pmgActivityOrderMode = mode;
@@ -2061,7 +2144,7 @@ window.renderPmgStep2ManualTable = function() {
 
   const activities = window.pmgTempSubprocesses || [];
   if (activities.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord charger des activités.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord charger des activités.</td></tr>';
     return;
   }
 
@@ -2075,7 +2158,7 @@ window.renderPmgStep2ManualTable = function() {
       const l = a.typeLabel || a.type || 'Tâche';
       typeMap.set(k, { label: l, count: (typeMap.get(k)?.count || 0) + 1 });
     });
-    let typeOpts = '<option value="all">Tous les types (' + activities.length + ')</option>';
+    let typeOpts = '<option value="all">Tous (' + activities.length + ')</option>';
     for (const [k, v] of typeMap.entries()) {
       typeOpts += '<option value="' + escAttr(k) + '" ' + (k === currentVal ? 'selected' : '') + '>' + escHtml(v.label) + ' (' + v.count + ')</option>';
     }
@@ -2090,42 +2173,42 @@ window.renderPmgStep2ManualTable = function() {
       const e = (a.entity && a.entity !== 'Non défini') ? a.entity : 'Non défini';
       entityMap.set(e, (entityMap.get(e) || 0) + 1);
     });
-    let entOpts = '<option value="all">Toutes les entités (' + activities.length + ')</option>';
-    entOpts += '<option value="__inherited__" ' + ('__inherited__' === currentVal ? 'selected' : '') + '>↳ Hérités du Parent</option>';
+    let entOpts = '<option value="all">Tous (' + activities.length + ')</option>';
+    entOpts += '<option value="__inherited__" ' + ('__inherited__' === currentVal ? 'selected' : '') + '>↳ Hérités</option>';
     for (const [e, count] of entityMap.entries()) {
       entOpts += '<option value="' + escAttr(e) + '" ' + (e === currentVal ? 'selected' : '') + '>' + escHtml(e) + ' (' + count + ')</option>';
     }
     entitySelect.innerHTML = entOpts;
   }
 
-  // Apply filters
+  // Filtre = prédicat de match (même logique qu'avant)
   const f = window.pmgColFilters.step3;
-  const filtered = activities.filter(act => {
-    // 1. Act text (name or id or parentProcessName)
+  const matchesStep3Filter = function(act) {
     if (f.act) {
       const name = (act.name || '').toLowerCase();
       const id = (act.id || '').toLowerCase();
       const p = (act.parentProcessName || '').toLowerCase();
-      if (!name.includes(f.act) && !id.includes(f.act) && !p.includes(f.act)) return false;
+      const root = (act.rootParentName || '').toLowerCase();
+      if (!name.includes(f.act) && !id.includes(f.act) && !p.includes(f.act) && !root.includes(f.act)) return false;
     }
 
-    // 2. Type filter
     if (f.type !== 'all') {
       const k = window.getPmgTypeKey(act.type || act.typeLabel);
       if (k !== f.type) return false;
     }
 
-    // 3. Entity filter
     if (f.entity !== 'all') {
       if (f.entity === '__inherited__') {
-        if (!act.isInheritedEntity) return false;
+        const colorSet = new Set(['DCI', 'CDD', 'OPS']);
+        const isColorEnt = colorSet.has(String(act.entity || '').toUpperCase());
+        // Parent racine + Hérité du parent (acteurs couleur) + héritage classique
+        if (!isColorEnt && !act.isInheritedEntity) return false;
       } else {
         const ent = (act.entity && act.entity !== 'Non défini') ? act.entity : 'Non défini';
         if (ent !== f.entity) return false;
       }
     }
 
-    // 4. Group Status & Group Text
     const isUserTask = (act.type || '').toLowerCase().includes('user');
     const groupVal = (act.userGroup || '').trim();
     const hasGroup = groupVal.length > 0;
@@ -2145,59 +2228,77 @@ window.renderPmgStep2ManualTable = function() {
     }
 
     return true;
-  });
+  };
 
-  // Update count badge
+  // Même arborescence que l'étape 2 : ordre DFS + ancêtres Call Activity conservés en contexte
+  const treeRows = window.flattenPmgForestForTable(activities, matchesStep3Filter);
+  const matchedCount = treeRows.filter(r => r.isMatch).length;
+
   const countBadge = document.getElementById('pmgStep3FilterCount');
   if (countBadge) {
-    countBadge.innerHTML = '🎯 <strong>' + filtered.length + '</strong> / ' + activities.length + ' activités affichées';
+    countBadge.innerHTML = '🎯 <strong>' + matchedCount + '</strong> / ' + activities.length + ' activités affichées';
   }
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:25px; text-align:center; color:var(--text-tertiary); font-style:italic;">Aucune activité ne correspond aux filtres sélectionnés. <button class="btn-ghost" style="margin-left:8px; font-size:11px;" onclick="resetPmgStep3Filters()">Réinitialiser</button></td></tr>';
+  if (treeRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:25px; text-align:center; color:var(--text-tertiary); font-style:italic;">Aucune activité ne correspond aux filtres sélectionnés. <button class="btn-ghost" style="margin-left:8px; font-size:11px;" onclick="resetPmgStep3Filters()">Réinitialiser</button></td></tr>';
     return;
   }
 
-  // Index pour recalculer une hiérarchie visible (évite les └─ orphelins sous filtre)
-  const actByKey = new Map();
-  activities.forEach(a => {
-    const key = a.uniqueId || a.id;
-    if (key) actByKey.set(key, a);
-  });
-  const filteredKeys = new Set(filtered.map(a => a.uniqueId || a.id).filter(Boolean));
-
-  function getVisibleDepth(act) {
-    let depth = 0;
-    let pid = act.parentId;
-    const seen = new Set();
-    while (pid && !seen.has(pid)) {
-      seen.add(pid);
-      if (filteredKeys.has(pid)) depth++;
-      const parent = actByKey.get(pid);
-      pid = parent ? parent.parentId : null;
-      if (depth > 30) break;
-    }
-    return depth;
-  }
-
   const colorActors = new Set(['DCI', 'CDD', 'OPS']);
+  const levelColors = ['#3b82f6', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444', '#10b981', '#6366f1'];
 
   let html = '';
-  filtered.forEach((act) => {
-    const origIdx = activities.indexOf(act);
-    const isUserTask = (act.type || '').toLowerCase().includes('user');
+  treeRows.forEach((row) => {
+    const act = row.act;
+    const origIdx = activities.findIndex(a => (a.uniqueId || a.id) === (act.uniqueId || act.id));
+    const safeIdx = origIdx >= 0 ? origIdx : 0;
+    const typeKey = window.getPmgTypeKey ? window.getPmgTypeKey(act.type || act.typeLabel) : '';
+    const meta = (typeof PMG_TYPE_META !== 'undefined' && PMG_TYPE_META[typeKey])
+      ? PMG_TYPE_META[typeKey]
+      : { icon: '📄', color: '#64748b' };
+    const isUserTask = typeKey === 'usertask' || (act.type || '').toLowerCase().includes('user');
+    const isCallAct = typeKey === 'callactivity' || (act.type || '').toLowerCase().includes('call');
+    const isSub = typeKey === 'subprocess' || (act.type || '').toLowerCase().includes('sous-processus') || isCallAct;
     const entityVal = act.entity && act.entity !== 'Non défini' ? act.entity : '';
     const groupVal = (typeof window.cleanPmgUserGroupName === 'function') ? window.cleanPmgUserGroupName(act.userGroup) : (act.userGroup || '');
     const hasGroup = groupVal.trim().length > 0;
     const isTransverse = typeof window.isPmgActivityTransverse === 'function'
       ? window.isPmgActivityTransverse(act)
       : false;
-    const visibleDepth = getVisibleDepth(act);
+    const depth = row.depth || 0;
+    const isContextOnly = !!row.isContextOnly;
+    const displayLevel = act.level || (depth + 1);
+    const lvlColor = levelColors[(displayLevel - 1) % levelColors.length];
+    const icon = isSub ? '📁' : (meta.icon || (isUserTask ? '👤' : '📄'));
+    const borderColor = isContextOnly
+      ? 'rgba(59, 130, 246, 0.45)'
+      : (meta.color || 'var(--border-color)');
+    const cardBorder = isContextOnly
+      ? `1px dashed ${borderColor}`
+      : `1px solid ${borderColor}`;
 
-    // Badge transverse : groupe non aligné avec l'acteur couleur
+    // Appelle → dans la carte ; Processus père = root (niveau 1) pour repérer P1 / P2 au scroll
+    let appelleInCard = '';
+    if (isCallAct) {
+      if (act.calledElement) {
+        if (act.targetMissing) {
+          appelleInCard = `<span class="pmg-step3-appelle pmg-step3-appelle--missing" title="Sous-processus introuvable : ${escAttr(act.calledElement)}">⚠️ Appelle : ${escHtml(act.calledElement)}</span>`;
+        } else {
+          appelleInCard = `<span class="pmg-step3-appelle" title="Processus appelé : ${escAttr(act.calledElement)}">Appelle : ${escHtml(act.calledElement)}</span>`;
+        }
+      } else {
+        appelleInCard = '<span class="pmg-step3-empty pmg-step3-appelle--undefined" title="Call Activity sans calledElement">Appel non défini</span>';
+      }
+    }
+
+    const rootParentName = act.rootParentName || '';
+    const parentCell = rootParentName
+      ? `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(rootParentName)}">🏛️ ${escHtml(rootParentName)}</span>`
+      : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
+
     let groupExtraBadge = '';
     if (isUserTask && hasGroup && isTransverse) {
-      groupExtraBadge = '<span style="background:rgba(245, 158, 11, 0.12); color:var(--warn); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(245, 158, 11, 0.25);" title="Groupe candidat non aligné avec l\'acteur couleur ' + escAttr(entityVal) + '">🔀 Transverse (acteur ' + escHtml(entityVal || '?') + ')</span>';
+      groupExtraBadge = '<span style="background:rgba(245, 158, 11, 0.12); color:var(--warn); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(245, 158, 11, 0.25);">🔀 Transverse</span>';
     }
 
     let groupCellHtml = '';
@@ -2205,7 +2306,7 @@ window.renderPmgStep2ManualTable = function() {
       if (hasGroup) {
         groupCellHtml = `
           <div style="display:flex; flex-direction:column; gap:4px;">
-            <input type="text" id="pmgGroupInput_${origIdx}" value="${escAttr(groupVal)}" placeholder="Ex: Validateurs_N1" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'userGroup', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
+            <input type="text" id="pmgGroupInput_${safeIdx}" value="${escAttr(groupVal)}" placeholder="Ex: Validateurs_N1" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'userGroup', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
             <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
               <span class="pmg-badge-ok" style="font-size:10px; width:fit-content;">👤 Groupe candidat défini</span>
               ${groupExtraBadge}
@@ -2215,42 +2316,75 @@ window.renderPmgStep2ManualTable = function() {
       } else {
         groupCellHtml = `
           <div style="display:flex; flex-direction:column; gap:4px;">
-            <input type="text" id="pmgGroupInput_${origIdx}" class="pmg-input-warn" value="" placeholder="⚠️ Saisir le groupe candidat (ex: Gestionnaires_RH)" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'userGroup', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); padding: 4px 8px;">
+            <input type="text" id="pmgGroupInput_${safeIdx}" class="pmg-input-warn" value="" placeholder="⚠️ Saisir le groupe candidat (ex: Gestionnaires_RH)" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'userGroup', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); padding: 4px 8px;">
             <span class="pmg-badge-warn" style="font-size:10px; width:fit-content;">⚠️ Warning : User Task sans groupe candidat</span>
           </div>
         `;
       }
     } else {
+      const naLabel = act.typeLabel || act.type || 'N/A';
       groupCellHtml = `
-        <input type="text" id="pmgGroupInput_${origIdx}" value="" placeholder="— Non applicable (${act.typeLabel || act.type})" readonly style="width: 100%; height: 32px; font-size: 11.5px; border-radius: var(--border-radius-md); border: 1px dashed var(--border-color); background: rgba(241, 245, 249, 0.6); color: #94a3b8; padding: 4px 8px; cursor:not-allowed;">
+        <input type="text" id="pmgGroupInput_${safeIdx}" class="pmg-step3-na-input" value="— N/A" title="Non applicable (${escAttr(naLabel)})" readonly>
       `;
     }
 
     const isColorActor = entityVal && colorActors.has(String(entityVal).toUpperCase());
-    const inheritedPill = act.isInheritedEntity 
-      ? '<span style="background:rgba(99, 102, 241, 0.1); color:#6366f1; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(99, 102, 241, 0.25); margin-top:4px; display:inline-block;" title="Hérité de l\'acteur / lane du processus parent">↳ Hérité du Parent</span>' 
-      : (isColorActor
-        ? '<span class="pmg-badge-info" style="font-size:10px; margin-top:4px; width:fit-content;">🎨 Acteur (couleur)</span>'
-        : (entityVal ? '<span class="pmg-badge-info" style="font-size:10px; margin-top:4px; width:fit-content;">🏢 Lane / Pool BPMN</span>' : '<span style="font-size:10px; color:#94a3b8; margin-top:4px; display:block;">Optionnel</span>'));
+    const inRootParent = !!(act.rootParentId && act.parentProcessId === act.rootParentId);
+    // Règle unique :
+    // - activité / Call Activity dans le process père (niveau 1) → Parent racine
+    // - activité / Call Activity à un autre niveau → Hérité du parent
+    // - jamais « Acteur (couleur) »
+    let inheritedPill;
+    if (isColorActor) {
+      if (inRootParent) {
+        inheritedPill = '<span class="pmg-badge-parent-racine" title="Activité / Call Activity située dans le processus père (niveau 1)">Parent racine</span>';
+      } else {
+        inheritedPill = '<span class="pmg-badge-herite-parent" title="Activité / Call Activity hors processus père (niveau > 1)">Hérité du parent</span>';
+      }
+    } else if (act.isInheritedEntity) {
+      inheritedPill = '<span class="pmg-badge-herite-parent" title="Entité héritée du processus parent">Hérité du parent</span>';
+    } else if (entityVal) {
+      inheritedPill = '<span class="pmg-badge-info" style="font-size:10px; margin-top:4px; width:fit-content;">🏢 Entité</span>';
+    } else {
+      inheritedPill = '<span style="font-size:10px; color:#94a3b8; margin-top:4px; display:block;">Optionnel</span>';
+    }
+
+    const typeBadgeBg = isSub ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+    const typeBadgeColor = isSub ? 'var(--brand-primary)' : 'var(--ok)';
+
+    // Carte hiérarchie : nom + niveau + Appelle (si Call Activity)
+    const treeCard = `
+      <div class="pmg-step3-tree-indent" style="padding-left:${Math.min(depth, 6) * 16}px;">
+        <div class="pmg-step3-tree-card${isContextOnly ? ' pmg-step3-tree-card--context' : ''}" style="border:${cardBorder};">
+          <div class="pmg-step3-tree-card-main">
+            <span class="pmg-order-pill" title="Position #${act.orderIndex || (safeIdx + 1)}">#${act.orderIndex || (safeIdx + 1)}</span>
+            <span class="pmg-step3-tree-icon">${icon}</span>
+            <div class="pmg-step3-tree-body">
+              <div class="pmg-step3-tree-title-row">
+                <strong class="pmg-step3-tree-name" title="${escAttr(act.name)}">${escHtml(act.name)}</strong>
+                <span class="pmg-step3-tree-level" style="color:${lvlColor}; border-color:${lvlColor}44;">N${displayLevel}</span>
+              </div>
+              ${appelleInCard ? `<div class="pmg-step3-tree-meta">${appelleInCard}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
 
     html += `
-      <tr style="border-bottom: 1px solid var(--border-color);">
-        <td style="padding: 10px 8px; vertical-align: top;">
-          <span style="display:inline-block; margin-left:${visibleDepth * 14}px;">
-            ${visibleDepth > 0 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
-          </span>
-          <div style="font-size:10.5px; color:#94a3b8; margin-left:${visibleDepth * 14}px;">id: <code>${escHtml(act.id)}</code> • <em>${escHtml(act.parentProcessName || '')}</em></div>
-        </td>
-        <td style="padding: 10px 8px; vertical-align: top;">
-          <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight:700; ${isUserTask ? 'background: rgba(234, 91, 12, 0.1); color: #ea5b0c; border: 1px solid rgba(234, 91, 12, 0.25);' : 'background: rgba(0, 156, 215, 0.1); color: #009cd7; border: 1px solid rgba(0, 156, 215, 0.25);'}">
+      <tr class="pmg-step3-tree-row" data-context="${isContextOnly ? '1' : '0'}" data-depth="${depth}" data-root-parent="${escAttr(act.rootParentId || '')}">
+        <td class="pmg-step3-tree-cell">${treeCard}</td>
+        <td class="pmg-step3-type-cell">
+          <span class="pmg-step3-type-pill" style="background:${typeBadgeBg}; color:${typeBadgeColor}; border-color:${typeBadgeColor}33;">
             ${escHtml(act.typeLabel || act.type)}
           </span>
         </td>
-        <td style="padding: 8px 6px; vertical-align: top;">
-          <input type="text" id="pmgEntityInput_${origIdx}" value="${escAttr(entityVal)}" placeholder="Ex: CDD ou Direction Réseau" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'entity', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
+        <td class="pmg-step3-meta-cell">${parentCell}</td>
+        <td class="pmg-step3-field-cell">
+          <input type="text" id="pmgEntityInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(entityVal)}" placeholder="Ex: CDD ou Direction Réseau" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'entity', this.value)">
           ${inheritedPill}
         </td>
-        <td style="padding: 8px 6px; vertical-align: top;">
+        <td class="pmg-step3-field-cell">
           ${groupCellHtml}
         </td>
       </tr>
@@ -4172,6 +4306,7 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
               type: localName,
               typeLabel: TYPE_LABELS[localName] || localName,
               entity,
+              entityFromColor: !!colorActor,
               userGroup,
               candidateGroupsRaw,
               candidateGroupsList,
@@ -4268,7 +4403,7 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
   const missingSubprocesses = [];
 
   effectiveRoots.forEach(rootProc => {
-    function traverseProcess(procId, currentLevel, parentNodeId, branchPath, rootParent, inheritedEntity) {
+    function traverseProcess(procId, currentLevel, parentNodeId, branchPath, rootParent, inheritedEntity, inheritedFromColor) {
       const proc = processCatalog.get(procId);
       if (!proc) {
         missingSubprocesses.push({ calledElement: procId, calledBy: parentNodeId });
@@ -4297,16 +4432,23 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
 
         let finalEntity = act.entity || '';
         let isInheritedEntity = false;
+        let entityFromColor = !!act.entityFromColor;
+        let inheritedColorFromParent = false;
+        // Héritage depuis le Call Activity parent (acteur DCI/CDD/OPS via code couleur)
         if (!finalEntity && inheritedEntity) {
           finalEntity = inheritedEntity;
           isInheritedEntity = true;
+          entityFromColor = false; // pas peint localement : transmis par le parent
+          inheritedColorFromParent = !!inheritedFromColor;
         }
 
         const activityRecord = {
           ...act,
           id: act.id,
           entity: finalEntity,
+          entityFromColor: entityFromColor,
           isInheritedEntity: isInheritedEntity,
+          inheritedColorFromParent: inheritedColorFromParent,
           uniqueId: uniqueHierarchicalId,
           parentId: effectiveParentId,
           level: effectiveLevel,
@@ -4331,13 +4473,16 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           const nextBranch = branchPath + '->' + childProcId;
           if (!branchPath.includes(childProcId) && processCatalog.has(childProcId)) {
             const nextInheritedEntity = act.entity || inheritedEntity || '';
-            traverseProcess(childProcId, currentLevel + 1, uniqueHierarchicalId, nextBranch, rootParent, nextInheritedEntity);
+            const nextInheritedFromColor = act.entity
+              ? !!act.entityFromColor
+              : !!inheritedFromColor;
+            traverseProcess(childProcId, currentLevel + 1, uniqueHierarchicalId, nextBranch, rootParent, nextInheritedEntity, nextInheritedFromColor);
           }
         }
       });
     }
 
-    traverseProcess(rootProc.id, 1, '', rootProc.id, rootProc, '');
+    traverseProcess(rootProc.id, 1, '', rootProc.id, rootProc, '', false);
   });
 
   // Append any unresolved unlinked process at level 1
