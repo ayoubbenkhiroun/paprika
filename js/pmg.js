@@ -3561,6 +3561,71 @@ window.detectBpmnElementType = function(el, fallbackName) {
   return rawLn;
 };
 
+/**
+ * Mapping codes couleur Camunda Modeler (BPMNDI) → Acteurs métier.
+ * Bleu = DCI, Vert = CDD, Violet = OPS.
+ */
+window.PMG_COLOR_ACTOR_MAP = {
+  '#0d4372': 'DCI',
+  '#bbdefb': 'DCI',
+  '#205022': 'CDD',
+  '#c8e6c9': 'CDD',
+  '#5b176d': 'OPS',
+  '#e1bee7': 'OPS'
+};
+
+window.normalizePmgHexColor = function(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  let c = raw.trim().toLowerCase();
+  if (!c) return '';
+  if (!c.startsWith('#')) c = '#' + c;
+  if (/^#[0-9a-f]{3}$/.test(c)) {
+    c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+  }
+  return /^#[0-9a-f]{6}$/.test(c) ? c : '';
+};
+
+window.extractPmgShapeColors = function(shapeEl) {
+  const result = { fill: '', stroke: '', background: '', border: '' };
+  if (!shapeEl) return result;
+
+  const tryGet = (...names) => {
+    for (const n of names) {
+      const v = shapeEl.getAttribute(n);
+      if (v) return v;
+    }
+    return '';
+  };
+
+  result.fill = tryGet('bioc:fill', 'fill');
+  result.stroke = tryGet('bioc:stroke', 'stroke');
+  result.background = tryGet('color:background-color', 'background-color');
+  result.border = tryGet('color:border-color', 'border-color');
+
+  if ((!result.fill || !result.stroke || !result.background || !result.border) && shapeEl.attributes) {
+    for (const attr of Array.from(shapeEl.attributes)) {
+      const name = (attr.name || '').toLowerCase();
+      const val = attr.value || '';
+      if (!result.fill && (name === 'fill' || name.endsWith(':fill'))) result.fill = val;
+      if (!result.stroke && (name === 'stroke' || name.endsWith(':stroke'))) result.stroke = val;
+      if (!result.background && name.includes('background-color')) result.background = val;
+      if (!result.border && name.includes('border-color')) result.border = val;
+    }
+  }
+  return result;
+};
+
+window.resolvePmgActorFromColors = function(colors) {
+  if (!colors) return '';
+  const candidates = [colors.fill, colors.background, colors.stroke, colors.border]
+    .map(window.normalizePmgHexColor)
+    .filter(Boolean);
+  for (const hex of candidates) {
+    if (window.PMG_COLOR_ACTOR_MAP[hex]) return window.PMG_COLOR_ACTOR_MAP[hex];
+  }
+  return '';
+};
+
 window.parseBpmnBatchForPmg = function(fileEntries) {
   const parser = new DOMParser();
   const processCatalog = new Map(); // processId -> ProcessData
@@ -3592,20 +3657,20 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
 
       parsedFiles.push(entry.fileName);
 
-      // Extract BPMNDI Coordinates (X, Y, Width, Height)
+      // Extract BPMNDI Coordinates (X, Y, Width, Height) + codes couleur → acteurs
       const shapeMap = new Map();
       const shapes = xmlDoc.querySelectorAll('BPMNShape, bpmndi\\:BPMNShape');
       shapes.forEach(sh => {
         const bpmnEl = sh.getAttribute('bpmnElement');
         if (!bpmnEl) return;
+        const colors = window.extractPmgShapeColors(sh);
+        const actorFromColor = window.resolvePmgActorFromColors(colors);
         const bounds = sh.querySelector('Bounds, dc\\:Bounds, bpmndi\\:Bounds');
-        if (bounds) {
-          const x = parseFloat(bounds.getAttribute('x')) || 0;
-          const y = parseFloat(bounds.getAttribute('y')) || 0;
-          const w = parseFloat(bounds.getAttribute('width')) || 0;
-          const h = parseFloat(bounds.getAttribute('height')) || 0;
-          shapeMap.set(bpmnEl, { x, y, width: w, height: h });
-        }
+        const x = bounds ? (parseFloat(bounds.getAttribute('x')) || 0) : 0;
+        const y = bounds ? (parseFloat(bounds.getAttribute('y')) || 0) : 0;
+        const w = bounds ? (parseFloat(bounds.getAttribute('width')) || 0) : 0;
+        const h = bounds ? (parseFloat(bounds.getAttribute('height')) || 0) : 0;
+        shapeMap.set(bpmnEl, { x, y, width: w, height: h, colors, actorFromColor });
       });
 
       // 1. Participant / Pool mapping
@@ -3748,9 +3813,15 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
             const actId = el.getAttribute('id') || `act_${activities.length + 1}`;
             const actName = el.getAttribute('name') || actId;
 
+            // Acteur : priorité aux codes couleur BPMNDI (Bleu→DCI, Vert→CDD, Violet→OPS),
+            // puis Lane / Pool classiques en fallback.
+            const shapeInfo = shapeMap.get(actId);
+            const colorActor = (shapeInfo && shapeInfo.actorFromColor) || '';
             const rawLaneName = nodeToLane.get(actId) || '';
             let entity = '';
-            if (rawLaneName) {
+            if (colorActor) {
+              entity = colorActor;
+            } else if (rawLaneName) {
               entity = rawLaneName.replace(/^Lane\s*:\s*/i, '').trim();
             } else if (poolName) {
               entity = poolName.replace(/^Pool\s*:\s*/i, '').trim();
@@ -4383,7 +4454,11 @@ window.renderPmgBatchSummary = function(batchResult) {
   container.style.display = 'block';
 
   const totalActs = batchResult.structuredActivities.length;
-  const uniqueLanes = new Set(batchResult.structuredActivities.map(a => a.entity).filter(Boolean));
+  const uniqueLanes = new Set(
+    batchResult.structuredActivities
+      .map(a => a.entity)
+      .filter(e => e && e !== 'Non défini')
+  );
   const totalIoVars = new Set();
   batchResult.structuredActivities.forEach(a => {
     (a.inputs || []).forEach(v => totalIoVars.add(v));
@@ -4447,7 +4522,7 @@ window.renderPmgBatchSummary = function(batchResult) {
         🔄 Variables I/O : <strong>${totalIoVars.size}</strong>
       </div>
       <div style="background: var(--bg-card); padding: 8px 14px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); font-size: 12px; display: flex; align-items: center; gap: 6px;">
-        👥 Acteurs / Lanes : <strong>${uniqueLanes.size}</strong>
+        👥 Acteurs (couleurs) : <strong title="DCI / CDD / OPS détectés via codes couleur des activités">${uniqueLanes.size}</strong>
       </div>
     </div>
     ${missingHtml}
