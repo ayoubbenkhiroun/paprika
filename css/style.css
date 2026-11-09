@@ -3154,6 +3154,140 @@ tr:hover td {
 .pmg-tree-node--context > div {
   box-shadow: none;
 }
+
+/* Modal mappage groupes / candidateGroups — en-têtes sans chevauchement */
+.pmg-ugmap-hint {
+  margin-bottom: 14px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.pmg-ugmap-table-wrap {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  overflow-x: auto;
+  background: var(--bg-card);
+}
+
+.pmg-ugmap-table {
+  width: 100%;
+  min-width: 980px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.pmg-ugmap-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 10px 12px;
+  vertical-align: bottom;
+  text-align: left;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+  background: #f1f5f9;
+  border-bottom: 2px solid var(--border-color);
+  cursor: default;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pmg-ugmap-table thead th:hover {
+  color: var(--text-primary);
+}
+
+.pmg-ugmap-table .pmg-ugmap-sub {
+  display: block;
+  margin-top: 2px;
+  font-weight: 500;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pmg-ugmap-table tbody td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pmg-ugmap-center {
+  text-align: center !important;
+}
+
+.pmg-ugmap-group-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pmg-ugmap-group-name strong {
+  color: var(--text-primary);
+  font-size: 12.5px;
+  word-break: break-word;
+}
+
+.pmg-ugmap-group-ex {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.pmg-ugmap-count {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(0, 156, 215, 0.1);
+  color: var(--brand-primary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.pmg-ugmap-cand {
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pmg-ugmap-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  font-size: 12px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+}
 .pmg-filter-chip {
   background: var(--bg-card);
   color: var(--text-secondary);

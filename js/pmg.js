@@ -1543,9 +1543,10 @@ window.renderPmgUserGroupMappingContent = function() {
 
   const activities = window.pmgTempSubprocesses || window.pmgActivities || [];
   
-  // 1. Collect all distinct user groups from user tasks
-  const groupStats = new Map(); // groupName -> { count: N, associatedLanes: Set(), sampleActs: [] }
-  const allKnownLanes = new Set();
+  // 1. Collect distinct candidateGroups + acteurs couleurs (entity) associés
+  const groupStats = new Map(); // groupName -> { count, associatedLanes, sampleActs, candidateDisplay, candidateEditable }
+  const allKnownLanes = new Set(); // acteurs couleurs DCI/CDD/OPS (+ lanes classiques)
+  const allCandidateGroups = new Set();
 
   activities.forEach(act => {
     if (act.entity && act.entity !== 'Non défini') {
@@ -1554,17 +1555,34 @@ window.renderPmgUserGroupMappingContent = function() {
     const isUser = (act.type || '').toLowerCase().includes('user');
     if (isUser && act.userGroup && act.userGroup.trim().length > 0) {
       const gName = act.userGroup.trim();
+      const rawSource = act.candidateGroupsRaw || act.userGroup;
+      const list = (act.candidateGroupsList && act.candidateGroupsList.length)
+        ? act.candidateGroupsList
+        : ((typeof window.parsePmgCandidateGroups === 'function') ? window.parsePmgCandidateGroups(rawSource) : gName.split(',').map(s => s.trim()).filter(Boolean));
+      list.forEach(g => allCandidateGroups.add(g));
+
       if (!groupStats.has(gName)) {
-        groupStats.set(gName, { count: 0, associatedLanes: new Set(), sampleActs: [] });
+        const display = (typeof window.formatPmgCandidateGroupsDisplay === 'function')
+          ? window.formatPmgCandidateGroupsDisplay(rawSource)
+          : `[${gName}]`;
+        groupStats.set(gName, {
+          count: 0,
+          associatedLanes: new Set(),
+          sampleActs: [],
+          candidateDisplay: display || `[${gName}]`,
+          candidateEditable: gName
+        });
       }
       const st = groupStats.get(gName);
       st.count++;
+      // Acteurs issus des codes couleur BPMN (DCI / CDD / OPS)
       if (act.entity && act.entity !== 'Non défini') st.associatedLanes.add(act.entity);
       if (st.sampleActs.length < 3) st.sampleActs.push(act.name);
     }
   });
 
   const lanesList = Array.from(allKnownLanes).sort();
+  const candidateList = Array.from(allCandidateGroups).sort();
 
   if (groupStats.size === 0) {
     container.innerHTML = '<div style="padding:25px; text-align:center; color:var(--text-tertiary); font-size:12.5px;">⚠️ Aucun groupe candidat (camunda:candidateGroups / zeebe:assignmentDefinition) n\'a été trouvé sur les User Tasks du lot BPMN.</div>';
@@ -1575,59 +1593,69 @@ window.renderPmgUserGroupMappingContent = function() {
   let rowIdx = 0;
 
   groupStats.forEach((st, gName) => {
-    const currentMapped = window.pmgUserGroupMappings[gName]?.targetEntity || Array.from(st.associatedLanes)[0] || '';
-    const lanesStr = Array.from(st.associatedLanes).join(', ') || '<span style="color:var(--text-tertiary); font-style:italic;">Aucune Lane</span>';
+    // Cible préremplie avec les candidateGroups (éditables), pas les acteurs couleurs
+    const currentMapped = window.pmgUserGroupMappings[gName]?.targetEntity || st.candidateEditable || '';
+    const lanesStr = Array.from(st.associatedLanes).map(l =>
+      `<span style="display:inline-block; margin:1px 3px 1px 0; padding:1px 7px; border-radius:10px; font-size:10.5px; font-weight:700; background:rgba(0,156,215,0.1); color:var(--brand-primary); border:1px solid rgba(0,156,215,0.25);">${escHtml(l)}</span>`
+    ).join('') || '<span style="color:var(--text-tertiary); font-style:italic;">Aucun acteur couleur</span>';
 
-    // Build Lane/Pool datalist options
-    let optionsHtml = '';
-    lanesList.forEach(l => {
-      optionsHtml += `<option value="${escAttr(l)}">${escHtml(l)}</option>`;
-    });
+    // Auto-persist default mapping (candidateGroups) si absent
+    if (!window.pmgUserGroupMappings[gName]) {
+      window.pmgUserGroupMappings[gName] = { targetEntity: currentMapped, isCustom: false };
+    }
+
+    const gNameJs = gName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
     rowsHtml += `
-      <tr style="border-bottom: 1px solid var(--border-color);">
-        <td style="padding: 10px 8px; vertical-align: middle;">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:14px;">👤</span>
-            <strong style="color:var(--text-primary); font-size:12.5px;">${escHtml(gName)}</strong>
+      <tr>
+        <td>
+          <div class="pmg-ugmap-group-name">
+            <span>👤</span>
+            <strong>${escHtml(gName)}</strong>
           </div>
-          <div style="font-size:10.5px; color:var(--text-tertiary); margin-top:2px;">Ex: ${escHtml(st.sampleActs.join(', '))}</div>
+          <div class="pmg-ugmap-group-ex">Ex: ${escHtml(st.sampleActs.join(', '))}</div>
         </td>
-        <td style="padding: 10px 8px; text-align: center; vertical-align: middle;">
-          <span style="font-size:11.5px; font-weight:700; background:rgba(0, 156, 215, 0.1); color:var(--brand-primary); padding:2px 8px; border-radius:10px;">
-            ${st.count} tâche(s)
-          </span>
+        <td class="pmg-ugmap-center">
+          <span class="pmg-ugmap-count">${st.count} tâche(s)</span>
         </td>
-        <td style="padding: 10px 8px; font-size:11.5px; color:var(--text-secondary); vertical-align: middle;">
-          ${lanesStr}
+        <td>${lanesStr}</td>
+        <td>
+          <code class="pmg-ugmap-cand" title="Valeur camunda:candidateGroups / zeebe:assignmentDefinition">${escHtml(st.candidateDisplay)}</code>
         </td>
-        <td style="padding: 8px 6px; vertical-align: middle;">
-          <div style="display:flex; gap:6px; align-items:center;">
-            <input type="text" id="pmgMappedEntity_${rowIdx}" list="pmgKnownLanesList" value="${escAttr(currentMapped)}" placeholder="Saisir ou choisir une Lane / Entité..." style="flex:1; height:32px; font-size:12px; border-radius:var(--border-radius-md); border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); padding:4px 8px;" onchange="savePmgSingleGroupMapping('${escAttr(gName)}', this.value)">
-          </div>
+        <td>
+          <input type="text" id="pmgMappedEntity_${rowIdx}" class="pmg-ugmap-input" list="pmgKnownGroupsAndLanesList" value="${escAttr(currentMapped)}" placeholder="Ex: CDD_SUPPORT_CENTRAL, groupeCPL" onchange="savePmgSingleGroupMapping('${gNameJs}', this.value)" oninput="savePmgSingleGroupMapping('${gNameJs}', this.value)">
         </td>
       </tr>
     `;
     rowIdx++;
   });
 
+  const datalistOpts = [
+    ...candidateList.map(g => `<option value="${escAttr(g)}">`),
+    ...lanesList.map(l => `<option value="${escAttr(l)}">`)
+  ].join('');
+
   container.innerHTML = `
-    <datalist id="pmgKnownLanesList">
-      ${lanesList.map(l => `<option value="${escAttr(l)}">`).join('')}
+    <datalist id="pmgKnownGroupsAndLanesList">
+      ${datalistOpts}
     </datalist>
 
-    <div style="margin-bottom:14px; background:rgba(99, 102, 241, 0.06); border:1px solid rgba(99, 102, 241, 0.25); border-radius:6px; padding:12px 16px; font-size:12px; color:var(--text-secondary); line-height:1.5;">
-      💡 <strong>Gestion des Groupes Transverses &amp; Rôles Déportés :</strong> Si un groupe d'utilisateurs (ex: <em>Auditeurs_Fraude</em>) intervient sur une Lane différente de son entité de rattachement (ex: <em>Pôle Conformité</em>), spécifiez ici son <strong>Entité Référente</strong>. Vous pourrez ensuite appliquer cette règle à toutes les tâches correspondantes en 1 clic.
-    </div>
-
-    <div style="border:1px solid var(--border-color); border-radius:var(--border-radius-md); overflow-x:auto; background:var(--bg-card);">
-      <table style="width:100%; font-size:12px; border-collapse:collapse;">
+    <div class="pmg-ugmap-table-wrap">
+      <table class="pmg-ugmap-table">
+        <colgroup>
+          <col style="width:22%">
+          <col style="width:10%">
+          <col style="width:14%">
+          <col style="width:26%">
+          <col style="width:28%">
+        </colgroup>
         <thead>
-          <tr style="background:var(--bg-card); border-bottom:1px solid var(--border-color); text-align:left;">
-            <th style="padding:10px;">Groupe Utilisateur BPMN</th>
-            <th style="padding:10px; width:100px; text-align:center;">Occurrences</th>
-            <th style="padding:10px; width:220px;">Lanes BPMN actuelles</th>
-            <th style="padding:10px; width:280px;">Entité / Lane de Rattachement Cible</th>
+          <tr>
+            <th>Groupe Utilisateur BPMN</th>
+            <th class="pmg-ugmap-center">Occurrences</th>
+            <th>Acteurs</th>
+            <th>Groupes candidats</th>
+            <th>Entité / Cible</th>
           </tr>
         </thead>
         <tbody>
@@ -1656,18 +1684,34 @@ window.applyPmgUserGroupMappings = function() {
       const gName = act.userGroup.trim();
       const mapping = window.pmgUserGroupMappings[gName];
       if (mapping && mapping.targetEntity) {
-        act.entity = mapping.targetEntity;
-        const input = document.getElementById(`pmgEntityInput_${idx}`);
-        if (input) input.value = mapping.targetEntity;
+        const newGroups = mapping.targetEntity.trim();
+        // Met à jour les candidateGroups éditables (valeur cible)
+        act.userGroup = newGroups;
+        act.candidateGroupsRaw = newGroups;
+        act.candidateGroupsList = (typeof window.parsePmgCandidateGroups === 'function')
+          ? window.parsePmgCandidateGroups(newGroups)
+          : newGroups.split(',').map(s => s.trim()).filter(Boolean);
+        // Conserve l'acteur couleur (DCI/CDD/OPS) dans entity s'il est déjà présent ;
+        // sinon, utilise la cible comme entité de rattachement.
+        if (!act.entity || act.entity === 'Non défini') {
+          act.entity = newGroups;
+        }
+        const groupInput = document.getElementById(`pmgGroupInput_${idx}`);
+        if (groupInput) groupInput.value = newGroups;
+        const entityInput = document.getElementById(`pmgEntityInput_${idx}`);
+        if (entityInput && (!act.entity || act.entity === newGroups)) {
+          entityInput.value = act.entity;
+        }
         updatedCount++;
       }
     }
   });
 
   if (window.renderPmgStep2ManualTable) window.renderPmgStep2ManualTable();
+  if (window.renderPmgStep3ManualTable) window.renderPmgStep3ManualTable();
   if (window.renderPmgStep3Kpis) window.renderPmgStep3Kpis();
   window.closePmgUserGroupMappingModal();
-  alert(`🚀 Mappage appliqué avec succès : ${updatedCount} tâche(s) utilisateur(s) mise(s) à jour avec leurs entités cibles.`);
+  alert(`🚀 Mappage appliqué avec succès : ${updatedCount} tâche(s) utilisateur(s) mise(s) à jour (candidateGroups). Les acteurs couleurs (DCI/CDD/OPS) sont conservés.`);
 };
 
 
@@ -2638,39 +2682,69 @@ window.validatePmgStep1 = window.validatePmgStep2Activities; // backward alias
 // 🧹 CLEAN PMG USER GROUP NAME & SMART ENTITY ASSIGNMENT
 // =========================================================================
 
-window.cleanPmgUserGroupName = function(raw) {
-  if (raw == null) return '';
+/**
+ * Parse camunda:candidateGroups / zeebe assignment values, including FEEL lists:
+ * =["CDD_SUPPORT_CENTRAL",groupeCPL] → ["CDD_SUPPORT_CENTRAL", "groupeCPL"]
+ */
+window.parsePmgCandidateGroups = function(raw) {
+  if (raw == null) return [];
   let str = String(raw).trim();
-  if (!str) return '';
+  if (!str) return [];
 
-  // 1. Remove leading '=' if present (Camunda 8 / Zeebe FEEL expression indicator)
-  if (str.startsWith('=')) {
-    str = str.substring(1).trim();
-  }
+  if (str.startsWith('=')) str = str.substring(1).trim();
 
-  // 2. If bracketed: =["CDD_SUPPORT_CENTRAL"] or ['A', 'B'] or [groupeResponsable]
+  const stripQuotes = (s) => String(s || '').trim().replace(/^["']+|["']+$/g, '').trim();
+
   if (str.startsWith('[') && str.endsWith(']')) {
     const inner = str.slice(1, -1).trim();
-    try {
-      const parsed = JSON.parse('[' + inner.replace(/'/g, '"') + ']');
-      if (Array.isArray(parsed)) {
-        return parsed.map(item => String(item).trim()).filter(Boolean).join(', ');
+    if (!inner) return [];
+    const parts = [];
+    let cur = '';
+    let inQuote = null;
+    for (let i = 0; i < inner.length; i++) {
+      const ch = inner[i];
+      if ((ch === '"' || ch === "'") && !inQuote) {
+        inQuote = ch;
+        continue;
       }
-    } catch (e) {
-      // Fallback: use inner without brackets
-      str = inner;
+      if (inQuote && ch === inQuote) {
+        inQuote = null;
+        continue;
+      }
+      if (ch === ',' && !inQuote) {
+        const token = stripQuotes(cur);
+        if (token) parts.push(token);
+        cur = '';
+        continue;
+      }
+      cur += ch;
     }
+    const last = stripQuotes(cur);
+    if (last) parts.push(last);
+    return parts;
   }
 
-  // 3. Remove surrounding single or double quotes
-  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
-    str = str.slice(1, -1).trim();
+  if (str.includes(',')) {
+    return str.split(',').map(stripQuotes).filter(Boolean);
   }
 
-  // 4. Remove residual quotes for list strings
-  str = str.replace(/["']/g, '').trim();
+  const single = stripQuotes(str);
+  return single ? [single] : [];
+};
 
-  return str;
+/** Affichage type BPMN/FEEL : ["CDD_SUPPORT_CENTRAL",groupeCPL] */
+window.formatPmgCandidateGroupsDisplay = function(raw) {
+  const list = window.parsePmgCandidateGroups(raw);
+  if (!list.length) return '';
+  return '[' + list.map(g => {
+    if (/^[A-Z][A-Z0-9_]*$/.test(g) && g.includes('_')) return `"${g}"`;
+    if (/[\s,]/.test(g)) return JSON.stringify(g);
+    return g;
+  }).join(',') + ']';
+};
+
+window.cleanPmgUserGroupName = function(raw) {
+  return window.parsePmgCandidateGroups(raw).join(', ');
 };
 
 window.openPmgSmartEntityAssignModal = function() {
@@ -3864,6 +3938,8 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
             }
 
             let userGroup = '';
+            let candidateGroupsRaw = '';
+            let candidateGroupsList = [];
             let userGroupWarning = false;
 
             if (localName === 'usertask') {
@@ -3881,6 +3957,10 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
                 const assignee = el.getAttribute('camunda:assignee') || el.getAttribute('assignee') || '';
                 if (assignee) userGroup = `Assigné: ${assignee}`;
               }
+              candidateGroupsRaw = userGroup || '';
+              candidateGroupsList = (typeof window.parsePmgCandidateGroups === 'function')
+                ? window.parsePmgCandidateGroups(candidateGroupsRaw)
+                : [];
               if (userGroup && typeof window.cleanPmgUserGroupName === 'function') {
                 userGroup = window.cleanPmgUserGroupName(userGroup);
               }
@@ -3947,6 +4027,8 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
               typeLabel: TYPE_LABELS[localName] || localName,
               entity,
               userGroup,
+              candidateGroupsRaw,
+              candidateGroupsList,
               userGroupWarning,
               inputs,
               outputs,
