@@ -1794,6 +1794,56 @@ window.resetPmgStep3Filters = function() {
   window.renderPmgStep2ManualTable();
 };
 
+/**
+ * Alignement groupe candidat ↔ acteur couleur (DCI/CDD/OPS).
+ * Ex: CDD_CPL sur acteur CDD = aligné ; CDD_CPL sur DCI = transverse.
+ */
+window.isPmgGroupAlignedWithActor = function(groupVal, entity) {
+  if (!groupVal || !entity) return true;
+  const actor = String(entity).trim().toUpperCase();
+  if (!actor || actor === 'NON DÉFINI' || actor === 'NON DEFINI') return true;
+
+  const groups = (typeof window.parsePmgCandidateGroups === 'function')
+    ? window.parsePmgCandidateGroups(groupVal)
+    : String(groupVal).split(',').map(s => s.trim()).filter(Boolean);
+  if (!groups.length) return true;
+
+  const knownActors = ['DCI', 'CDD', 'OPS'];
+  const hasActorHint = groups.some(g => {
+    const gu = String(g).trim().toUpperCase();
+    return knownActors.some(a => gu === a || gu.startsWith(a + '_') || gu.startsWith(a));
+  });
+  // Pas de signal acteur dans le nom du groupe → non transverse par défaut
+  if (!hasActorHint) return true;
+
+  return groups.some(g => {
+    const gu = String(g).trim().toUpperCase();
+    return gu === actor || gu.startsWith(actor + '_') || gu.startsWith(actor);
+  });
+};
+
+window.isPmgActivityTransverse = function(act) {
+  const isUserTask = (act.type || '').toLowerCase().includes('user');
+  if (!isUserTask) return false;
+  const groupVal = (act.userGroup || '').trim();
+  if (!groupVal) return false;
+  const entity = (act.entity && act.entity !== 'Non défini') ? act.entity : '';
+  if (!entity) return false;
+
+  const mapping = window.pmgUserGroupMappings && window.pmgUserGroupMappings[groupVal];
+  if (mapping && mapping.targetEntity) {
+    const target = String(mapping.targetEntity).trim();
+    const targetUp = target.toUpperCase();
+    const knownActors = ['DCI', 'CDD', 'OPS'];
+    // Cible explicitement un autre acteur couleur
+    if (knownActors.includes(targetUp) && targetUp !== entity.toUpperCase()) {
+      return true;
+    }
+  }
+
+  return !window.isPmgGroupAlignedWithActor(groupVal, entity);
+};
+
 window.togglePmgStep3Preset = function(presetKey) {
   const current = window.pmgColFilters.step3.preset;
   window.resetPmgStep3Filters();
@@ -1812,12 +1862,20 @@ window.togglePmgStep3Preset = function(presetKey) {
     const typeSelect = document.getElementById('pmgFilterStep3Type');
     if (typeSelect) { typeSelect.value = 'usertask'; typeSelect.classList.add('has-filter'); }
   } else if (presetKey === 'noGroup') {
+    // User Tasks sans candidateGroups
+    window.pmgColFilters.step3.type = 'usertask';
     window.pmgColFilters.step3.groupStatus = 'no_group';
+    const typeSelect = document.getElementById('pmgFilterStep3Type');
     const groupStatusSelect = document.getElementById('pmgFilterStep3GroupStatus');
+    if (typeSelect) { typeSelect.value = 'usertask'; typeSelect.classList.add('has-filter'); }
     if (groupStatusSelect) { groupStatusSelect.value = 'no_group'; groupStatusSelect.classList.add('has-filter'); }
   } else if (presetKey === 'transverse') {
+    // User Tasks dont le groupe n'est pas aligné avec l'acteur couleur
+    window.pmgColFilters.step3.type = 'usertask';
     window.pmgColFilters.step3.groupStatus = 'transverse';
+    const typeSelect = document.getElementById('pmgFilterStep3Type');
     const groupStatusSelect = document.getElementById('pmgFilterStep3GroupStatus');
+    if (typeSelect) { typeSelect.value = 'usertask'; typeSelect.classList.add('has-filter'); }
     if (groupStatusSelect) { groupStatusSelect.value = 'transverse'; groupStatusSelect.classList.add('has-filter'); }
   } else if (presetKey === 'inherited') {
     window.pmgColFilters.step3.entity = '__inherited__';
@@ -2071,8 +2129,9 @@ window.renderPmgStep2ManualTable = function() {
     const isUserTask = (act.type || '').toLowerCase().includes('user');
     const groupVal = (act.userGroup || '').trim();
     const hasGroup = groupVal.length > 0;
-    const mapping = hasGroup ? window.pmgUserGroupMappings[groupVal] : null;
-    const isTransverse = isUserTask && hasGroup && mapping && mapping.targetEntity && mapping.targetEntity !== (act.entity || '');
+    const isTransverse = typeof window.isPmgActivityTransverse === 'function'
+      ? window.isPmgActivityTransverse(act)
+      : false;
 
     if (f.groupStatus !== 'all') {
       if (f.groupStatus === 'with_group' && (!isUserTask || !hasGroup)) return false;
@@ -2099,6 +2158,30 @@ window.renderPmgStep2ManualTable = function() {
     return;
   }
 
+  // Index pour recalculer une hiérarchie visible (évite les └─ orphelins sous filtre)
+  const actByKey = new Map();
+  activities.forEach(a => {
+    const key = a.uniqueId || a.id;
+    if (key) actByKey.set(key, a);
+  });
+  const filteredKeys = new Set(filtered.map(a => a.uniqueId || a.id).filter(Boolean));
+
+  function getVisibleDepth(act) {
+    let depth = 0;
+    let pid = act.parentId;
+    const seen = new Set();
+    while (pid && !seen.has(pid)) {
+      seen.add(pid);
+      if (filteredKeys.has(pid)) depth++;
+      const parent = actByKey.get(pid);
+      pid = parent ? parent.parentId : null;
+      if (depth > 30) break;
+    }
+    return depth;
+  }
+
+  const colorActors = new Set(['DCI', 'CDD', 'OPS']);
+
   let html = '';
   filtered.forEach((act) => {
     const origIdx = activities.indexOf(act);
@@ -2106,14 +2189,15 @@ window.renderPmgStep2ManualTable = function() {
     const entityVal = act.entity && act.entity !== 'Non défini' ? act.entity : '';
     const groupVal = (typeof window.cleanPmgUserGroupName === 'function') ? window.cleanPmgUserGroupName(act.userGroup) : (act.userGroup || '');
     const hasGroup = groupVal.trim().length > 0;
+    const isTransverse = typeof window.isPmgActivityTransverse === 'function'
+      ? window.isPmgActivityTransverse(act)
+      : false;
+    const visibleDepth = getVisibleDepth(act);
 
-    // Check if group is mapped or transverse
+    // Badge transverse : groupe non aligné avec l'acteur couleur
     let groupExtraBadge = '';
-    if (isUserTask && hasGroup) {
-      const mapping = window.pmgUserGroupMappings[groupVal.trim()];
-      if (mapping && mapping.targetEntity && mapping.targetEntity !== entityVal) {
-        groupExtraBadge = '<span style="background:rgba(245, 158, 11, 0.12); color:var(--warn); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(245, 158, 11, 0.25);" title="Le groupe ' + escAttr(groupVal) + ' est rattaché à l\'entité ' + escAttr(mapping.targetEntity) + '">⚠️ Transverse : Rattaché à ' + escHtml(mapping.targetEntity) + '</span>';
-      }
+    if (isUserTask && hasGroup && isTransverse) {
+      groupExtraBadge = '<span style="background:rgba(245, 158, 11, 0.12); color:var(--warn); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(245, 158, 11, 0.25);" title="Groupe candidat non aligné avec l\'acteur couleur ' + escAttr(entityVal) + '">🔀 Transverse (acteur ' + escHtml(entityVal || '?') + ')</span>';
     }
 
     let groupCellHtml = '';
@@ -2142,17 +2226,20 @@ window.renderPmgStep2ManualTable = function() {
       `;
     }
 
+    const isColorActor = entityVal && colorActors.has(String(entityVal).toUpperCase());
     const inheritedPill = act.isInheritedEntity 
-      ? '<span style="background:rgba(99, 102, 241, 0.1); color:#6366f1; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(99, 102, 241, 0.25); margin-top:4px; display:inline-block;" title="Hérité de la Lane du processus parent">↳ Hérité du Parent</span>' 
-      : (entityVal ? '<span class="pmg-badge-info" style="font-size:10px; margin-top:4px; width:fit-content;">🏢 Lane / Pool BPMN</span>' : '<span style="font-size:10px; color:#94a3b8; margin-top:4px; display:block;">Optionnel</span>');
+      ? '<span style="background:rgba(99, 102, 241, 0.1); color:#6366f1; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(99, 102, 241, 0.25); margin-top:4px; display:inline-block;" title="Hérité de l\'acteur / lane du processus parent">↳ Hérité du Parent</span>' 
+      : (isColorActor
+        ? '<span class="pmg-badge-info" style="font-size:10px; margin-top:4px; width:fit-content;">🎨 Acteur (couleur)</span>'
+        : (entityVal ? '<span class="pmg-badge-info" style="font-size:10px; margin-top:4px; width:fit-content;">🏢 Lane / Pool BPMN</span>' : '<span style="font-size:10px; color:#94a3b8; margin-top:4px; display:block;">Optionnel</span>'));
 
     html += `
       <tr style="border-bottom: 1px solid var(--border-color);">
         <td style="padding: 10px 8px; vertical-align: top;">
-          <span style="display:inline-block; margin-left:${(act.level - 1) * 14}px;">
-            ${act.level > 1 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
+          <span style="display:inline-block; margin-left:${visibleDepth * 14}px;">
+            ${visibleDepth > 0 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
           </span>
-          <div style="font-size:10.5px; color:#94a3b8; margin-left:${(act.level - 1) * 14}px;">id: <code>${escHtml(act.id)}</code> • <em>${escHtml(act.parentProcessName || '')}</em></div>
+          <div style="font-size:10.5px; color:#94a3b8; margin-left:${visibleDepth * 14}px;">id: <code>${escHtml(act.id)}</code> • <em>${escHtml(act.parentProcessName || '')}</em></div>
         </td>
         <td style="padding: 10px 8px; vertical-align: top;">
           <span style="font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight:700; ${isUserTask ? 'background: rgba(234, 91, 12, 0.1); color: #ea5b0c; border: 1px solid rgba(234, 91, 12, 0.25);' : 'background: rgba(0, 156, 215, 0.1); color: #009cd7; border: 1px solid rgba(0, 156, 215, 0.25);'}">
@@ -2906,7 +2993,7 @@ window.renderPmgSmartEntityAssignContent = function() {
       <!-- Section 2 : Entité cible -->
       <div id="pmgSmartTargetEntitySection" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--border-radius-md); padding:14px;">
         <label style="font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:6px; display:block;">
-          2. Entité / Lane cible à affecter :
+          2. Entité / Acteur cible à affecter :
         </label>
         
         <input type="text" id="pmgSmartTargetEntityInput" placeholder="Ex: CDD, Direction Métier, Support Client..." oninput="updatePmgSmartEntityPreview()" style="width:100%; height:36px; font-size:13px; border-radius:var(--border-radius-md); border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); padding:6px 10px;">
