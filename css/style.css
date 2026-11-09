@@ -3143,6 +3143,17 @@ tr:hover td {
   min-width: 22px;
   text-align: center;
 }
+
+/* Arborescence filtrée : parents contextuels nets (pas de flou) + matchs mis en avant */
+.pmg-tree-node {
+  opacity: 1 !important;
+}
+.pmg-tree-node--match > div {
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.08);
+}
+.pmg-tree-node--context > div {
+  box-shadow: none;
+}
 .pmg-filter-chip {
   background: var(--bg-card);
   color: var(--text-secondary);

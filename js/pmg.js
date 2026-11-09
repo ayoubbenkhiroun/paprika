@@ -2180,6 +2180,14 @@ window.isPmgTypeVisible = function(rawType) {
   return window.pmgTypeFilters[key] !== false;
 };
 
+/** True si au moins un type de composant est désactivé dans la barre de filtres. */
+window.isPmgTypeFilterActive = function() {
+  const filters = window.pmgTypeFilters || {};
+  const keys = Object.keys(filters);
+  if (keys.length === 0) return false;
+  return keys.some(k => filters[k] === false);
+};
+
 window.getPmgFilteredActivities = function() {
   const all = window.pmgActivities || window.pmgTempSubprocesses || [];
   if (!window.pmgTypeFilters) return all;
@@ -2338,11 +2346,15 @@ window.renderPmgVisualTree = function(activities) {
   ];
 
   // Helper function to build a sub-tree of nodes
+  // Règle de filtrage :
+  // - nœuds du type sélectionné → pleinement visibles
+  // - ancêtres (ex: Call Activity parent d'un User Task) → conservés nets pour l'arborescence (plus de flou)
+  // - feuilles hors filtre sans descendant matchant → masquées
   function buildTreeHTML(nodes) {
     const filteredNodes = nodes.filter(hasVisibleDescendant);
     if (filteredNodes.length === 0) return '';
 
-    let html = '<ul class="pmg-tree-ul" style="list-style:none; padding-left:16px; margin:0;">';
+    let html = '<ul class="pmg-tree-ul" style="list-style:none; padding-left:16px; margin:0; border-left:1px solid rgba(148,163,184,0.25);">';
     filteredNodes.forEach(node => {
       const visibleChildren = (node.children || []).filter(hasVisibleDescendant);
       const hasChildren = visibleChildren.length > 0;
@@ -2355,16 +2367,25 @@ window.renderPmgVisualTree = function(activities) {
       const icon = isSub ? '📁' : meta.icon;
       const safeId = node.uniqueId || node.id || node.name || '';
 
-      const nodeOpacity = node.isVisible ? '1' : '0.55';
-      const nodeBorder = node.isVisible ? 'var(--border-color)' : '1px dashed rgba(148, 163, 184, 0.45)';
+      // Contexte hiérarchique (parent hors filtre) : net, jamais flou
+      const isContextOnly = !node.isVisible;
+      const nodeBg = node.isVisible
+        ? 'var(--bg-card)'
+        : (isCallAct || isSub ? 'rgba(59, 130, 246, 0.06)' : 'rgba(148, 163, 184, 0.06)');
+      const nodeBorder = node.isVisible
+        ? `1px solid ${meta.color || 'var(--border-color)'}`
+        : '1px dashed rgba(59, 130, 246, 0.45)';
+      const contextPill = isContextOnly
+        ? `<span style="background:rgba(59, 130, 246, 0.12); color:var(--brand-primary); padding:1px 6px; border-radius:4px; font-size:9.5px; font-weight:700; border:1px solid rgba(59, 130, 246, 0.3);" title="Conservé pour afficher la hiérarchie sous filtre">↳ Contexte</span>`
+        : '';
 
-      // Call Activity calledElement badge
+      // Call Activity calledElement badge — toujours lisible
       let calledElementBadge = '';
       if (isCallAct && node.calledElement) {
         if (node.targetMissing) {
-          calledElementBadge = `<span style="background:rgba(239, 68, 68, 0.12); color:#ef4444; padding:2px 6px; border-radius:4px; font-size:10px; font-family:var(--font-mono); border:1px solid rgba(239, 68, 68, 0.3);" title="Sous-processus introuvable dans le lot importé">⚠️ Cible: ${escHtml(node.calledElement)} (Non trouvé)</span>`;
+          calledElementBadge = `<span style="background:rgba(239, 68, 68, 0.12); color:#ef4444; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; font-family:var(--font-mono); border:1px solid rgba(239, 68, 68, 0.3);" title="Sous-processus introuvable dans le lot importé">⚠️ Appelle: ${escHtml(node.calledElement)} (Non trouvé)</span>`;
         } else {
-          calledElementBadge = `<span style="background:rgba(59, 130, 246, 0.12); color:var(--brand-primary); padding:2px 6px; border-radius:4px; font-size:10px; font-family:var(--font-mono); border:1px solid rgba(59, 130, 246, 0.25);" title="Process ID appelé (calledElement)">🎯 Appelle: ${escHtml(node.calledElement)}</span>`;
+          calledElementBadge = `<span style="background:rgba(59, 130, 246, 0.14); color:var(--brand-primary); padding:2px 7px; border-radius:4px; font-size:11px; font-weight:700; font-family:var(--font-mono); border:1px solid rgba(59, 130, 246, 0.35);" title="Process / Formulaire ID appelé (calledElement)">Appelle: ${escHtml(node.calledElement)}</span>`;
         }
       }
 
@@ -2382,18 +2403,28 @@ window.renderPmgVisualTree = function(activities) {
       // Order Index Pill
       const orderPill = `<span class="pmg-order-pill" title="Position d\'ordonnancement ${window.pmgActivityOrderMode} : #${node.orderIndex || 1}">#${node.orderIndex || 1}</span>`;
 
+      const typeBadgeBg = isSub ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+      const typeBadgeColor = isSub ? 'var(--brand-primary)' : 'var(--ok)';
+
       html += `
-        <li class="pmg-tree-node" data-name="${escAttr((node.name || '').toLowerCase())}" data-id="${escAttr(safeId)}" data-type="${escAttr(typeKey)}" style="margin:6px 0; opacity:${nodeOpacity};">
-          <div style="display:flex; align-items:center; gap:8px; background:var(--bg-card); padding:6px 10px; border-radius:6px; border:1px solid ${nodeBorder}; flex-wrap:wrap;">
-            ${hasChildren ? `<button class="tree-toggle-btn" onclick="togglePmgTreeNode(this)" style="background:none; border:none; color:var(--text-primary); cursor:pointer; font-weight:bold; font-size:12px; padding:0 4px;">▼</button>` : `<span style="width:14px; display:inline-block;"></span>`}
+        <li class="pmg-tree-node${isContextOnly ? ' pmg-tree-node--context' : ' pmg-tree-node--match'}" data-name="${escAttr((node.name || '').toLowerCase())}" data-id="${escAttr(safeId)}" data-type="${escAttr(typeKey)}" data-context="${isContextOnly ? '1' : '0'}" style="margin:6px 0; opacity:1;">
+          <div style="display:flex; align-items:flex-start; gap:8px; background:${nodeBg}; padding:8px 10px; border-radius:6px; border:${nodeBorder}; flex-wrap:wrap;">
+            ${hasChildren ? `<button class="tree-toggle-btn" onclick="togglePmgTreeNode(this)" style="background:none; border:none; color:var(--text-primary); cursor:pointer; font-weight:bold; font-size:12px; padding:0 4px; margin-top:2px;">▼</button>` : `<span style="width:14px; display:inline-block;"></span>`}
             ${orderPill}
-            <span style="font-size:14px;">${icon}</span>
-            <strong style="color:var(--text-primary); font-size:12px;">${escHtml(node.name)}</strong>
-            <span style="background:${isSub ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)'}; color:${isSub ? 'var(--brand-primary)' : 'var(--ok)'}; padding:2px 6px; border-radius:10px; font-size:10px; font-weight:600;">${escHtml(node.typeLabel || node.type)}</span>
-            ${parentBadge}
-            ${sharedBadge}
-            ${calledElementBadge}
-            <span style="background:rgba(255,255,255,0.05); color:${lvlColor}; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid ${lvlColor}44; margin-left:auto;">Niveau ${node.level || 1}</span>
+            <span style="font-size:15px; line-height:1.2;">${icon}</span>
+            <div style="display:flex; flex-direction:column; gap:4px; min-width:0; flex:1;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <strong style="color:var(--text-primary); font-size:12.5px;">${escHtml(node.name)}</strong>
+                <span style="background:${typeBadgeBg}; color:${typeBadgeColor}; padding:2px 7px; border-radius:10px; font-size:10.5px; font-weight:700;">${escHtml(node.typeLabel || node.type)}</span>
+                ${contextPill}
+                <span style="background:rgba(255,255,255,0.05); color:${lvlColor}; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid ${lvlColor}44; margin-left:auto;">Niveau ${node.level || 1}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                ${calledElementBadge}
+                ${parentBadge}
+                ${sharedBadge}
+              </div>
+            </div>
           </div>
           ${hasChildren ? buildTreeHTML(visibleChildren) : ''}
         </li>
@@ -2440,6 +2471,9 @@ window.renderPmgVisualTree = function(activities) {
 
     const finalHtml = buildTreeHTML(roots);
     treeBox.innerHTML = finalHtml || '<div style="padding:25px; text-align:center; color:var(--text-tertiary); font-size:12px;">⚠️ Aucun composant ne correspond aux filtres sélectionnés.</div>';
+    if (window.isPmgTypeFilterActive && window.isPmgTypeFilterActive()) {
+      window.expandAllPmgTree();
+    }
     return;
   }
 
@@ -2516,6 +2550,10 @@ window.renderPmgVisualTree = function(activities) {
     treeBox.innerHTML = '<div style="padding:25px; text-align:center; color:var(--text-tertiary); font-size:12px;">⚠️ Aucun composant ne correspond aux filtres de processus ou types sélectionnés.</div>';
   } else {
     treeBox.innerHTML = multiParentHtml;
+  }
+  // Sous filtre de types : déplier toute l'arborescence pour bien voir parents (Call Activity) + enfants matchés
+  if (window.isPmgTypeFilterActive && window.isPmgTypeFilterActive()) {
+    window.expandAllPmgTree();
   }
 };
 
