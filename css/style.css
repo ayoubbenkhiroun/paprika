@@ -9281,3 +9281,27 @@ tr:hover td {
   color: var(--brand-primary);
 }
 
+/* Section repliable : Call Activities manquantes (synthèse One-Shot PMG) */
+.pmg-missing-ca-summary::-webkit-details-marker {
+  display: none;
+}
+
+.pmg-missing-ca-summary::marker {
+  content: '';
+}
+
+.pmg-missing-ca-chevron {
+  flex-shrink: 0;
+  font-size: 10px;
+  opacity: 0.75;
+  transition: transform 0.2s ease;
+}
+
+.pmg-missing-ca-collapse[open] .pmg-missing-ca-chevron {
+  transform: rotate(180deg);
+}
+
+.pmg-missing-ca-summary:hover {
+  opacity: 0.92;
+}
+

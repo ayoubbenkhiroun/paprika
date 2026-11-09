@@ -4395,11 +4395,19 @@ window.renderPmgBatchSummary = function(batchResult) {
 
   let missingHtml = '';
   if (missingCount > 0) {
-    const missingList = batchResult.missingSubprocesses.map(m => `<code>${escHtml(m.calledElement)}</code> (appelé par <em>${escHtml(m.calledBy)}</em>)`).join(', ');
+    const missingItems = batchResult.missingSubprocesses.map(m =>
+      `<li style="margin: 0 0 6px; line-height: 1.45;"><code>${escHtml(m.calledElement)}</code> <span style="opacity:0.85;">(appelé par <em>${escHtml(m.calledBy)}</em>)</span></li>`
+    ).join('');
     missingHtml = `
-      <div style="margin-top: 10px; padding: 8px 12px; background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--warn); border-radius: 4px; font-size: 11.5px; color: var(--warn);">
-        ⚠️ <strong>${missingCount} Call Activity cible(s) non trouvée(s) dans le lot :</strong> ${missingList}
-      </div>
+      <details class="pmg-missing-ca-collapse" style="margin-top: 10px; padding: 8px 12px; background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--warn); border-radius: 4px; font-size: 11.5px; color: var(--warn);">
+        <summary class="pmg-missing-ca-summary" style="cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <span>⚠️ <strong>${missingCount} Call Activity cible(s) non trouvée(s) dans le lot</strong> — cliquez pour afficher</span>
+          <span class="pmg-missing-ca-chevron" aria-hidden="true">▼</span>
+        </summary>
+        <ul style="margin: 10px 0 0; padding: 0 0 0 18px; max-height: 220px; overflow-y: auto; color: var(--text-secondary);">
+          ${missingItems}
+        </ul>
+      </details>
     `;
   }
 
