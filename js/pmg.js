@@ -3595,16 +3595,16 @@ window.renderPmgStep4ManualTable = function() {
             id: <code>${escHtml(act.id)}</code> • <em style="color:#009cd7; font-weight:500;">🏛️ ${escHtml(parentProcLabel)}</em>
           </div>
         </td>
-        <td style="padding: 6px;">
-          <select id="pmgModeSelect_${origIdx}" class="srt" onchange="syncPmgStepActivityField('${escAttr(act.id)}', 'realizationMode', this.value)" style="width: 100%; height: 32px; font-size: 12px;">
+        <td style="padding: 6px; vertical-align: middle;">
+          <select id="pmgModeSelect_${origIdx}" class="pmg-mode-select" onchange="syncPmgStepActivityField('${escAttr(act.id)}', 'realizationMode', this.value)">
             ${optionsHtml}
           </select>
         </td>
-        <td style="padding: 6px;">
-          <input type="text" id="pmgCaseInput_${origIdx}" value="${escAttr(caseVal)}" placeholder="Ex: Si dossier prioritaire" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'applicableCase', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
+        <td style="padding: 6px; vertical-align: middle;">
+          <input type="text" id="pmgCaseInput_${origIdx}" class="pmg-step5-input" value="${escAttr(caseVal)}" placeholder="Ex: Si dossier prioritaire" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'applicableCase', this.value)">
         </td>
-        <td style="padding: 6px;">
-          <input type="text" id="pmgCommentInput_${origIdx}" value="${escAttr(commentVal)}" placeholder="Ex: Traitement physique" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'comment', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
+        <td style="padding: 6px; vertical-align: middle;">
+          <input type="text" id="pmgCommentInput_${origIdx}" class="pmg-step5-input" value="${escAttr(commentVal)}" placeholder="Ex: Traitement physique" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'comment', this.value)">
         </td>
       </tr>
     `;

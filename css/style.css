@@ -1589,6 +1589,48 @@ tr:hover td {
   box-shadow: 0 0 0 3px rgba(0, 156, 215, 0.20);
 }
 
+/* Étape 5 — selects mode de réalisation (évite texte coupé par height/padding) */
+.pmg-mode-select {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 34px;
+  height: 34px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: var(--border-radius-md, 6px);
+  cursor: pointer;
+  appearance: auto;
+  -webkit-appearance: menulist;
+  vertical-align: middle;
+}
+
+.pmg-mode-select:focus {
+  outline: none;
+  border-color: var(--brand-primary, #009cd7);
+  box-shadow: 0 0 0 3px rgba(0, 156, 215, 0.18);
+}
+
+.pmg-step5-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  min-height: 34px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  border-radius: var(--border-radius-md, 6px);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
 /* ---------- Text and Status Helpers ---------- */
 .mono {
   font-family: var(--font-mono);
