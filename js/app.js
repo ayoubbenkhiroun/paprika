@@ -128,7 +128,7 @@ let selectedVarForInspection = null;
 let procNetworkGraph = null;
 
 // ---------- Module & Subprocess State Variables ----------
-let currentModule = 'variables'; // 'variables', 'subprocesses', 'bpmn-naming', 'bpmn-lint', 'pmg', 'roi' or 'diff'
+let currentModule = 'bpmn-lint'; // 'variables', 'subprocesses', 'bpmn-naming', 'bpmn-lint', 'pmg', 'roi' or 'diff'
 let allSubprocessRows = [];
 let filteredSubprocessRows = [];
 let rawSubprocessFileData = [];

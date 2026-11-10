@@ -63,7 +63,8 @@
         <h2>AuditFlow Pro</h2>
         <p>Gouvernance, Audit & Documentation des processus BPMN</p>
         <div style="margin-top:6px;">
-          <span style="background:linear-gradient(135deg, #fef3c7, #fde68a); color:#92400e; border:1px solid #facc15; font-size:11px; padding:3px 10px; border-radius:12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(180,83,9,0.12);">
+          <span
+            style="background:linear-gradient(135deg, #fef3c7, #fde68a); color:#92400e; border:1px solid #facc15; font-size:11px; padding:3px 10px; border-radius:12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(180,83,9,0.12);">
             🧪 Version de Recette Client • v3.0.0
           </span>
         </div>
@@ -127,6 +128,7 @@
         </div>
 
         <!-- Groupe Variables -->
+        <!--
         <div class="menu-group expanded" id="group-variables">
           <button id="btn-mod-variables" class="menu-header active" onclick="switchModule('variables')">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
@@ -226,8 +228,10 @@
             </button>
           </div>
         </div>
+        -->
 
         <!-- Groupe Sous-processus -->
+        <!--
         <div class="menu-group" id="group-subprocesses">
           <button id="btn-mod-subprocesses" class="menu-header" onclick="switchModule('subprocesses')">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
@@ -271,10 +275,11 @@
             </button>
           </div>
         </div>
+        -->
 
         <!-- Groupe Audit & Santé BPMN (Fusionné) -->
-        <div class="menu-group" id="group-bpmn-lint">
-          <button id="btn-mod-bpmn-lint" class="menu-header" onclick="switchModule('bpmn-lint')">
+        <div class="menu-group expanded" id="group-bpmn-lint">
+          <button id="btn-mod-bpmn-lint" class="menu-header active" onclick="switchModule('bpmn-lint')">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
               <path d="M4 4h16v16H4z" />
               <path d="m8 12 2.5 2.5L16 9" />
@@ -288,8 +293,7 @@
             </svg>
           </button>
           <div class="submenu-items">
-            <button class="tab" id="bpmnLintImportTab" onclick="switchTab('bpmn-lint-import')"
-              style="display:none">
+            <button class="tab active" id="bpmnLintImportTab" onclick="switchTab('bpmn-lint-import')">
               <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -298,7 +302,7 @@
               </svg>
               <span>Importer &amp; analyser</span>
             </button>
-            <button class="tab" id="bpmnLintRulesTab" onclick="switchTab('bpmn-lint-rules')" style="display:none">
+            <button class="tab" id="bpmnLintRulesTab" onclick="switchTab('bpmn-lint-rules')">
               <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"
                 stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3" />
@@ -307,8 +311,7 @@
               </svg>
               <span>Règles &amp; Conventions</span>
             </button>
-            <button class="tab" id="bpmnLintResultsTab" onclick="switchTab('bpmn-lint-results')"
-              style="display:none">
+            <button class="tab" id="bpmnLintResultsTab" onclick="switchTab('bpmn-lint-results')" style="display:none">
               <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -319,7 +322,8 @@
               </svg>
               <span>Rapport de Santé</span>
             </button>
-            <button class="tab" id="bpmnLintLandscapeTab" onclick="switchTab('bpmn-lint-landscape')" style="display:none">
+            <button class="tab" id="bpmnLintLandscapeTab" onclick="switchTab('bpmn-lint-landscape')"
+              style="display:none">
               <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"
                 stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="18" cy="5" r="3" />
@@ -496,10 +500,13 @@
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span style="font-size:14px;">🧪</span>
           <strong style="color:#78350f; font-weight:800;">ENVIRONNEMENT DE RECETTE (v2.4.0)</strong>
-          <span style="color:#b45309;">— Traitement 100% In-Memory (Zéro Persistance Serveur). Sauvegarde autonome par instantané <code>.paprika</code>.</span>
+          <span style="color:#b45309;">— Traitement 100% In-Memory (Zéro Persistance Serveur). Sauvegarde autonome par
+            instantané <code>.paprika</code>.</span>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="background:#fef08a; color:#854d0e; padding:2px 8px; border-radius:6px; font-weight:700; font-size:10.5px; border:1px solid #facc15; text-transform:uppercase; letter-spacing:0.5px;">Client Preview</span>
+          <span
+            style="background:#fef08a; color:#854d0e; padding:2px 8px; border-radius:6px; font-weight:700; font-size:10.5px; border:1px solid #facc15; text-transform:uppercase; letter-spacing:0.5px;">Client
+            Preview</span>
           <button onclick="document.getElementById('testEnvBanner').style.display='none'"
             style="background:none; border:none; cursor:pointer; color:#92400e; font-size:14px; font-weight:700; line-height:1; padding:2px 6px; border-radius:4px;"
             title="Masquer le bandeau de recette">✕</button>
@@ -517,7 +524,7 @@
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <h1 id="pageTitle">Importation des données</h1>
+          <h1 id="pageTitle">Audit &amp; Santé BPMN — Import &amp; Analyse</h1>
           <div class="header-status-badge" title="Audit BPMN Bouygues Telecom">
             <span class="pulse-dot"></span>
             <span>BOUYGUES TEL</span>
@@ -559,7 +566,7 @@
       <div class="panels-container">
 
         <!-- Panel Import -->
-        <div class="panel active" id="panel-import">
+        <div class="panel" id="panel-import">
           <div class="upload-zone" id="dropZone">
             <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.bpmn,.xml" multiple>
             <img src="img/6.png" alt="Paprika Analyse BPMN" class="upload-mascot-img">
@@ -1843,12 +1850,13 @@
         </div>
 
         <!-- Panel Audit & Santé BPMN : Import -->
-        <div class="panel" id="panel-bpmn-lint-import">
+        <div class="panel active" id="panel-bpmn-lint-import">
           <div class="bpmn-lint-heading">
             <div>
               <div class="bpmn-lint-eyebrow">AUDIT DE CONFORMITÉ &amp; QUALITÉ BPMN 2.0</div>
               <h2>Audit &amp; Santé BPMN</h2>
-              <p>Contrôles structurels, conventions de nommage d’équipe, dépendances et signaux de déploiement sur un ou plusieurs fichiers.</p>
+              <p>Contrôles structurels, conventions de nommage d’équipe, dépendances et signaux de déploiement sur un ou
+                plusieurs fichiers.</p>
             </div>
             <button class="btn-ghost" onclick="switchTab('bpmn-lint-rules')">Configurer les règles</button>
           </div>
@@ -1866,7 +1874,8 @@
             <strong>Fichiers du lot <span id="bpmnLintFileCount">0</span></strong>
             <div>
               <button class="btn-ghost" onclick="clearBpmnLintFiles()">Vider le lot</button>
-              <button class="btn-primary" id="runBpmnLintBtn" onclick="runBpmnLint()" disabled>Lancer l’audit complet</button>
+              <button class="btn-primary" id="runBpmnLintBtn" onclick="runBpmnLint()" disabled>Lancer l’audit
+                complet</button>
             </div>
           </div>
           <div class="tbl-wrap">
@@ -1876,6 +1885,7 @@
                   <th>Fichier</th>
                   <th>Éléments</th>
                   <th>Processus</th>
+                  <th style="text-align:center;">Rôle (Processus Parent)</th>
                   <th>État du XML</th>
                   <th></th>
                 </tr>
@@ -1883,7 +1893,10 @@
               <tbody id="bpmnLintFilesBody"></tbody>
             </table>
           </div>
-          <p class="bpmn-lint-scope-note">Audit statique complet de structure, qualité sémantique et nommage BPMN.</p>
+          <p class="bpmn-lint-scope-note">Audit statique complet de structure, qualité sémantique et nommage BPMN. Vous
+            pouvez cocher/décocher le statut <strong>Processus Parent</strong> pour chaque fichier (les sous-processus
+            <em>SP</em> sont détectés automatiquement).
+          </p>
         </div>
 
         <!-- Panel Audit & Santé BPMN : Règles -->
@@ -1892,51 +1905,66 @@
             <div>
               <div class="bpmn-lint-eyebrow">POLITIQUE DE QUALITÉ &amp; CONVENTIONS BPMN 2.0</div>
               <h2>Référentiel des Règles d’Audit &amp; Nommage</h2>
-              <p>Activez les contrôles structurels, ajustez les niveaux de sévérité, appliquez des profils de gouvernance et consultez les explications et exemples détaillés pour chaque règle.</p>
+              <p>Activez les contrôles structurels, ajustez les niveaux de sévérité, appliquez des profils de
+                gouvernance et consultez les explications et exemples détaillés pour chaque règle.</p>
             </div>
             <div class="bpmn-lint-rule-actions">
-              <button class="btn-ghost" onclick="exportBpmnLintRules()" title="Exporter le profil de règles au format JSON">📥 Exporter règles</button>
-              <label class="btn-ghost bpmn-lint-file-button" title="Importer un profil de règles personnalisé">📤 Importer règles<input type="file" accept=".json"
-                  onchange="importBpmnLintRulesFromInput(this)"></label>
-              <button class="btn-ghost" onclick="resetBpmnLintRules()" title="Restaurer la configuration par défaut">🔄 Restaurer défauts</button>
+              <button class="btn-ghost" onclick="exportBpmnLintRules()"
+                title="Exporter le profil de règles au format JSON">📥 Exporter règles</button>
+              <label class="btn-ghost bpmn-lint-file-button" title="Importer un profil de règles personnalisé">📤
+                Importer règles<input type="file" accept=".json" onchange="importBpmnLintRulesFromInput(this)"></label>
+              <button class="btn-ghost" onclick="resetBpmnLintRules()" title="Restaurer la configuration par défaut">🔄
+                Restaurer défauts</button>
             </div>
           </div>
 
           <!-- Bandeau Profils de Gouvernance en 1 Clic -->
-          <div class="bpmn-lint-presets-bar" style="background:linear-gradient(135deg, rgba(0,56,130,0.06), rgba(0,156,215,0.06)); border:1px solid var(--border-color, #e2e8f0); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div class="bpmn-lint-presets-bar"
+            style="background:linear-gradient(135deg, rgba(0,56,130,0.06), rgba(0,156,215,0.06)); border:1px solid var(--border-color, #e2e8f0); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div style="display:flex; align-items:center; gap:10px;">
               <span style="font-size:20px;">⚡</span>
               <div>
-                <strong style="font-size:13px; color:var(--text-primary, #0f172a); display:block;">Profils de Gouvernance en 1 Clic</strong>
-                <span style="font-size:11.5px; color:var(--text-secondary, #64748b);">Appliquez instantanément une politique de sévérité adaptée à votre phase de projet</span>
+                <strong style="font-size:13px; color:var(--text-primary, #0f172a); display:block;">Profils de
+                  Gouvernance en 1 Clic</strong>
+                <span style="font-size:11.5px; color:var(--text-secondary, #64748b);">Appliquez instantanément une
+                  politique de sévérité adaptée à votre phase de projet</span>
               </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-outline" onclick="applyBpmnLintPreset('bouygues')" style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#003882; color:#003882; background:#fff;">
+              <button class="btn-outline" onclick="applyBpmnLintPreset('bouygues')"
+                style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#003882; color:#003882; background:#fff;">
                 🛡️ Standard Bouygues Telecom (Recommandé)
               </button>
-              <button class="btn-outline" onclick="applyBpmnLintPreset('strict')" style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#dc2626; color:#dc2626; background:#fff;">
+              <button class="btn-outline" onclick="applyBpmnLintPreset('strict')"
+                style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#dc2626; color:#dc2626; background:#fff;">
                 🚀 Strict Production (CI/CD Zero-Defect)
               </button>
-              <button class="btn-outline" onclick="applyBpmnLintPreset('prototyping')" style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#0284c7; color:#0284c7; background:#fff;">
+              <button class="btn-outline" onclick="applyBpmnLintPreset('prototyping')"
+                style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#0284c7; color:#0284c7; background:#fff;">
                 🎨 Prototypage / Conception Rapide
               </button>
-              <button class="btn-outline" onclick="applyBpmnLintPreset('naming')" style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#16a34a; color:#16a34a; background:#fff;">
+              <button class="btn-outline" onclick="applyBpmnLintPreset('naming')"
+                style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#16a34a; color:#16a34a; background:#fff;">
                 ✍️ Focus Nommage &amp; Métier
               </button>
             </div>
           </div>
 
           <!-- Formulaire d'ajout de règle personnalisée (collapsible) -->
-          <details class="bpmn-lint-custom-rule-details" style="background:var(--bg-secondary, #f8fafc); border:1px solid var(--border-color, #e2e8f0); border-radius:10px; padding:12px 16px; margin-bottom:18px;">
-            <summary style="font-size:13px; font-weight:800; color:var(--brand-primary, #003882); cursor:pointer; user-select:none; display:flex; align-items:center; gap:8px;">
+          <details class="bpmn-lint-custom-rule-details"
+            style="background:var(--bg-secondary, #f8fafc); border:1px solid var(--border-color, #e2e8f0); border-radius:10px; padding:12px 16px; margin-bottom:18px;">
+            <summary
+              style="font-size:13px; font-weight:800; color:var(--brand-primary, #003882); cursor:pointer; user-select:none; display:flex; align-items:center; gap:8px;">
               <span>➕ Ajouter une Règle d'Équipe Spécifique (Regex personnalisée)</span>
             </summary>
             <form class="bpmn-lint-custom-form" onsubmit="addBpmnLintCustomRule(event)" style="margin-top:14px;">
-              <div class="bpmn-lint-form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:flex-end;">
-                <label style="font-size:11.5px; font-weight:700;">Nom de la règle<input id="bpmnLintCustomLabel" required maxlength="100"
-                    placeholder="Ex. ID préfixé par Task_" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;"></label>
-                <label style="font-size:11.5px; font-weight:700;">Élément BPMN<select id="bpmnLintCustomTarget" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
+              <div class="bpmn-lint-form-grid"
+                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:flex-end;">
+                <label style="font-size:11.5px; font-weight:700;">Nom de la règle<input id="bpmnLintCustomLabel"
+                    required maxlength="100" placeholder="Ex. ID préfixé par Task_"
+                    style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;"></label>
+                <label style="font-size:11.5px; font-weight:700;">Élément BPMN<select id="bpmnLintCustomTarget"
+                    style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
                     <option value="process">Processus (bpmn:process)</option>
                     <option value="task">Toutes Tâches (Task)</option>
                     <option value="servicetask">Service Task</option>
@@ -1945,48 +1973,64 @@
                     <option value="sequenceflow">Flux séquentiel</option>
                     <option value="exclusivegateway">Passerelle exclusive</option>
                   </select></label>
-                <label style="font-size:11.5px; font-weight:700;">Attribut<select id="bpmnLintCustomAttribute" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
+                <label style="font-size:11.5px; font-weight:700;">Attribut<select id="bpmnLintCustomAttribute"
+                    style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
                     <option value="name">name (libellé)</option>
                     <option value="id">id (identifiant technique)</option>
                     <option value="calledElement">calledElement</option>
                   </select></label>
-                <label style="font-size:11.5px; font-weight:700;">Expression régulière<input id="bpmnLintCustomPattern" required maxlength="250"
-                    placeholder="^Task_[A-Za-z0-9_]+$" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff; font-family:monospace;"></label>
-                <label style="font-size:11.5px; font-weight:700;">Sévérité<select id="bpmnLintCustomSeverity" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
+                <label style="font-size:11.5px; font-weight:700;">Expression régulière<input id="bpmnLintCustomPattern"
+                    required maxlength="250" placeholder="^Task_[A-Za-z0-9_]+$"
+                    style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff; font-family:monospace;"></label>
+                <label style="font-size:11.5px; font-weight:700;">Sévérité<select id="bpmnLintCustomSeverity"
+                    style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
                     <option value="blocker">Bloquant</option>
                     <option value="error">Erreur</option>
                     <option value="warning" selected>Avertissement</option>
                     <option value="info">Information</option>
                   </select></label>
-                <button class="btn-primary" type="submit" style="padding:8px 16px; font-size:12px; font-weight:800; height:36px;">Ajouter la règle</button>
+                <button class="btn-primary" type="submit"
+                  style="padding:8px 16px; font-size:12px; font-weight:800; height:36px;">Ajouter la règle</button>
               </div>
             </form>
           </details>
 
           <!-- KPIs Bar & Statistiques de Couverture des Règles -->
-          <div id="bpmnLintRulesKpiStats" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:#fff; border:1px solid var(--border-color, #e2e8f0); border-radius:10px; padding:12px 18px; margin-bottom:14px;">
-            <div id="bpmnLintRulesCountsBadges" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+          <div id="bpmnLintRulesKpiStats"
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:#fff; border:1px solid var(--border-color, #e2e8f0); border-radius:10px; padding:12px 18px; margin-bottom:14px;">
+            <div id="bpmnLintRulesCountsBadges" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            </div>
             <div style="display:flex; gap:8px; align-items:center;">
-              <button class="btn-ghost" onclick="bpmnLintToggleAllRuleDetails(true)" title="Déplier toutes les explications et exemples" style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px;">
+              <button class="btn-ghost" onclick="bpmnLintToggleAllRuleDetails(true)"
+                title="Déplier toutes les explications et exemples"
+                style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px;">
                 💡 Tout Déplier
               </button>
-              <button class="btn-ghost" onclick="bpmnLintToggleAllRuleDetails(false)" title="Replier tous les exemples" style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px;">
+              <button class="btn-ghost" onclick="bpmnLintToggleAllRuleDetails(false)" title="Replier tous les exemples"
+                style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px;">
                 🙈 Tout Replier
               </button>
-              <button class="btn-ghost" onclick="bpmnLintToggleAllRules(true)" title="Activer l'ensemble des règles" style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px; color:#16a34a;">
+              <button class="btn-ghost" onclick="bpmnLintToggleAllRules(true)" title="Activer l'ensemble des règles"
+                style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px; color:#16a34a;">
                 ✅ Tout Activer
               </button>
-              <button class="btn-ghost" onclick="bpmnLintToggleAllRules(false)" title="Désactiver toutes les règles" style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px; color:#dc2626;">
+              <button class="btn-ghost" onclick="bpmnLintToggleAllRules(false)" title="Désactiver toutes les règles"
+                style="font-size:11.5px; font-weight:700; padding:4px 10px; border:1px solid var(--border-color); border-radius:6px; color:#dc2626;">
                 ❌ Tout Désactiver
               </button>
             </div>
           </div>
 
           <!-- Barre de Recherche et Filtre de Sévérité -->
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
             <div style="display:flex; gap:10px; flex:1; min-width:300px;">
-              <input type="text" id="bpmnLintRulesSearchInput" placeholder="🔍 Filtrer les règles (nom, standard, mot-clé, XML...)" oninput="onBpmnLintRulesSearch(this.value)" style="flex:1; padding:8px 14px; font-size:12.5px; border:1px solid var(--border-color, #cbd5e1); border-radius:8px; background:#fff;">
-              <select id="bpmnLintRulesSeverityFilter" onchange="onBpmnLintRulesSeverityChange(this.value)" style="padding:8px 12px; font-size:12px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:8px; background:#fff;">
+              <input type="text" id="bpmnLintRulesSearchInput"
+                placeholder="🔍 Filtrer les règles (nom, standard, mot-clé, XML...)"
+                oninput="onBpmnLintRulesSearch(this.value)"
+                style="flex:1; padding:8px 14px; font-size:12.5px; border:1px solid var(--border-color, #cbd5e1); border-radius:8px; background:#fff;">
+              <select id="bpmnLintRulesSeverityFilter" onchange="onBpmnLintRulesSeverityChange(this.value)"
+                style="padding:8px 12px; font-size:12px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:8px; background:#fff;">
                 <option value="all">Toutes les sévérités</option>
                 <option value="blocker">🔴 Bloquants uniquement</option>
                 <option value="error">🟠 Erreurs uniquement</option>
@@ -1999,10 +2043,12 @@
           </div>
 
           <!-- Filtres de Catégories de Règles (Pills) -->
-          <div id="bpmnLintRulesCatFilters" class="toolbar" style="margin:0 0 16px 0; display:flex; gap:8px; flex-wrap:wrap;"></div>
+          <div id="bpmnLintRulesCatFilters" class="toolbar"
+            style="margin:0 0 16px 0; display:flex; gap:8px; flex-wrap:wrap;"></div>
 
           <!-- Tableau Enrichi avec Accordéons -->
-          <div class="tbl-wrap bpmn-lint-rules-table" style="box-shadow:0 4px 14px rgba(0,0,0,0.03); border-radius:10px; border:1px solid var(--border-color, #e2e8f0); overflow:hidden;">
+          <div class="tbl-wrap bpmn-lint-rules-table"
+            style="box-shadow:0 4px 14px rgba(0,0,0,0.03); border-radius:10px; border:1px solid var(--border-color, #e2e8f0); overflow:hidden;">
             <table style="width:100%; border-collapse:collapse;">
               <thead>
                 <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
@@ -2048,12 +2094,20 @@
               <p id="bpmnLintReadiness" class="bpmn-lint-readiness">Aucun audit lancé</p>
             </div>
             <div class="bpmn-lint-result-actions">
-              <button class="btn-ghost" onclick="switchTab('bpmn-lint-landscape')" title="Visualiser la topologie globale 2D/3D et les interconnexions de sous-processus">🗺️ Cartographie 2D/3D</button>
+              <button class="btn-ghost" onclick="switchTab('bpmn-lint-landscape')"
+                title="Visualiser la topologie globale 2D/3D et les interconnexions de sous-processus">🗺️ Cartographie
+                2D/3D</button>
               <button class="btn-ghost" onclick="switchTab('bpmn-lint-rules')">Règles d'audit</button>
-              <button class="btn-ghost" onclick="applyBpmnLintSafeFixes(false)" title="Supprimer les espaces superflus dans les libellés">Nettoyer libellés</button>
-              <button class="btn-ghost" onclick="applyBpmnLintExtendedFixes()" title="Auto-fix étendu : Process ID en kebab-case, '?' sur XOR, Camunda User Task...">⚙️ Auto-Fix étendu</button>
-              <button class="btn-ghost" onclick="downloadCorrectedBpmnFile()" title="Télécharger les fichiers BPMN corrigés">💾 Télécharger BPMN</button>
-              <button class="btn-primary" onclick="openBpmnLintExportModal()" title="Ouvrir le Studio d'Export &amp; Rapports Configurables (Excel, PDF, HTML, CSV, JSON, Markdown)">📥 Exporter le Rapport...</button>
+              <button class="btn-ghost" onclick="applyBpmnLintSafeFixes(false)"
+                title="Supprimer les espaces superflus dans les libellés">Nettoyer libellés</button>
+              <button class="btn-ghost" onclick="applyBpmnLintExtendedFixes()"
+                title="Auto-fix étendu : Process ID en kebab-case, '?' sur XOR, Camunda User Task...">⚙️ Auto-Fix
+                étendu</button>
+              <button class="btn-ghost" onclick="downloadCorrectedBpmnFile()"
+                title="Télécharger les fichiers BPMN corrigés">💾 Télécharger BPMN</button>
+              <button class="btn-primary" onclick="openBpmnLintExportModal()"
+                title="Ouvrir le Studio d'Export &amp; Rapports Configurables (Excel, PDF, HTML, CSV, JSON, Markdown)">📥
+                Exporter le Rapport...</button>
             </div>
           </div>
 
@@ -2086,16 +2140,20 @@
 
           <!-- Contrôles de repliement global -->
           <div class="bpmn-lint-collapse-controls">
-            <button type="button" class="btn-ghost" onclick="bpmnLintToggleAllSections(true)" style="font-size:12px; padding:4px 10px;">▾ Tout déplier</button>
-            <button type="button" class="btn-ghost" onclick="bpmnLintToggleAllSections(false)" style="font-size:12px; padding:4px 10px;">▸ Tout replier</button>
+            <button type="button" class="btn-ghost" onclick="bpmnLintToggleAllSections(true)"
+              style="font-size:12px; padding:4px 10px;">▾ Tout déplier</button>
+            <button type="button" class="btn-ghost" onclick="bpmnLintToggleAllSections(false)"
+              style="font-size:12px; padding:4px 10px;">▸ Tout replier</button>
           </div>
 
           <!-- 1. Matrice 2D Heatmap (BPMN x Catégories) -->
           <details class="bpmn-lint-section-collapse" open>
             <summary class="bpmn-lint-details-summary">
               <div>
-                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);" class="bpmn-lint-collapse-title">📊 Matrice 2D des Risques (BPMN × Catégories de règles)</h3>
-                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Vue synthétique multicritère colorimétrique. Cliquez sur une cellule pour filtrer directement.</p>
+                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);"
+                  class="bpmn-lint-collapse-title">📊 Matrice 2D des Risques (BPMN × Catégories de règles)</h3>
+                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Vue synthétique multicritère
+                  colorimétrique. Cliquez sur une cellule pour filtrer directement.</p>
               </div>
               <span class="bpmn-lint-collapse-icon">▾</span>
             </summary>
@@ -2106,8 +2164,10 @@
           <details class="bpmn-lint-section-collapse" open>
             <summary class="bpmn-lint-details-summary">
               <div>
-                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);" class="bpmn-lint-collapse-title">🏷️ Anomalies par domaine</h3>
-                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Répartition et poids des constats par catégorie de règles.</p>
+                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);"
+                  class="bpmn-lint-collapse-title">🏷️ Anomalies par domaine</h3>
+                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Répartition et poids des constats
+                  par catégorie de règles.</p>
               </div>
               <span class="bpmn-lint-collapse-icon">▾</span>
             </summary>
@@ -2118,8 +2178,10 @@
           <details class="bpmn-lint-section-collapse" open>
             <summary class="bpmn-lint-details-summary">
               <div>
-                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);" class="bpmn-lint-collapse-title">⚙️ Répartition Typologique &amp; Mix d’Automatisation</h3>
-                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Distribution des types de tâches (Service, User, Script), sous-processus et passerelles.</p>
+                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);"
+                  class="bpmn-lint-collapse-title">⚙️ Répartition Typologique &amp; Mix d’Automatisation</h3>
+                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Distribution des types de tâches
+                  (Service, User, Script), sous-processus et passerelles.</p>
               </div>
               <span class="bpmn-lint-collapse-icon">▾</span>
             </summary>
@@ -2130,20 +2192,25 @@
           <details class="bpmn-lint-section-collapse" open>
             <summary class="bpmn-lint-details-summary">
               <div>
-                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);" class="bpmn-lint-collapse-title">🚨 Actions à traiter en priorité</h3>
-                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Regroupées par règle et fichier, classées par gravité puis volume. Cliquez pour localiser.</p>
+                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);"
+                  class="bpmn-lint-collapse-title">🚨 Actions à traiter en priorité</h3>
+                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Regroupées par règle et fichier,
+                  classées par gravité puis volume. Cliquez pour localiser.</p>
               </div>
               <span class="bpmn-lint-collapse-icon">▾</span>
             </summary>
-            <div id="bpmnLintPriorities" class="bpmn-lint-priorities bpmn-lint-priorities-scroll" style="margin-top:14px;"></div>
+            <div id="bpmnLintPriorities" class="bpmn-lint-priorities bpmn-lint-priorities-scroll"
+              style="margin-top:14px;"></div>
           </details>
 
           <!-- Fiches et Résumé par Fichier (Repliable) -->
           <details class="bpmn-lint-section-collapse">
             <summary class="bpmn-lint-details-summary">
               <div>
-                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);" class="bpmn-lint-collapse-title">📁 Fiches BPMN &amp; Synthèse par Fichier</h3>
-                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Scores individuels, volumes et états de santé par diagramme (cliquez pour déplier).</p>
+                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);"
+                  class="bpmn-lint-collapse-title">📁 Fiches BPMN &amp; Synthèse par Fichier</h3>
+                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Scores individuels, volumes et
+                  états de santé par diagramme (cliquez pour déplier).</p>
               </div>
               <span class="bpmn-lint-collapse-icon">▾</span>
             </summary>
@@ -2151,13 +2218,20 @@
               <table>
                 <thead>
                   <tr>
-                    <th class="sortable-th" onclick="sortBpmnLintSummary('fileName')">Fichier <span class="sort-icon" id="sort-summary-fileName">↕</span></th>
-                    <th class="sortable-th" onclick="sortBpmnLintSummary('processCount')">Processus <span class="sort-icon" id="sort-summary-processCount">↕</span></th>
-                    <th class="sortable-th" onclick="sortBpmnLintSummary('elementCount')">Éléments <span class="sort-icon" id="sort-summary-elementCount">↕</span></th>
-                    <th class="sortable-th" onclick="sortBpmnLintSummary('score')">Score <span class="sort-icon" id="sort-summary-score">↕</span></th>
-                    <th class="sortable-th" onclick="sortBpmnLintSummary('status')">État <span class="sort-icon" id="sort-summary-status">↕</span></th>
-                    <th class="sortable-th" onclick="sortBpmnLintSummary('blockers')">Bloquants <span class="sort-icon" id="sort-summary-blockers">↕</span></th>
-                    <th class="sortable-th" onclick="sortBpmnLintSummary('warnings')">Avertissements <span class="sort-icon" id="sort-summary-warnings">↕</span></th>
+                    <th class="sortable-th" onclick="sortBpmnLintSummary('fileName')">Fichier <span class="sort-icon"
+                        id="sort-summary-fileName">↕</span></th>
+                    <th class="sortable-th" onclick="sortBpmnLintSummary('processCount')">Processus <span
+                        class="sort-icon" id="sort-summary-processCount">↕</span></th>
+                    <th class="sortable-th" onclick="sortBpmnLintSummary('elementCount')">Éléments <span
+                        class="sort-icon" id="sort-summary-elementCount">↕</span></th>
+                    <th class="sortable-th" onclick="sortBpmnLintSummary('score')">Score <span class="sort-icon"
+                        id="sort-summary-score">↕</span></th>
+                    <th class="sortable-th" onclick="sortBpmnLintSummary('status')">État <span class="sort-icon"
+                        id="sort-summary-status">↕</span></th>
+                    <th class="sortable-th" onclick="sortBpmnLintSummary('blockers')">Bloquants <span class="sort-icon"
+                        id="sort-summary-blockers">↕</span></th>
+                    <th class="sortable-th" onclick="sortBpmnLintSummary('warnings')">Avertissements <span
+                        class="sort-icon" id="sort-summary-warnings">↕</span></th>
                   </tr>
                 </thead>
                 <tbody id="bpmnLintSummaryBody"></tbody>
@@ -2169,8 +2243,10 @@
           <details class="bpmn-lint-section-collapse" open>
             <summary class="bpmn-lint-details-summary">
               <div>
-                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);" class="bpmn-lint-collapse-title">📋 Plan d’Action RACI, Remédiation &amp; Recette</h3>
-                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Chaque constat inclut un propriétaire suggéré, une recommandation claire et un test de vérification.</p>
+                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary);"
+                  class="bpmn-lint-collapse-title">📋 Plan d’Action RACI, Remédiation &amp; Recette</h3>
+                <p class="bpmn-lint-muted" style="margin:2px 0 0 0; font-size:12px;">Chaque constat inclut un
+                  propriétaire suggéré, une recommandation claire et un test de vérification.</p>
               </div>
               <span class="bpmn-lint-collapse-icon">▾</span>
             </summary>
@@ -2218,13 +2294,19 @@
                   </select>
                 </div>
                 <div class="bpmn-lint-filter-actions" style="display:flex; gap:6px;">
-                  <button type="button" class="btn-ghost" onclick="resetBpmnLintFilters()" title="Réinitialiser tous les filtres" style="padding:7px 10px; font-size:12px; white-space:nowrap;">
+                  <button type="button" class="btn-ghost" onclick="resetBpmnLintFilters()"
+                    title="Réinitialiser tous les filtres"
+                    style="padding:7px 10px; font-size:12px; white-space:nowrap;">
                     ↺ Réinit
                   </button>
-                  <button type="button" class="btn-ghost" onclick="exportBpmnLintFilteredCsv()" title="Télécharger ces constats au format CSV pour Excel" style="padding:7px 10px; font-size:12px; white-space:nowrap;">
+                  <button type="button" class="btn-ghost" onclick="exportBpmnLintFilteredCsv()"
+                    title="Télécharger ces constats au format CSV pour Excel"
+                    style="padding:7px 10px; font-size:12px; white-space:nowrap;">
                     📥 CSV
                   </button>
-                  <button type="button" class="btn-ghost" onclick="copyBpmnLintFilteredIssuesMarkdown()" title="Copier la sélection pour Jira / Markdown" style="padding:7px 10px; font-size:12px; white-space:nowrap;">
+                  <button type="button" class="btn-ghost" onclick="copyBpmnLintFilteredIssuesMarkdown()"
+                    title="Copier la sélection pour Jira / Markdown"
+                    style="padding:7px 10px; font-size:12px; white-space:nowrap;">
                     📋 Jira/MD
                   </button>
                 </div>
@@ -2234,15 +2316,25 @@
                 <table>
                   <thead>
                     <tr>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('fileName')">Fichier <span class="sort-icon" id="sort-issue-fileName">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('severity')">Sévérité <span class="sort-icon" id="sort-issue-severity">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('category')">Catégorie <span class="sort-icon" id="sort-issue-category">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('rule')">Règle <span class="sort-icon" id="sort-issue-rule">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('elementId')">Élément <span class="sort-icon" id="sort-issue-elementId">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('message')">Constat <span class="sort-icon" id="sort-issue-message">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('suggestedOwner')">Responsable RACI <span class="sort-icon" id="sort-issue-suggestedOwner">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('recommendation')">Recommandation <span class="sort-icon" id="sort-issue-recommendation">↕</span></th>
-                      <th class="sortable-th" onclick="sortBpmnLintIssues('businessTest')">Test métier / vérification <span class="sort-icon" id="sort-issue-businessTest">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('fileName')">Fichier <span class="sort-icon"
+                          id="sort-issue-fileName">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('severity')">Sévérité <span class="sort-icon"
+                          id="sort-issue-severity">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('category')">Catégorie <span class="sort-icon"
+                          id="sort-issue-category">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('rule')">Règle <span class="sort-icon"
+                          id="sort-issue-rule">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('elementId')">Élément <span class="sort-icon"
+                          id="sort-issue-elementId">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('message')">Constat <span class="sort-icon"
+                          id="sort-issue-message">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('suggestedOwner')">Responsable RACI <span
+                          class="sort-icon" id="sort-issue-suggestedOwner">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('recommendation')">Recommandation <span
+                          class="sort-icon" id="sort-issue-recommendation">↕</span></th>
+                      <th class="sortable-th" onclick="sortBpmnLintIssues('businessTest')">Test métier / vérification
+                        <span class="sort-icon" id="sort-issue-businessTest">↕</span>
+                      </th>
                       <th style="width:70px; text-align:center;">Action</th>
                     </tr>
                   </thead>
@@ -2274,9 +2366,13 @@
               <div class="bpmn-lint-modal-actions">
                 <button class="btn-ghost" onclick="bpmnLintViewerZoomIn()" title="Zoom avant (Zoom +)">🔍 +</button>
                 <button class="btn-ghost" onclick="bpmnLintViewerZoomOut()" title="Zoom arrière (Zoom -)">🔍 -</button>
-                <button class="btn-ghost" onclick="bpmnLintViewerZoomFit()" title="Ajuster à la vue globale">📐 Ajuster</button>
-                <button class="btn-ghost" onclick="bpmnLintClearFocus()" title="Afficher tous les éléments sans focus spécifique">🎯 Vue globale</button>
-                <button class="btn-ghost" id="btnToggleBpmnLintHeatmap" onclick="bpmnLintToggleHeatmap()" title="Activer/Désactiver la Heatmap de santé sur le diagramme (Code couleur Vert/Ambre/Rouge)">🔥 Heatmap</button>
+                <button class="btn-ghost" onclick="bpmnLintViewerZoomFit()" title="Ajuster à la vue globale">📐
+                  Ajuster</button>
+                <button class="btn-ghost" onclick="bpmnLintClearFocus()"
+                  title="Afficher tous les éléments sans focus spécifique">🎯 Vue globale</button>
+                <button class="btn-ghost" id="btnToggleBpmnLintHeatmap" onclick="bpmnLintToggleHeatmap()"
+                  title="Activer/Désactiver la Heatmap de santé sur le diagramme (Code couleur Vert/Ambre/Rouge)">🔥
+                  Heatmap</button>
                 <button class="btn-ghost" onclick="bpmnLintViewerExportSvg()"
                   title="Exporter le diagramme en image vectorielle SVG">📥 Exporter SVG</button>
                 <button class="btn-ghost" onclick="bpmnLintViewerToggleIssues()" id="btnToggleViewerIssues"
@@ -2295,16 +2391,23 @@
                     <div class="bpmn-lint-tour-info-header">
                       <span id="bpmnLintTourSeverity" class="bpmn-lint-severity blocker">blocker</span>
                       <strong id="bpmnLintTourRule" style="font-size:13px; color:var(--text-primary);">Règle</strong>
-                      <code id="bpmnLintTourElement" style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-weight:700;">elementId</code>
+                      <code id="bpmnLintTourElement"
+                        style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-weight:700;">elementId</code>
                     </div>
-                    <p id="bpmnLintTourMessage" style="margin:2px 0 0 0; font-size:12px; color:var(--text-primary);"></p>
+                    <p id="bpmnLintTourMessage" style="margin:2px 0 0 0; font-size:12px; color:var(--text-primary);">
+                    </p>
                     <small id="bpmnLintTourRecommendation" style="color:var(--text-secondary); font-size:11px;"></small>
                   </div>
                   <div class="bpmn-lint-tour-nav">
-                    <button class="btn-ticket-copy" onclick="openBpmnLintTourTicketModal()" title="Générer et afficher la fiche ticket Jira">🎫 Ticket Jira</button>
-                    <button class="btn-ghost" onclick="bpmnLintTourPrev()" title="Anomalie précédente (Touche Flèche Gauche ←)">◂ Précédent</button>
-                    <span id="bpmnLintTourCounter" style="font-size:12px; font-weight:700; color:var(--text-secondary); white-space:nowrap;">1 / 10</span>
-                    <button class="btn-ghost" onclick="bpmnLintTourNext()" title="Anomalie suivante (Touche Flèche Droite →)">Suivant ▸</button>
+                    <button class="btn-ticket-copy" onclick="openBpmnLintTourTicketModal()"
+                      title="Générer et afficher la fiche ticket Jira">🎫 Ticket Jira</button>
+                    <button class="btn-ghost" onclick="bpmnLintTourPrev()"
+                      title="Anomalie précédente (Touche Flèche Gauche ←)">◂ Précédent</button>
+                    <span id="bpmnLintTourCounter"
+                      style="font-size:12px; font-weight:700; color:var(--text-secondary); white-space:nowrap;">1 /
+                      10</span>
+                    <button class="btn-ghost" onclick="bpmnLintTourNext()"
+                      title="Anomalie suivante (Touche Flèche Droite →)">Suivant ▸</button>
                   </div>
                 </div>
               </div>
@@ -2320,17 +2423,20 @@
         </div>
 
         <!-- Modal Générateur de Ticket Jira & Remédiation Avancé -->
-        <div class="bpmn-lint-modal-backdrop" id="jiraTicketModal" style="display:none;" onclick="if(event.target===this) closeJiraTicketModal()">
+        <div class="bpmn-lint-modal-backdrop" id="jiraTicketModal" style="display:none;"
+          onclick="if(event.target===this) closeJiraTicketModal()">
           <div class="jira-ticket-modal-window">
             <div class="jira-ticket-modal-header">
               <div class="jira-ticket-header-title">
                 <span class="jira-ticket-icon">🎫</span>
                 <div>
-                  <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                  <h3
+                    style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
                     Fiche Ticket Jira &amp; Plan de Remédiation
                     <span id="jiraModalSeverityBadge" class="bpmn-lint-severity error">ERROR</span>
                   </h3>
-                  <p id="jiraModalSubTitle" style="margin:2px 0 0 0; font-size:12px; color:var(--text-secondary);">Génération intelligente prête à être copiée ou injectée dans Jira</p>
+                  <p id="jiraModalSubTitle" style="margin:2px 0 0 0; font-size:12px; color:var(--text-secondary);">
+                    Génération intelligente prête à être copiée ou injectée dans Jira</p>
                 </div>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
@@ -2343,7 +2449,8 @@
               <div class="jira-field-group">
                 <div class="jira-field-label">
                   <span>📌 Titre du Ticket Jira (Summary)</span>
-                  <button class="btn-ticket-action-mini" onclick="copyJiraSummary()" id="btnCopyJiraSummary">📋 Copier le titre</button>
+                  <button class="btn-ticket-action-mini" onclick="copyJiraSummary()" id="btnCopyJiraSummary">📋 Copier
+                    le titre</button>
                 </div>
                 <div class="jira-input-wrapper">
                   <input type="text" id="jiraTicketSummaryInput" class="jira-input" readonly />
@@ -2354,7 +2461,8 @@
               <div class="jira-meta-grid">
                 <div class="jira-meta-item">
                   <label>Projet Jira</label>
-                  <input type="text" id="jiraMetaProjectKey" class="jira-input-sm" value="BPMN" oninput="updateJiraTicketContent()" placeholder="Clé (ex: BPMN)" />
+                  <input type="text" id="jiraMetaProjectKey" class="jira-input-sm" value="BPMN"
+                    oninput="updateJiraTicketContent()" placeholder="Clé (ex: BPMN)" />
                 </div>
                 <div class="jira-meta-item">
                   <label>Type de Demande</label>
@@ -2377,10 +2485,14 @@
 
               <!-- Onglets de Formats -->
               <div class="jira-format-tabs">
-                <button class="jira-format-tab active" data-format="jira" onclick="setJiraTicketTab('jira')">📄 Format Jira (Wiki Markup)</button>
-                <button class="jira-format-tab" data-format="markdown" onclick="setJiraTicketTab('markdown')">📝 Markdown (Jira Cloud / GitHub)</button>
-                <button class="jira-format-tab" data-format="preview" onclick="setJiraTicketTab('preview')">👁️ Aperçu Visuel Rendu</button>
-                <button class="jira-format-tab" data-format="json" onclick="setJiraTicketTab('json')">⚙️ Payload JSON (API REST)</button>
+                <button class="jira-format-tab active" data-format="jira" onclick="setJiraTicketTab('jira')">📄 Format
+                  Jira (Wiki Markup)</button>
+                <button class="jira-format-tab" data-format="markdown" onclick="setJiraTicketTab('markdown')">📝
+                  Markdown (Jira Cloud / GitHub)</button>
+                <button class="jira-format-tab" data-format="preview" onclick="setJiraTicketTab('preview')">👁️ Aperçu
+                  Visuel Rendu</button>
+                <button class="jira-format-tab" data-format="json" onclick="setJiraTicketTab('json')">⚙️ Payload JSON
+                  (API REST)</button>
               </div>
 
               <!-- Zone de Contenu -->
@@ -2393,28 +2505,35 @@
             <!-- Footer Actions -->
             <div class="jira-ticket-modal-footer">
               <div class="jira-footer-left">
-                <span id="jiraCopyFeedback" class="jira-copy-feedback" style="display:none;">✅ Copié dans le presse-papiers !</span>
+                <span id="jiraCopyFeedback" class="jira-copy-feedback" style="display:none;">✅ Copié dans le
+                  presse-papiers !</span>
               </div>
               <div class="jira-footer-right">
                 <button class="btn-ghost" onclick="downloadJiraTicketFile()">💾 Télécharger (.txt/.md)</button>
-                <button class="btn-ticket-primary" onclick="copyJiraFullTicket()">📋 Copier Tout (Titre + Description)</button>
-                <button class="btn-primary" onclick="copyJiraActiveContent()" id="btnCopyJiraMain">📋 Copier la Description</button>
+                <button class="btn-ticket-primary" onclick="copyJiraFullTicket()">📋 Copier Tout (Titre +
+                  Description)</button>
+                <button class="btn-primary" onclick="copyJiraActiveContent()" id="btnCopyJiraMain">📋 Copier la
+                  Description</button>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Modal Studio d'Export & Rapports d'Audit Configurables -->
-        <div class="bpmn-lint-modal-backdrop" id="bpmnLintExportModal" style="display:none;" onclick="if(event.target===this) closeBpmnLintExportModal()">
+        <div class="bpmn-lint-modal-backdrop" id="bpmnLintExportModal" style="display:none;"
+          onclick="if(event.target===this) closeBpmnLintExportModal()">
           <div class="jira-ticket-modal-window" style="max-width:860px;">
             <div class="jira-ticket-modal-header">
               <div class="jira-ticket-header-title">
-                <span class="jira-ticket-icon" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">📥</span>
+                <span class="jira-ticket-icon"
+                  style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">📥</span>
                 <div>
-                  <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                  <h3
+                    style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
                     Studio d'Export &amp; Rapports d'Audit
                   </h3>
-                  <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-secondary);">Générez et téléchargez des rapports d'audit certifiés multi-formats (Excel, PDF, HTML, CSV, JSON, Markdown)</p>
+                  <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-secondary);">Générez et téléchargez des
+                    rapports d'audit certifiés multi-formats (Excel, PDF, HTML, CSV, JSON, Markdown)</p>
                 </div>
               </div>
               <button class="btn-ghost" onclick="closeBpmnLintExportModal()" title="Fermer (Échap)">✕</button>
@@ -2477,7 +2596,8 @@
                 </div>
                 <div class="jira-meta-item">
                   <label>Organisation / Auteur</label>
-                  <input type="text" id="exportCustomAuthor" class="jira-input-sm" value="Bouygues Telecom / Paprika" placeholder="Nom de l'équipe" />
+                  <input type="text" id="exportCustomAuthor" class="jira-input-sm" value="Bouygues Telecom / Paprika"
+                    placeholder="Nom de l'équipe" />
                 </div>
               </div>
 
@@ -2533,7 +2653,8 @@
               <!-- Titre personnalisé -->
               <div class="jira-field-group">
                 <label class="jira-field-label">Titre du document personnalisé</label>
-                <input type="text" id="exportCustomTitle" class="jira-input" value="Rapport d'Audit Santé &amp; Qualité BPMN 2.0" />
+                <input type="text" id="exportCustomTitle" class="jira-input"
+                  value="Rapport d'Audit Santé &amp; Qualité BPMN 2.0" />
               </div>
             </div>
 
@@ -2544,7 +2665,8 @@
               </div>
               <div class="jira-footer-right">
                 <button class="btn-ghost" onclick="closeBpmnLintExportModal()">Annuler</button>
-                <button class="btn-primary" onclick="executeBpmnLintConfiguredExport()" id="btnExecuteExport">📥 Exporter le Rapport</button>
+                <button class="btn-primary" onclick="executeBpmnLintConfiguredExport()" id="btnExecuteExport">📥
+                  Exporter le Rapport</button>
               </div>
             </div>
           </div>
@@ -2556,12 +2678,15 @@
             <div>
               <div class="bpmn-lint-eyebrow">PAYSAGE D'ARCHITECTURE &amp; DÉPENDANCES INTER-PROCESSUS</div>
               <h2>Cartographie Globale d’Orchestration 3D/2D</h2>
-              <p>Visualisez la topologie complète de vos processus, les appels de sous-processus (Call Activities) et les flux de messages asynchrones avec analyse d’impact en cascade.</p>
+              <p>Visualisez la topologie complète de vos processus, les appels de sous-processus (Call Activities) et
+                les flux de messages asynchrones avec analyse d’impact en cascade.</p>
             </div>
             <div class="bpmn-lint-result-actions">
               <button class="btn-ghost" onclick="switchTab('bpmn-lint-results')">📋 Rapport de Santé</button>
-              <button class="btn-ghost" onclick="bpmnLandscapeZoomFit()" title="Ajuster la vue pour voir l'ensemble du réseau">📐 Ajuster Vue</button>
-              <button class="btn-primary" onclick="exportBpmnLandscapeImage()" title="Télécharger une capture haute définition de la cartographie">📸 Exporter HD (PNG)</button>
+              <button class="btn-ghost" onclick="bpmnLandscapeZoomFit()"
+                title="Ajuster la vue pour voir l'ensemble du réseau">📐 Ajuster Vue</button>
+              <button class="btn-primary" onclick="exportBpmnLandscapeImage()"
+                title="Télécharger une capture haute définition de la cartographie">📸 Exporter HD (PNG)</button>
             </div>
           </div>
 
@@ -2569,52 +2694,68 @@
           <div id="bpmnLintLandscapeStats" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
 
           <!-- Barre de Contrôles & Filtres Topologiques -->
-          <div class="bpmn-landscape-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:#fff; border:1px solid var(--border-color, #e2e8f0); border-radius:10px; padding:12px 18px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+          <div class="bpmn-landscape-toolbar"
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:#fff; border:1px solid var(--border-color, #e2e8f0); border-radius:10px; padding:12px 18px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span style="font-size:12px; font-weight:700; color:var(--text-secondary);">Disposition :</span>
-              <button class="btn-ghost bpmn-landscape-layout-btn active" data-layout="hierarchical" onclick="setBpmnLandscapeLayout('hierarchical')" style="font-size:11.5px; font-weight:700; padding:5px 12px; border:1px solid var(--border-color); border-radius:6px;">
+              <button class="btn-ghost bpmn-landscape-layout-btn active" data-layout="hierarchical"
+                onclick="setBpmnLandscapeLayout('hierarchical')"
+                style="font-size:11.5px; font-weight:700; padding:5px 12px; border:1px solid var(--border-color); border-radius:6px;">
                 🌲 Hiérarchie Top-Down
               </button>
-              <button class="btn-ghost bpmn-landscape-layout-btn" data-layout="force" onclick="setBpmnLandscapeLayout('force')" style="font-size:11.5px; font-weight:700; padding:5px 12px; border:1px solid var(--border-color); border-radius:6px;">
+              <button class="btn-ghost bpmn-landscape-layout-btn" data-layout="force"
+                onclick="setBpmnLandscapeLayout('force')"
+                style="font-size:11.5px; font-weight:700; padding:5px 12px; border:1px solid var(--border-color); border-radius:6px;">
                 🕸️ Réseau Organique 3D/2D
               </button>
             </div>
 
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <select id="bpmnLandscapeStatusFilterSelect" onchange="setBpmnLandscapeStatusFilter(this.value)" style="padding:6px 10px; font-size:12px; font-weight:700; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
+              <select id="bpmnLandscapeStatusFilterSelect" onchange="setBpmnLandscapeStatusFilter(this.value)"
+                style="padding:6px 10px; font-size:12px; font-weight:700; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
                 <option value="all">Tous les états de santé</option>
                 <option value="ok">✅ Conformes uniquement</option>
                 <option value="warn">🟡 À revoir uniquement</option>
                 <option value="err">🔴 Bloquants uniquement</option>
               </select>
 
-              <select id="bpmnLandscapeEdgeTypeSelect" onchange="setBpmnLandscapeEdgeTypeFilter(this.value)" style="padding:6px 10px; font-size:12px; font-weight:700; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
+              <select id="bpmnLandscapeEdgeTypeSelect" onchange="setBpmnLandscapeEdgeTypeFilter(this.value)"
+                style="padding:6px 10px; font-size:12px; font-weight:700; border:1px solid var(--border-color); border-radius:6px; background:#fff;">
                 <option value="all">Toutes les liaisons</option>
                 <option value="call">🔗 Call Activities (Appels)</option>
                 <option value="message">✉️ Messages Inter-processus</option>
               </select>
 
-              <input type="text" placeholder="🔍 Rechercher processus..." oninput="onBpmnLandscapeSearch(this.value)" style="padding:6px 12px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff; width:180px;">
+              <input type="text" placeholder="🔍 Rechercher processus..." oninput="onBpmnLandscapeSearch(this.value)"
+                style="padding:6px 12px; font-size:12px; border:1px solid var(--border-color); border-radius:6px; background:#fff; width:180px;">
             </div>
           </div>
 
           <!-- Zone Canevas Graphique & Volet Inspecteur d'Impact -->
-          <div class="bpmn-landscape-main-layout" style="display:grid; grid-template-columns: 1fr 340px; gap:18px; min-height:580px;">
-            <div style="position:relative; background:#f8fafc; border:1px solid var(--border-color, #e2e8f0); border-radius:12px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.03);">
+          <div class="bpmn-landscape-main-layout"
+            style="display:grid; grid-template-columns: 1fr 340px; gap:18px; min-height:580px;">
+            <div
+              style="position:relative; background:#f8fafc; border:1px solid var(--border-color, #e2e8f0); border-radius:12px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.03);">
               <div id="bpmnLintLandscapeCanvas" style="width:100%; height:580px;"></div>
-              <div id="bpmnLintLandscapeEmpty" style="display:none; height:450px; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px; color:var(--text-secondary);">
+              <div id="bpmnLintLandscapeEmpty"
+                style="display:none; height:450px; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px; color:var(--text-secondary);">
                 <span style="font-size:48px; margin-bottom:12px;">🗺️</span>
                 <strong style="font-size:16px; color:var(--text-primary);">Aucun diagramme BPMN chargé</strong>
-                <p style="font-size:13px; max-width:400px; margin:6px 0 16px 0;">Importez un lot de fichiers BPMN pour générer instantanément la cartographie globale de vos processus et Call Activities.</p>
+                <p style="font-size:13px; max-width:400px; margin:6px 0 16px 0;">Importez un lot de fichiers BPMN pour
+                  générer instantanément la cartographie globale de vos processus et Call Activities.</p>
                 <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-                  <button class="btn-primary" onclick="triggerBpmnLandscapeImport()">📥 Sélectionner des fichiers BPMN</button>
-                  <button class="btn-secondary" onclick="switchTab('bpmn-lint-import')">📋 Aller à l'atelier d'audit</button>
+                  <button class="btn-primary" onclick="triggerBpmnLandscapeImport()">📥 Sélectionner des fichiers
+                    BPMN</button>
+                  <button class="btn-secondary" onclick="switchTab('bpmn-lint-import')">📋 Aller à l'atelier
+                    d'audit</button>
                 </div>
               </div>
             </div>
 
             <!-- Volet Latéral : Fiche Processus & Analyse d'Impact -->
-            <div id="bpmnLintLandscapeDetails" style="background:#ffffff; border:1px solid var(--border-color, #e2e8f0); border-radius:12px; padding:18px; height:580px; overflow-y:auto; box-shadow:0 4px 14px rgba(0,0,0,0.03);"></div>
+            <div id="bpmnLintLandscapeDetails"
+              style="background:#ffffff; border:1px solid var(--border-color, #e2e8f0); border-radius:12px; padding:18px; height:580px; overflow-y:auto; box-shadow:0 4px 14px rgba(0,0,0,0.03);">
+            </div>
           </div>
         </div>
 
@@ -2891,41 +3032,61 @@
                   <!-- Panneau Multi-Parents & Sous-Processus Partagés -->
                   <div id="pmgParentFilterContainer"
                     style="margin-bottom: 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 12px 16px; box-shadow: var(--shadow-sm);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                       <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 15px;">🏛️</span>
-                        <span style="font-weight: 700; font-size: 12.5px; color: var(--text-primary);">Processus Parents &amp; Sous-processus Partagés :</span>
-                        <span id="pmgParentCountBadge" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(99, 102, 241, 0.12); color: #6366f1; font-weight: 600; border: 1px solid rgba(99, 102, 241, 0.25);">Détection auto</span>
+                        <span style="font-weight: 700; font-size: 12.5px; color: var(--text-primary);">Processus Parents
+                          &amp; Sous-processus Partagés :</span>
+                        <span id="pmgParentCountBadge"
+                          style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(99, 102, 241, 0.12); color: #6366f1; font-weight: 600; border: 1px solid rgba(99, 102, 241, 0.25);">Détection
+                          auto</span>
                       </div>
-                      <button class="btn-ghost" style="padding: 3px 10px; font-size: 11px; height: 26px; color: var(--brand-primary); font-weight: 600; border: 1px solid var(--border-color);" onclick="openPmgParentProcessModal()">
+                      <button class="btn-ghost"
+                        style="padding: 3px 10px; font-size: 11px; height: 26px; color: var(--brand-primary); font-weight: 600; border: 1px solid var(--border-color);"
+                        onclick="openPmgParentProcessModal()">
                         ⚙️ Spécifier / Ajuster les Parents (P1, P2...)
                       </button>
                     </div>
                     <div id="pmgParentChipsList" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-                      <span style="color: var(--text-tertiary); font-size: 11.5px;">Chargez des BPMN pour voir les filtres par processus parent...</span>
+                      <span style="color: var(--text-tertiary); font-size: 11.5px;">Chargez des BPMN pour voir les
+                        filtres par processus parent...</span>
                     </div>
                   </div>
 
                   <!-- Panneau Mode d'Ordonnancement des Activités -->
                   <div id="pmgOrderModeContainer"
                     style="margin-bottom: 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 12px 16px; box-shadow: var(--shadow-sm);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                       <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 15px;">🧭</span>
-                        <span style="font-weight: 700; font-size: 12.5px; color: var(--text-primary);">Mode d'ordonnancement des activités :</span>
-                        <span id="pmgActiveOrderModeDesc" style="font-size: 11px; color: var(--text-secondary); font-style: italic;">Tri par flux d'exécution séquentiel (StartEvent &rarr; Flow)</span>
+                        <span style="font-weight: 700; font-size: 12.5px; color: var(--text-primary);">Mode
+                          d'ordonnancement des activités :</span>
+                        <span id="pmgActiveOrderModeDesc"
+                          style="font-size: 11px; color: var(--text-secondary); font-style: italic;">Tri par flux
+                          d'exécution séquentiel (StartEvent &rarr; Flow)</span>
                       </div>
-                      <div class="pmg-order-mode-bar" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                        <button class="pmg-order-segmented-btn active" id="btnOrderFlow" onclick="setPmgActivityOrderMode('flow')" title="Parcours séquentiel DAG du flux BPMN depuis les débuts">
+                      <div class="pmg-order-mode-bar"
+                        style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <button class="pmg-order-segmented-btn active" id="btnOrderFlow"
+                          onclick="setPmgActivityOrderMode('flow')"
+                          title="Parcours séquentiel DAG du flux BPMN depuis les débuts">
                           🌊 Flux BPMN (Flow)
                         </button>
-                        <button class="pmg-order-segmented-btn" id="btnOrderDiagram" onclick="setPmgActivityOrderMode('diagram')" title="Position géométrique réelle (coordonnées X, Y sur le diagramme BPMNDI)">
+                        <button class="pmg-order-segmented-btn" id="btnOrderDiagram"
+                          onclick="setPmgActivityOrderMode('diagram')"
+                          title="Position géométrique réelle (coordonnées X, Y sur le diagramme BPMNDI)">
                           📐 Visuel Diagramme (BPMNDI)
                         </button>
-                        <button class="pmg-order-segmented-btn" id="btnOrderLevel" onclick="setPmgActivityOrderMode('level')" title="Par niveau de profondeur hiérarchique (Parent > Macro SP > Tâche)">
+                        <button class="pmg-order-segmented-btn" id="btnOrderLevel"
+                          onclick="setPmgActivityOrderMode('level')"
+                          title="Par niveau de profondeur hiérarchique (Parent > Macro SP > Tâche)">
                           📊 Hiérarchique (Niveau)
                         </button>
-                        <button class="pmg-order-segmented-btn" id="btnOrderXml" onclick="setPmgActivityOrderMode('xml')" title="Ordre brut d'apparition dans le document XML source">
+                        <button class="pmg-order-segmented-btn" id="btnOrderXml"
+                          onclick="setPmgActivityOrderMode('xml')"
+                          title="Ordre brut d'apparition dans le document XML source">
                           📄 Document XML
                         </button>
                       </div>
@@ -2992,7 +3153,8 @@
                       </div>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                      <button class="btn-ghost" style="padding: 4px 10px; font-size: 11.5px; border-color: var(--brand-primary); color: var(--brand-primary); font-weight: 700; background: rgba(0, 156, 215, 0.08);"
+                      <button class="btn-ghost"
+                        style="padding: 4px 10px; font-size: 11.5px; border-color: var(--brand-primary); color: var(--brand-primary); font-weight: 700; background: rgba(0, 156, 215, 0.08);"
                         onclick="openPmgSmartEntityAssignModal()">
                         🪄 Affectation Intelligente des Entités
                       </button>
@@ -3009,13 +3171,19 @@
                   <!-- Toolbar Filtres Avancés Étape 3 -->
                   <div class="pmg-filter-toolbar" id="pmgStep3FilterToolbar">
                     <div class="pmg-filter-chips-group">
-                      <span class="pmg-filter-count-badge" id="pmgStep3FilterCount">🎯 <strong>0</strong> activités affichées</span>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3UserTasks" onclick="togglePmgStep3Preset('userTasks')">👤 User Tasks</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3NoGroup" onclick="togglePmgStep3Preset('noGroup')">⚠️ Sans Groupe</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3Transverse" onclick="togglePmgStep3Preset('transverse')">🔀 Transverses</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3Inherited" onclick="togglePmgStep3Preset('inherited')">↳ Hérités du Parent</button>
+                      <span class="pmg-filter-count-badge" id="pmgStep3FilterCount">🎯 <strong>0</strong> activités
+                        affichées</span>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3UserTasks"
+                        onclick="togglePmgStep3Preset('userTasks')">👤 User Tasks</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3NoGroup"
+                        onclick="togglePmgStep3Preset('noGroup')">⚠️ Sans Groupe</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3Transverse"
+                        onclick="togglePmgStep3Preset('transverse')">🔀 Transverses</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3Inherited"
+                        onclick="togglePmgStep3Preset('inherited')">↳ Hérités du Parent</button>
                     </div>
-                    <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep3Filters()">🔄 Réinitialiser les filtres</button>
+                    <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep3Filters()">🔄 Réinitialiser
+                      les filtres</button>
                   </div>
 
                   <div class="tbl-wrap"
@@ -3032,23 +3200,27 @@
                         <tr class="pmg-col-filter-row">
                           <th>
                             <div class="pmg-col-filter-input-wrap">
-                              <input type="text" id="pmgFilterStep3Act" class="pmg-col-filter-input" placeholder="🔍 Filtrer nom ou ID..." oninput="onPmgStep3FilterChange()">
+                              <input type="text" id="pmgFilterStep3Act" class="pmg-col-filter-input"
+                                placeholder="🔍 Filtrer nom ou ID..." oninput="onPmgStep3FilterChange()">
                               <button class="pmg-col-filter-clear" onclick="clearPmgStep3ColFilter('act')">×</button>
                             </div>
                           </th>
                           <th>
-                            <select id="pmgFilterStep3Type" class="pmg-col-filter-select" onchange="onPmgStep3FilterChange()">
+                            <select id="pmgFilterStep3Type" class="pmg-col-filter-select"
+                              onchange="onPmgStep3FilterChange()">
                               <option value="all">Tous les types</option>
                             </select>
                           </th>
                           <th>
-                            <select id="pmgFilterStep3Entity" class="pmg-col-filter-select" onchange="onPmgStep3FilterChange()">
+                            <select id="pmgFilterStep3Entity" class="pmg-col-filter-select"
+                              onchange="onPmgStep3FilterChange()">
                               <option value="all">Toutes les entités</option>
                             </select>
                           </th>
                           <th>
                             <div style="display:flex; gap:4px;">
-                              <select id="pmgFilterStep3GroupStatus" class="pmg-col-filter-select" style="flex:1;" onchange="onPmgStep3FilterChange()">
+                              <select id="pmgFilterStep3GroupStatus" class="pmg-col-filter-select" style="flex:1;"
+                                onchange="onPmgStep3FilterChange()">
                                 <option value="all">Tous les statuts</option>
                                 <option value="with_group">👤 Avec groupe</option>
                                 <option value="no_group">⚠️ Sans groupe</option>
@@ -3056,8 +3228,10 @@
                                 <option value="not_applicable">— Non applicable</option>
                               </select>
                               <div class="pmg-col-filter-input-wrap" style="flex:1;">
-                                <input type="text" id="pmgFilterStep3GroupText" class="pmg-col-filter-input" placeholder="🔍 Groupe..." oninput="onPmgStep3FilterChange()">
-                                <button class="pmg-col-filter-clear" onclick="clearPmgStep3ColFilter('groupText')">×</button>
+                                <input type="text" id="pmgFilterStep3GroupText" class="pmg-col-filter-input"
+                                  placeholder="🔍 Groupe..." oninput="onPmgStep3FilterChange()">
+                                <button class="pmg-col-filter-clear"
+                                  onclick="clearPmgStep3ColFilter('groupText')">×</button>
                               </div>
                             </div>
                           </th>
@@ -3112,12 +3286,17 @@
                   <!-- Toolbar Filtres Avancés Étape 4 -->
                   <div class="pmg-filter-toolbar" id="pmgStep4FilterToolbar">
                     <div class="pmg-filter-chips-group">
-                      <span class="pmg-filter-count-badge" id="pmgStep4FilterCount">🎯 <strong>0</strong> activités affichées</span>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep4WithInputs" onclick="togglePmgStep4Preset('withInputs')">📥 Avec Inputs</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep4WithOutputs" onclick="togglePmgStep4Preset('withOutputs')">📤 Avec Outputs</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep4NoVars" onclick="togglePmgStep4Preset('noVars')">⚠️ Sans Variables I/O</button>
+                      <span class="pmg-filter-count-badge" id="pmgStep4FilterCount">🎯 <strong>0</strong> activités
+                        affichées</span>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep4WithInputs"
+                        onclick="togglePmgStep4Preset('withInputs')">📥 Avec Inputs</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep4WithOutputs"
+                        onclick="togglePmgStep4Preset('withOutputs')">📤 Avec Outputs</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep4NoVars"
+                        onclick="togglePmgStep4Preset('noVars')">⚠️ Sans Variables I/O</button>
                     </div>
-                    <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep4Filters()">🔄 Réinitialiser les filtres</button>
+                    <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep4Filters()">🔄 Réinitialiser
+                      les filtres</button>
                   </div>
 
                   <div class="tbl-wrap"
@@ -3133,38 +3312,46 @@
                         <tr class="pmg-col-filter-row">
                           <th>
                             <div class="pmg-col-filter-input-wrap">
-                              <input type="text" id="pmgFilterStep4Act" class="pmg-col-filter-input" placeholder="🔍 Nom ou ID..." oninput="onPmgStep4FilterChange()">
+                              <input type="text" id="pmgFilterStep4Act" class="pmg-col-filter-input"
+                                placeholder="🔍 Nom ou ID..." oninput="onPmgStep4FilterChange()">
                               <button class="pmg-col-filter-clear" onclick="clearPmgStep4ColFilter('act')">×</button>
                             </div>
                           </th>
                           <th>
-                            <select id="pmgFilterStep4Type" class="pmg-col-filter-select" onchange="onPmgStep4FilterChange()">
+                            <select id="pmgFilterStep4Type" class="pmg-col-filter-select"
+                              onchange="onPmgStep4FilterChange()">
                               <option value="all">Tous les types</option>
                             </select>
                           </th>
                           <th>
                             <div style="display:flex; gap:4px;">
-                              <select id="pmgFilterStep4InStatus" class="pmg-col-filter-select" style="width:80px;" onchange="onPmgStep4FilterChange()">
+                              <select id="pmgFilterStep4InStatus" class="pmg-col-filter-select" style="width:80px;"
+                                onchange="onPmgStep4FilterChange()">
                                 <option value="all">Tous</option>
                                 <option value="has">Avec</option>
                                 <option value="none">Sans</option>
                               </select>
                               <div class="pmg-col-filter-input-wrap" style="flex:1;">
-                                <input type="text" id="pmgFilterStep4InText" class="pmg-col-filter-input" placeholder="🔍 Variable..." oninput="onPmgStep4FilterChange()">
-                                <button class="pmg-col-filter-clear" onclick="clearPmgStep4ColFilter('inText')">×</button>
+                                <input type="text" id="pmgFilterStep4InText" class="pmg-col-filter-input"
+                                  placeholder="🔍 Variable..." oninput="onPmgStep4FilterChange()">
+                                <button class="pmg-col-filter-clear"
+                                  onclick="clearPmgStep4ColFilter('inText')">×</button>
                               </div>
                             </div>
                           </th>
                           <th>
                             <div style="display:flex; gap:4px;">
-                              <select id="pmgFilterStep4OutStatus" class="pmg-col-filter-select" style="width:80px;" onchange="onPmgStep4FilterChange()">
+                              <select id="pmgFilterStep4OutStatus" class="pmg-col-filter-select" style="width:80px;"
+                                onchange="onPmgStep4FilterChange()">
                                 <option value="all">Tous</option>
                                 <option value="has">Avec</option>
                                 <option value="none">Sans</option>
                               </select>
                               <div class="pmg-col-filter-input-wrap" style="flex:1;">
-                                <input type="text" id="pmgFilterStep4OutText" class="pmg-col-filter-input" placeholder="🔍 Variable..." oninput="onPmgStep4FilterChange()">
-                                <button class="pmg-col-filter-clear" onclick="clearPmgStep4ColFilter('outText')">×</button>
+                                <input type="text" id="pmgFilterStep4OutText" class="pmg-col-filter-input"
+                                  placeholder="🔍 Variable..." oninput="onPmgStep4FilterChange()">
+                                <button class="pmg-col-filter-clear"
+                                  onclick="clearPmgStep4ColFilter('outText')">×</button>
                               </div>
                             </div>
                           </th>
@@ -3242,13 +3429,19 @@
                   <!-- Toolbar Filtres Avancés Étape 5 -->
                   <div class="pmg-filter-toolbar" id="pmgStep5FilterToolbar">
                     <div class="pmg-filter-chips-group">
-                      <span class="pmg-filter-count-badge" id="pmgStep5FilterCount">🎯 <strong>0</strong> activités affichées</span>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5Call" onclick="togglePmgStep5Preset('Call Activity')">📁 Call Activity</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5Auto" onclick="togglePmgStep5Preset('Automatique')">⚙️ Automatique</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5Manual" onclick="togglePmgStep5Preset('Manuelle')">👤 Manuelle</button>
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5NoDoc" onclick="togglePmgStep5Preset('noDoc')">⚠️ Sans Doc</button>
+                      <span class="pmg-filter-count-badge" id="pmgStep5FilterCount">🎯 <strong>0</strong> activités
+                        affichées</span>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5Call"
+                        onclick="togglePmgStep5Preset('Call Activity')">📁 Call Activity</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5Auto"
+                        onclick="togglePmgStep5Preset('Automatique')">⚙️ Automatique</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5Manual"
+                        onclick="togglePmgStep5Preset('Manuelle')">👤 Manuelle</button>
+                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep5NoDoc"
+                        onclick="togglePmgStep5Preset('noDoc')">⚠️ Sans Doc</button>
                     </div>
-                    <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep5Filters()">🔄 Réinitialiser les filtres</button>
+                    <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep5Filters()">🔄 Réinitialiser
+                      les filtres</button>
                   </div>
 
                   <!-- Container pour Grille Globale Éditable Excel-Like -->
@@ -3270,25 +3463,30 @@
                         <tr class="pmg-col-filter-row">
                           <th>
                             <div class="pmg-col-filter-input-wrap">
-                              <input type="text" id="pmgFilterStep5Act" class="pmg-col-filter-input" placeholder="🔍 Nom ou ID..." oninput="onPmgStep5FilterChange()">
+                              <input type="text" id="pmgFilterStep5Act" class="pmg-col-filter-input"
+                                placeholder="🔍 Nom ou ID..." oninput="onPmgStep5FilterChange()">
                               <button class="pmg-col-filter-clear" onclick="clearPmgStep5ColFilter('act')">×</button>
                             </div>
                           </th>
                           <th>
-                            <select id="pmgFilterStep5Mode" class="pmg-col-filter-select" onchange="onPmgStep5FilterChange()">
+                            <select id="pmgFilterStep5Mode" class="pmg-col-filter-select"
+                              onchange="onPmgStep5FilterChange()">
                               <option value="all">Tous les modes</option>
                             </select>
                           </th>
                           <th>
                             <div class="pmg-col-filter-input-wrap">
-                              <input type="text" id="pmgFilterStep5Case" class="pmg-col-filter-input" placeholder="🔍 Filtrer condition..." oninput="onPmgStep5FilterChange()">
+                              <input type="text" id="pmgFilterStep5Case" class="pmg-col-filter-input"
+                                placeholder="🔍 Filtrer condition..." oninput="onPmgStep5FilterChange()">
                               <button class="pmg-col-filter-clear" onclick="clearPmgStep5ColFilter('case')">×</button>
                             </div>
                           </th>
                           <th>
                             <div class="pmg-col-filter-input-wrap">
-                              <input type="text" id="pmgFilterStep5Comment" class="pmg-col-filter-input" placeholder="🔍 Filtrer commentaire..." oninput="onPmgStep5FilterChange()">
-                              <button class="pmg-col-filter-clear" onclick="clearPmgStep5ColFilter('comment')">×</button>
+                              <input type="text" id="pmgFilterStep5Comment" class="pmg-col-filter-input"
+                                placeholder="🔍 Filtrer commentaire..." oninput="onPmgStep5FilterChange()">
+                              <button class="pmg-col-filter-clear"
+                                onclick="clearPmgStep5ColFilter('comment')">×</button>
                             </div>
                           </th>
                         </tr>
@@ -3704,41 +3902,48 @@
                   <tr class="pmg-col-filter-row">
                     <th>
                       <div class="pmg-col-filter-input-wrap">
-                        <input type="text" id="pmgMatrixFilterColAct" class="pmg-col-filter-input" placeholder="🔍 Nom ou ID..." oninput="onPmgMatrixColFilterChange()">
+                        <input type="text" id="pmgMatrixFilterColAct" class="pmg-col-filter-input"
+                          placeholder="🔍 Nom ou ID..." oninput="onPmgMatrixColFilterChange()">
                         <button class="pmg-col-filter-clear" onclick="clearPmgMatrixColFilter('act')">×</button>
                       </div>
                     </th>
                     <th>
-                      <select id="pmgMatrixFilterColType" class="pmg-col-filter-select" onchange="onPmgMatrixColFilterChange()">
+                      <select id="pmgMatrixFilterColType" class="pmg-col-filter-select"
+                        onchange="onPmgMatrixColFilterChange()">
                         <option value="all">Tous types</option>
                       </select>
                     </th>
                     <th>
-                      <select id="pmgMatrixFilterColEntity" class="pmg-col-filter-select" onchange="onPmgMatrixColFilterChange()">
+                      <select id="pmgMatrixFilterColEntity" class="pmg-col-filter-select"
+                        onchange="onPmgMatrixColFilterChange()">
                         <option value="all">Toutes entités</option>
                       </select>
                     </th>
                     <th>
                       <div class="pmg-col-filter-input-wrap">
-                        <input type="text" id="pmgMatrixFilterColIn" class="pmg-col-filter-input" placeholder="🔍 Variable in..." oninput="onPmgMatrixColFilterChange()">
+                        <input type="text" id="pmgMatrixFilterColIn" class="pmg-col-filter-input"
+                          placeholder="🔍 Variable in..." oninput="onPmgMatrixColFilterChange()">
                         <button class="pmg-col-filter-clear" onclick="clearPmgMatrixColFilter('in')">×</button>
                       </div>
                     </th>
                     <th>
                       <div class="pmg-col-filter-input-wrap">
-                        <input type="text" id="pmgMatrixFilterColOut" class="pmg-col-filter-input" placeholder="🔍 Variable out..." oninput="onPmgMatrixColFilterChange()">
+                        <input type="text" id="pmgMatrixFilterColOut" class="pmg-col-filter-input"
+                          placeholder="🔍 Variable out..." oninput="onPmgMatrixColFilterChange()">
                         <button class="pmg-col-filter-clear" onclick="clearPmgMatrixColFilter('out')">×</button>
                       </div>
                     </th>
                     <th>
                       <div class="pmg-col-filter-input-wrap">
-                        <input type="text" id="pmgMatrixFilterColCase" class="pmg-col-filter-input" placeholder="🔍 Condition..." oninput="onPmgMatrixColFilterChange()">
+                        <input type="text" id="pmgMatrixFilterColCase" class="pmg-col-filter-input"
+                          placeholder="🔍 Condition..." oninput="onPmgMatrixColFilterChange()">
                         <button class="pmg-col-filter-clear" onclick="clearPmgMatrixColFilter('case')">×</button>
                       </div>
                     </th>
                     <th>
                       <div class="pmg-col-filter-input-wrap">
-                        <input type="text" id="pmgMatrixFilterColComment" class="pmg-col-filter-input" placeholder="🔍 Commentaire..." oninput="onPmgMatrixColFilterChange()">
+                        <input type="text" id="pmgMatrixFilterColComment" class="pmg-col-filter-input"
+                          placeholder="🔍 Commentaire..." oninput="onPmgMatrixColFilterChange()">
                         <button class="pmg-col-filter-clear" onclick="clearPmgMatrixColFilter('comment')">×</button>
                       </div>
                     </th>
@@ -4236,19 +4441,27 @@
 
               <h4 class="guide-subtitle">5.1 Import Multi-fichiers</h4>
               <div class="guide-card">
-                <p>Déposer un ou plusieurs fichiers <code>.bpmn</code> ou <code>.xml</code>. L'application parse et analyse l'ensemble du lot, résout les dépendances d'appels inter-processus et vérifie la conformité globale.</p>
+                <p>Déposer un ou plusieurs fichiers <code>.bpmn</code> ou <code>.xml</code>. L'application parse et
+                  analyse l'ensemble du lot, résout les dépendances d'appels inter-processus et vérifie la conformité
+                  globale.</p>
               </div>
 
               <h4 class="guide-subtitle">5.2 Règles &amp; Conventions Unifiées</h4>
               <div class="guide-card">
-                <p>Configurez les règles d'audit classées par catégorie (Structure, Modélisation, Nommage, Dépendances, Déploiement, Documentation). Ajoutez des règles d'équipe basées sur des expressions régulières (Regex) et exportez/importez vos politiques de qualité en JSON.</p>
+                <p>Configurez les règles d'audit classées par catégorie (Structure, Modélisation, Nommage, Dépendances,
+                  Déploiement, Documentation). Ajoutez des règles d'équipe basées sur des expressions régulières (Regex)
+                  et exportez/importez vos politiques de qualité en JSON.</p>
               </div>
 
               <h4 class="guide-subtitle">5.3 Rapport de Santé, Visualiseur &amp; Auto-Fix</h4>
               <div class="guide-card">
-                <p><strong>KPIs &amp; Score :</strong> Score de préparation à la production, verdict exécutif (Go / No-Go), matrice 2D Heatmap croisée Fichiers × Règles.</p>
-                <p><strong>Visualiseur BPMN interactif :</strong> Visualisation graphique du diagramme avec surbrillance des éléments en anomalie et zoom direct.</p>
-                <p><strong>Corrections &amp; Exports :</strong> Nettoyage automatique des libellés, téléchargement des fichiers BPMN corrigés (pack ZIP ou individuel), exports complets en HTML, Excel, CSV, JSON et PDF.</p>
+                <p><strong>KPIs &amp; Score :</strong> Score de préparation à la production, verdict exécutif (Go /
+                  No-Go), matrice 2D Heatmap croisée Fichiers × Règles.</p>
+                <p><strong>Visualiseur BPMN interactif :</strong> Visualisation graphique du diagramme avec surbrillance
+                  des éléments en anomalie et zoom direct.</p>
+                <p><strong>Corrections &amp; Exports :</strong> Nettoyage automatique des libellés, téléchargement des
+                  fichiers BPMN corrigés (pack ZIP ou individuel), exports complets en HTML, Excel, CSV, JSON et PDF.
+                </p>
               </div>
             </div>
 
@@ -4606,7 +4819,8 @@
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.65); z-index:9999; justify-content:center; align-items:center;">
     <div class="modal-content"
       style="background:var(--bg-card); border-radius:var(--border-radius-md); padding:24px; max-width:840px; width:92%; max-height:90vh; display:flex; flex-direction:column; border:1px solid var(--border-color); box-shadow:0 12px 36px rgba(0,0,0,0.45);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:22px;">🏛️</span>
           <div>
@@ -4618,21 +4832,26 @@
             </div>
           </div>
         </div>
-        <button class="btn-ghost" onclick="closePmgParentProcessModal()" style="padding:4px 10px; font-size:16px;">✕</button>
+        <button class="btn-ghost" onclick="closePmgParentProcessModal()"
+          style="padding:4px 10px; font-size:16px;">✕</button>
       </div>
 
       <div id="pmgParentProcessModalBody" style="flex:1; overflow-y:auto; padding-right:4px; margin-bottom:16px;">
         <!-- Rempli dynamiquement par JS -->
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
         <div style="display:flex; gap:8px; align-items:center;">
-          <button class="btn-ghost" style="font-size:11.5px; padding:4px 10px;" onclick="resetPmgParentDetectionToAuto()">🔄 Réinitialiser Détection Auto</button>
-          <button class="btn-ghost" style="font-size:11.5px; padding:4px 10px;" onclick="toggleAllPmgProcessesAsParents(true)">✅ Tout marquer comme Parents</button>
+          <button class="btn-ghost" style="font-size:11.5px; padding:4px 10px;"
+            onclick="resetPmgParentDetectionToAuto()">🔄 Réinitialiser Détection Auto</button>
+          <button class="btn-ghost" style="font-size:11.5px; padding:4px 10px;"
+            onclick="toggleAllPmgProcessesAsParents(true)">✅ Tout marquer comme Parents</button>
         </div>
         <div style="display:flex; gap:10px;">
           <button class="btn-ghost" onclick="closePmgParentProcessModal()">Annuler</button>
-          <button class="btn-primary" style="padding:6px 16px; font-weight:600;" onclick="applyPmgParentProcessSelection()">
+          <button class="btn-primary" style="padding:6px 16px; font-weight:600;"
+            onclick="applyPmgParentProcessSelection()">
             💾 Appliquer &amp; Recalculer l'Arborescence
           </button>
         </div>
@@ -4645,7 +4864,8 @@
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.65); z-index:9999; justify-content:center; align-items:center;">
     <div class="modal-content"
       style="background:var(--bg-card); border-radius:var(--border-radius-md); padding:24px; max-width:860px; width:92%; max-height:90vh; display:flex; flex-direction:column; border:1px solid var(--border-color); box-shadow:0 12px 36px rgba(0,0,0,0.45);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:22px;">👥</span>
           <div>
@@ -4653,18 +4873,21 @@
               Mappage des Groupes Utilisateurs &amp; Entités Responsables (Lanes/Pools)
             </h3>
             <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
-              Associez chaque groupe candidat BPMN à son Entité / Lane d'appartenance pour automatiser l'assignation et détecter les détachements transverses.
+              Associez chaque groupe candidat BPMN à son Entité / Lane d'appartenance pour automatiser l'assignation et
+              détecter les détachements transverses.
             </div>
           </div>
         </div>
-        <button class="btn-ghost" onclick="closePmgUserGroupMappingModal()" style="padding:4px 10px; font-size:16px;">✕</button>
+        <button class="btn-ghost" onclick="closePmgUserGroupMappingModal()"
+          style="padding:4px 10px; font-size:16px;">✕</button>
       </div>
 
       <div id="pmgUserGroupMappingModalBody" style="flex:1; overflow-y:auto; padding-right:4px; margin-bottom:16px;">
         <!-- Rempli dynamiquement par JS -->
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
         <div style="font-size:11.5px; color:var(--text-secondary);">
           💡 Ce mappage permet d'aligner les rôles opérationnels avec la structure organisationnelle (Lanes).
         </div>
@@ -5197,18 +5420,23 @@
   </div>
 
   <!-- Modal Générateur Avancé de Ticket Jira / Confluence -->
-  <div id="jiraTicketModal" class="modal-backdrop" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.65); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
-    <div class="modal-dialog" style="background:var(--bg-primary, #ffffff); border-radius:12px; max-width:860px; width:95%; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid var(--border-color, #e2e8f0); overflow:hidden;">
-      
+  <div id="jiraTicketModal" class="modal-backdrop"
+    style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.65); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div class="modal-dialog"
+      style="background:var(--bg-primary, #ffffff); border-radius:12px; max-width:860px; width:95%; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid var(--border-color, #e2e8f0); overflow:hidden;">
+
       <!-- Modal Header -->
-      <div class="modal-header" style="padding:16px 20px; border-bottom:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(to right, rgba(0,82,204,0.05), transparent);">
+      <div class="modal-header"
+        style="padding:16px 20px; border-bottom:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(to right, rgba(0,82,204,0.05), transparent);">
         <div style="display:flex; align-items:center; gap:12px;">
-          <div style="width:36px; height:36px; border-radius:8px; background:#0052cc; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px;">
+          <div
+            style="width:36px; height:36px; border-radius:8px; background:#0052cc; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px;">
             J
           </div>
           <div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary, #0f172a);">Studio de Création de Ticket Jira / DevOps</h3>
+              <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary, #0f172a);">Studio de
+                Création de Ticket Jira / DevOps</h3>
               <span id="jiraModalSeverityBadge" class="bpmn-lint-severity blocker">BLOCKER</span>
             </div>
             <div id="jiraModalSubTitle" style="font-size:12px; color:var(--text-tertiary, #64748b); margin-top:2px;">
@@ -5216,21 +5444,30 @@
             </div>
           </div>
         </div>
-        <button type="button" class="btn-ghost" onclick="closeJiraTicketModal()" style="font-size:20px; line-height:1; padding:4px 8px; cursor:pointer;">&times;</button>
+        <button type="button" class="btn-ghost" onclick="closeJiraTicketModal()"
+          style="font-size:20px; line-height:1; padding:4px 8px; cursor:pointer;">&times;</button>
       </div>
 
       <!-- Modal Body -->
-      <div class="modal-body" style="padding:16px 20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:14px;">
-        
+      <div class="modal-body"
+        style="padding:16px 20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:14px;">
+
         <!-- Métadonnées Projet & Type -->
-        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; background:var(--bg-secondary, #f8fafc); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color, #e2e8f0);">
+        <div
+          style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; background:var(--bg-secondary, #f8fafc); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color, #e2e8f0);">
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Projet Jira</label>
-            <input type="text" id="jiraMetaProjectKey" value="BPMN" oninput="updateJiraTicketContent()" style="width:100%; padding:4px 8px; font-size:12px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:4px; text-transform:uppercase;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Projet
+              Jira</label>
+            <input type="text" id="jiraMetaProjectKey" value="BPMN" oninput="updateJiraTicketContent()"
+              style="width:100%; padding:4px 8px; font-size:12px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:4px; text-transform:uppercase;">
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Type d'Issue</label>
-            <select id="jiraMetaIssueType" onchange="updateJiraTicketContent()" style="width:100%; padding:4px 8px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:4px;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Type
+              d'Issue</label>
+            <select id="jiraMetaIssueType" onchange="updateJiraTicketContent()"
+              style="width:100%; padding:4px 8px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:4px;">
               <option value="Bug" selected>🐞 Bug / Anomalie</option>
               <option value="Task">📋 Task / Tâche</option>
               <option value="Improvement">✨ Amélioration</option>
@@ -5238,64 +5475,87 @@
             </select>
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Priorité Jira</label>
-            <input type="text" id="jiraMetaPriority" readonly style="width:100%; padding:4px 8px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--border-color, #cbd5e1); border-radius:4px; color:var(--text-primary, #0f172a);">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Priorité
+              Jira</label>
+            <input type="text" id="jiraMetaPriority" readonly
+              style="width:100%; padding:4px 8px; font-size:12px; font-weight:700; background:#fff; border:1px solid var(--border-color, #cbd5e1); border-radius:4px; color:var(--text-primary, #0f172a);">
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">RACI Suggéré</label>
-            <input type="text" id="jiraMetaAssignee" readonly style="width:100%; padding:4px 8px; font-size:12px; background:#fff; border:1px solid var(--border-color, #cbd5e1); border-radius:4px; color:var(--text-primary, #0f172a);">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">RACI
+              Suggéré</label>
+            <input type="text" id="jiraMetaAssignee" readonly
+              style="width:100%; padding:4px 8px; font-size:12px; background:#fff; border:1px solid var(--border-color, #cbd5e1); border-radius:4px; color:var(--text-primary, #0f172a);">
           </div>
         </div>
 
         <!-- Champ Résumé / Summary -->
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label style="font-size:12px; font-weight:700; color:var(--text-primary, #0f172a);">Titre du Ticket (Summary Jira)</label>
-            <button type="button" class="btn-ghost" onclick="copyJiraSummary()" style="font-size:11px; padding:2px 8px; font-weight:700; color:var(--brand-primary, #009cd7);">
+            <label style="font-size:12px; font-weight:700; color:var(--text-primary, #0f172a);">Titre du Ticket (Summary
+              Jira)</label>
+            <button type="button" class="btn-ghost" onclick="copyJiraSummary()"
+              style="font-size:11px; padding:2px 8px; font-weight:700; color:var(--brand-primary, #009cd7);">
               📋 Copier Titre
             </button>
           </div>
-          <input type="text" id="jiraTicketSummaryInput" style="width:100%; padding:8px 12px; font-size:13px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:var(--bg-primary, #fff);">
+          <input type="text" id="jiraTicketSummaryInput"
+            style="width:100%; padding:8px 12px; font-size:13px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:var(--bg-primary, #fff);">
         </div>
 
         <!-- Onglets Format & Visualiseur -->
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <div style="display:flex; gap:6px;">
-              <button type="button" class="jira-format-tab active" data-format="jira" onclick="setJiraTicketTab('jira')" style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
+              <button type="button" class="jira-format-tab active" data-format="jira" onclick="setJiraTicketTab('jira')"
+                style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
                 Jira Markup (Wiki)
               </button>
-              <button type="button" class="jira-format-tab" data-format="markdown" onclick="setJiraTicketTab('markdown')" style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
+              <button type="button" class="jira-format-tab" data-format="markdown"
+                onclick="setJiraTicketTab('markdown')"
+                style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
                 Markdown (GitHub / Confluence)
               </button>
-              <button type="button" class="jira-format-tab" data-format="preview" onclick="setJiraTicketTab('preview')" style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
+              <button type="button" class="jira-format-tab" data-format="preview" onclick="setJiraTicketTab('preview')"
+                style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
                 👁️ Aperçu Rendu
               </button>
-              <button type="button" class="jira-format-tab" data-format="json" onclick="setJiraTicketTab('json')" style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
+              <button type="button" class="jira-format-tab" data-format="json" onclick="setJiraTicketTab('json')"
+                style="padding:4px 12px; font-size:12px; font-weight:700; border-radius:6px; border:1px solid var(--border-color, #cbd5e1); background:var(--bg-secondary, #f1f5f9); cursor:pointer;">
                 REST API (JSON)
               </button>
             </div>
-            <span id="jiraCopyFeedback" style="display:none; font-size:11px; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:4px;">
+            <span id="jiraCopyFeedback"
+              style="display:none; font-size:11px; font-weight:700; color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:4px;">
               ✅ Copié !
             </span>
           </div>
 
-          <textarea id="jiraTicketTextarea" readonly style="width:100%; height:240px; padding:10px 12px; font-family:Consolas, Monaco, monospace; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:var(--bg-secondary, #f8fafc); resize:vertical; line-height:1.5;"></textarea>
-          <div id="jiraTicketPreview" style="display:none; width:100%; height:240px; overflow-y:auto; padding:12px 16px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff; font-size:13px; line-height:1.6;"></div>
+          <textarea id="jiraTicketTextarea" readonly
+            style="width:100%; height:240px; padding:10px 12px; font-family:Consolas, Monaco, monospace; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:var(--bg-secondary, #f8fafc); resize:vertical; line-height:1.5;"></textarea>
+          <div id="jiraTicketPreview"
+            style="display:none; width:100%; height:240px; overflow-y:auto; padding:12px 16px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff; font-size:13px; line-height:1.6;">
+          </div>
         </div>
       </div>
 
       <!-- Modal Footer -->
-      <div class="modal-footer" style="padding:12px 20px; border-top:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary, #f8fafc);">
-        <button type="button" class="btn-ghost" onclick="closeJiraTicketModal()" style="font-weight:600;">Fermer</button>
+      <div class="modal-footer"
+        style="padding:12px 20px; border-top:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary, #f8fafc);">
+        <button type="button" class="btn-ghost" onclick="closeJiraTicketModal()"
+          style="font-weight:600;">Fermer</button>
         <div style="display:flex; gap:10px;">
-          <button type="button" class="btn-outline" onclick="downloadJiraTicketFile()" style="display:flex; align-items:center; gap:6px; font-weight:700; padding:6px 14px;">
+          <button type="button" class="btn-outline" onclick="downloadJiraTicketFile()"
+            style="display:flex; align-items:center; gap:6px; font-weight:700; padding:6px 14px;">
             💾 Télécharger (.txt / .md)
           </button>
-          <button type="button" class="btn-outline" onclick="copyJiraActiveContent()" style="display:flex; align-items:center; gap:6px; font-weight:700; padding:6px 14px;">
+          <button type="button" class="btn-outline" onclick="copyJiraActiveContent()"
+            style="display:flex; align-items:center; gap:6px; font-weight:700; padding:6px 14px;">
             📋 Copier le Corps
           </button>
-          <button type="button" class="btn-primary" onclick="copyJiraFullTicket()" style="display:flex; align-items:center; gap:6px; font-weight:700; padding:6px 18px; background:#0052cc;">
+          <button type="button" class="btn-primary" onclick="copyJiraFullTicket()"
+            style="display:flex; align-items:center; gap:6px; font-weight:700; padding:6px 18px; background:#0052cc;">
             🚀 Copier Titre + Description
           </button>
         </div>
@@ -5305,31 +5565,39 @@
   </div>
 
   <!-- Modal Studio d'Export Avancé Multi-Format & Configurable -->
-  <div id="bpmnLintExportModal" class="modal-backdrop" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.65); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
-    <div class="modal-dialog" style="background:var(--bg-primary, #ffffff); border-radius:12px; max-width:920px; width:95%; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid var(--border-color, #e2e8f0); overflow:hidden;">
-      
+  <div id="bpmnLintExportModal" class="modal-backdrop"
+    style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.65); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div class="modal-dialog"
+      style="background:var(--bg-primary, #ffffff); border-radius:12px; max-width:920px; width:95%; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid var(--border-color, #e2e8f0); overflow:hidden;">
+
       <!-- Modal Header -->
-      <div class="modal-header" style="padding:16px 22px; border-bottom:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(to right, rgba(0,156,215,0.06), transparent);">
+      <div class="modal-header"
+        style="padding:16px 22px; border-bottom:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(to right, rgba(0,156,215,0.06), transparent);">
         <div style="display:flex; align-items:center; gap:12px;">
-          <div style="width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg, #003882, #009CD7); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,156,215,0.3);">
+          <div
+            style="width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg, #003882, #009CD7); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,156,215,0.3);">
             📊
           </div>
           <div>
-            <h3 style="margin:0; font-size:17px; font-weight:800; color:var(--text-primary, #0f172a);">Studio d'Export &amp; Rapports d'Audit BPMN 2.0</h3>
+            <h3 style="margin:0; font-size:17px; font-weight:800; color:var(--text-primary, #0f172a);">Studio d'Export
+              &amp; Rapports d'Audit BPMN 2.0</h3>
             <p style="margin:2px 0 0; font-size:12px; color:var(--text-tertiary, #64748b);">
               Générez un dossier d'audit qualité entièrement sur-mesure, certifié pour la gouvernance et le déploiement.
             </p>
           </div>
         </div>
-        <button type="button" class="btn-ghost" onclick="closeBpmnLintExportModal()" style="font-size:22px; line-height:1; padding:4px 8px; cursor:pointer;">&times;</button>
+        <button type="button" class="btn-ghost" onclick="closeBpmnLintExportModal()"
+          style="font-size:22px; line-height:1; padding:4px 8px; cursor:pointer;">&times;</button>
       </div>
 
       <!-- Modal Body -->
-      <div class="modal-body" style="padding:18px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px;">
-        
+      <div class="modal-body"
+        style="padding:18px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px;">
+
         <!-- 1. Format Selector Grid -->
         <div>
-          <label style="font-size:12px; font-weight:800; color:var(--text-primary, #0f172a); display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+          <label
+            style="font-size:12px; font-weight:800; color:var(--text-primary, #0f172a); display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
             1. Choisissez le Format d'Export
           </label>
           <div class="export-format-grid" style="display:grid; grid-template-columns: repeat(6, 1fr); gap:10px;">
@@ -5367,35 +5635,49 @@
         </div>
 
         <!-- 2. Configuration & Périmètre Grid -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; background:var(--bg-secondary, #f8fafc); padding:14px 16px; border-radius:10px; border:1px solid var(--border-color, #e2e8f0);">
+        <div
+          style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; background:var(--bg-secondary, #f8fafc); padding:14px 16px; border-radius:10px; border:1px solid var(--border-color, #e2e8f0);">
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Périmètre des Diagrammes</label>
-            <select id="exportScopeFiles" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Périmètre
+              des Diagrammes</label>
+            <select id="exportScopeFiles"
+              style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
               <option value="all" selected>Tous les diagrammes BPMN audités</option>
               <option value="active">Uniquement le diagramme actif</option>
             </select>
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Sévérité &amp; Anomalies</label>
-            <select id="exportScopeSeverity" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Sévérité
+              &amp; Anomalies</label>
+            <select id="exportScopeSeverity"
+              style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
               <option value="all" selected>Toutes les anomalies (Bloquants, Erreurs, Warnings, Infos)</option>
               <option value="errors-only">Bloquants &amp; Erreurs uniquement (Critiques)</option>
               <option value="current-filters">Selon les filtres de recherche actifs dans la grille</option>
             </select>
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Titre du Rapport Personnalisé</label>
-            <input type="text" id="exportCustomTitle" value="Rapport d'Audit Santé &amp; Qualité BPMN 2.0" style="width:100%; padding:6px 10px; font-size:12px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Titre
+              du Rapport Personnalisé</label>
+            <input type="text" id="exportCustomTitle" value="Rapport d'Audit Santé &amp; Qualité BPMN 2.0"
+              style="width:100%; padding:6px 10px; font-size:12px; font-weight:700; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
           </div>
           <div>
-            <label style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Auteur / Entité Émettrice</label>
-            <input type="text" id="exportCustomAuthor" value="Bouygues Telecom / Paprika AuditFlow" style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--text-secondary, #64748b); display:block; margin-bottom:4px;">Auteur
+              / Entité Émettrice</label>
+            <input type="text" id="exportCustomAuthor" value="Bouygues Telecom / Paprika AuditFlow"
+              style="width:100%; padding:6px 10px; font-size:12px; border:1px solid var(--border-color, #cbd5e1); border-radius:6px; background:#fff;">
           </div>
         </div>
 
         <!-- 3. Sections Incluses (Checklist modulaire) -->
         <div>
-          <label style="font-size:12px; font-weight:800; color:var(--text-primary, #0f172a); display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+          <label
+            style="font-size:12px; font-weight:800; color:var(--text-primary, #0f172a); display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
             2. Sections à Inclure dans le Dossier
           </label>
           <div class="export-sections-checklist" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
@@ -5403,7 +5685,8 @@
               <input type="checkbox" id="chkExportSummary" checked style="accent-color:var(--brand-primary, #009cd7);">
               <div>
                 <strong>Synthèse Exécutive &amp; KPIs</strong>
-                <small>Verdict de mise en prod (Go/No-Go), scores moyens, graphe d'architecture &amp; Call Activities.</small>
+                <small>Verdict de mise en prod (Go/No-Go), scores moyens, graphe d'architecture &amp; Call
+                  Activities.</small>
               </div>
             </label>
             <label class="export-checkbox-item">
@@ -5417,7 +5700,8 @@
               <input type="checkbox" id="chkExportTypology" checked style="accent-color:var(--brand-primary, #009cd7);">
               <div>
                 <strong>Répartition Typologique &amp; Mix d'Automatisation</strong>
-                <small>Comptage Service Tasks, User Tasks, Script Tasks, Call Activities, Gateways et Cyclomatique.</small>
+                <small>Comptage Service Tasks, User Tasks, Script Tasks, Call Activities, Gateways et
+                  Cyclomatique.</small>
               </div>
             </label>
             <label class="export-checkbox-item">
@@ -5447,13 +5731,17 @@
       </div>
 
       <!-- Modal Footer -->
-      <div class="modal-footer" style="padding:14px 22px; border-top:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary, #f8fafc);">
-        <button type="button" class="btn-ghost" onclick="closeBpmnLintExportModal()" style="font-weight:600;">Annuler</button>
+      <div class="modal-footer"
+        style="padding:14px 22px; border-top:1px solid var(--border-color, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary, #f8fafc);">
+        <button type="button" class="btn-ghost" onclick="closeBpmnLintExportModal()"
+          style="font-weight:600;">Annuler</button>
         <div style="display:flex; gap:10px;">
-          <button type="button" class="btn-outline" onclick="previewBpmnLintReportInWindow()" style="display:flex; align-items:center; gap:6px; font-weight:700; padding:8px 16px;">
+          <button type="button" class="btn-outline" onclick="previewBpmnLintReportInWindow()"
+            style="display:flex; align-items:center; gap:6px; font-weight:700; padding:8px 16px;">
             👁️ Aperçu Direct
           </button>
-          <button type="button" class="btn-primary" id="btnExecuteExport" onclick="executeBpmnLintConfiguredExport()" style="display:flex; align-items:center; gap:8px; font-weight:800; padding:8px 22px; background:linear-gradient(135deg, #003882, #009CD7); color:#fff; box-shadow:0 4px 12px rgba(0,156,215,0.3);">
+          <button type="button" class="btn-primary" id="btnExecuteExport" onclick="executeBpmnLintConfiguredExport()"
+            style="display:flex; align-items:center; gap:8px; font-weight:800; padding:8px 22px; background:linear-gradient(135deg, #003882, #009CD7); color:#fff; box-shadow:0 4px 12px rgba(0,156,215,0.3);">
             <span>📊 Exporter Classeur Excel (.xlsx)</span>
           </button>
         </div>
@@ -5472,12 +5760,12 @@
   <script src="js/bpmn_rules.js?v=2026_c8_v3.0.0"></script>
   <script src="js/duplicates.js?v=2026_c8_v3.0.0"></script>
   <script src="js/bpmn_parser.js?v=2026_c8_v3.0.0"></script>
-  <script src="js/app.js?v=2026_c8_v3.0.0"></script>
+  <script src="js/app.js?v=2026_c8_v3.0.1"></script>
   <script src="js/diff.js?v=2026_c8_v3.0.0"></script>
   <script src="js/autofix.js?v=2026_c8_v3.0.0"></script>
   <script src="js/cmd_palette.js?v=2026_c8_v3.0.0"></script>
   <script src="js/pmg.js?v=2026_c8_v3.0.0"></script>
-  <script src="js/bpmn_lint.js?v=2026_c8_v3.0.0"></script>
+  <script src="js/bpmn_lint.js?v=2026_c8_v3.0.6"></script>
   <script src="js/bpmn_lint_landscape.js?v=2026_c8_v3.0.0"></script>
   <script src="js/test_gen.js?v=2026_c8_v3.0.0"></script>
   <script src="js/academy_data.js?v=2026_c8_v3.0.0"></script>
@@ -5506,7 +5794,8 @@
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.65); z-index:9999; justify-content:center; align-items:center;">
     <div class="modal-content"
       style="background:var(--bg-card); border-radius:var(--border-radius-md); padding:24px; max-width:760px; width:92%; max-height:90vh; display:flex; flex-direction:column; border:1px solid var(--border-color); box-shadow:0 12px 36px rgba(0,0,0,0.45);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:24px;">🪄</span>
           <div>
@@ -5514,24 +5803,28 @@
               Assistant d'Affectation Intelligente des Entités (Lanes &amp; Rôles)
             </h3>
             <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
-              Assignez ou harmonisez en masse les entités selon vos règles métiers : par sous-processus parent (avec propagation aux descendants), sur les cases vides, ou par déduction automatique.
+              Assignez ou harmonisez en masse les entités selon vos règles métiers : par sous-processus parent (avec
+              propagation aux descendants), sur les cases vides, ou par déduction automatique.
             </div>
           </div>
         </div>
-        <button class="btn-ghost" onclick="closePmgSmartEntityAssignModal()" style="padding:4px 10px; font-size:16px;">✕</button>
+        <button class="btn-ghost" onclick="closePmgSmartEntityAssignModal()"
+          style="padding:4px 10px; font-size:16px;">✕</button>
       </div>
 
       <div id="pmgSmartEntityAssignModalBody" style="flex:1; overflow-y:auto; padding-right:4px; margin-bottom:16px;">
         <!-- Rempli dynamiquement par JS -->
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
         <div id="pmgSmartEntityImpactCount" style="font-size:12px; font-weight:700; color:var(--brand-primary);">
           📊 Impact : 0 activité(s) sélectionnée(s)
         </div>
         <div style="display:flex; gap:10px;">
           <button class="btn-ghost" onclick="closePmgSmartEntityAssignModal()">Annuler</button>
-          <button class="btn-primary" style="padding:6px 18px; font-weight:700;" onclick="applyPmgSmartEntityAssignment()">
+          <button class="btn-primary" style="padding:6px 18px; font-weight:700;"
+            onclick="applyPmgSmartEntityAssignment()">
             ✅ Appliquer l'Affectation
           </button>
         </div>
