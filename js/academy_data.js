@@ -808,7 +808,7 @@ Chaque retour arrière ou boucle de traitement doit **obligatoirement** comporte
       id: 'tpl_call_activity_isolated',
       name: 'Architecture Modulaire avec Call Activity Isolée',
       category: 'Architecture Modulaire',
-      description: 'Pattern d\'appel d\'un sous-processus transverse (KYC / Paiement) avec propagation des variables désactivée et mapping strict.',
+      description: 'Pattern d\'appel d\'un sous-processus partagé (KYC / Paiement) avec propagation des variables désactivée et mapping strict.',
       xmlFilename: 'template_call_activity_isolee.bpmn',
       xmlContent: `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="Definitions_CallAct" targetNamespace="http://bpmn.io/schema/bpmn">

@@ -3012,9 +3012,6 @@
                       <span class="pmg-filter-count-badge" id="pmgStep3FilterCount">🎯 <strong>0</strong> activités affichées</span>
                       <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3UserTasks" onclick="togglePmgStep3Preset('userTasks')">👤 User Tasks</button>
                       <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3NoGroup" onclick="togglePmgStep3Preset('noGroup')">⚠️ Sans Groupe</button>
-                      <!-- Masqué temporairement
-                      <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3Transverse" onclick="togglePmgStep3Preset('transverse')">🔀 Transverses</button>
-                      -->
                       <button type="button" class="pmg-filter-pill-btn" id="pmgChipStep3Inherited" onclick="togglePmgStep3Preset('inherited')">Parent racine / Hérité du parent</button>
                     </div>
                     <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep3Filters()">🔄 Réinitialiser les filtres</button>
@@ -3051,7 +3048,12 @@
                               <option value="all">Tous</option>
                             </select>
                           </th>
-                          <th></th>
+                          <th>
+                            <div class="pmg-col-filter-input-wrap">
+                              <input type="text" id="pmgFilterStep3Parent" class="pmg-col-filter-input" placeholder="🔍 Processus père..." oninput="onPmgStep3FilterChange()">
+                              <button class="pmg-col-filter-clear" onclick="clearPmgStep3ColFilter('parent')">×</button>
+                            </div>
+                          </th>
                           <th>
                             <select id="pmgFilterStep3Entity" class="pmg-col-filter-select" onchange="onPmgStep3FilterChange()" title="Acteur / Entité">
                               <option value="all">Tous</option>
@@ -3063,7 +3065,6 @@
                                 <option value="all">Tous</option>
                                 <option value="with_group">👤 Avec groupe</option>
                                 <option value="no_group">⚠️ Sans groupe</option>
-                                <option value="transverse">🔀 Transverse</option>
                                 <option value="not_applicable">— N/A</option>
                               </select>
                               <div class="pmg-col-filter-input-wrap">
@@ -3131,15 +3132,23 @@
                     <button type="button" class="pmg-filter-reset-btn" onclick="resetPmgStep4Filters()">🔄 Réinitialiser les filtres</button>
                   </div>
 
-                  <div class="tbl-wrap"
-                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius-md);">
-                    <table style="width: 100%; font-size: 12px; border-collapse: separate; border-spacing: 0;">
+                  <div class="tbl-wrap pmg-step3-table-wrap"
+                    style="max-height: 440px; overflow: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius-md);">
+                    <table class="pmg-step3-table" style="width: 100%; font-size: 12px; border-collapse: separate; border-spacing: 0; table-layout: fixed;">
+                      <colgroup>
+                        <col style="width: 30%">
+                        <col style="width: 12%">
+                        <col style="width: 16%">
+                        <col style="width: 21%">
+                        <col style="width: 21%">
+                      </colgroup>
                       <thead style="position: sticky; top: 0; z-index: 5; background: var(--bg-card);">
                         <tr style="background: var(--bg-card); border-bottom: 1px solid var(--border-color);">
-                          <th style="padding: 8px; width: 30%;">Activité (Hiérarchie)</th>
-                          <th style="padding: 8px; width: 14%;">Type BPMN</th>
-                          <th style="padding: 8px; width: 28%;">Variables d'Entrée (Inputs)</th>
-                          <th style="padding: 8px; width: 28%;">Variables de Sortie (Outputs)</th>
+                          <th style="padding: 8px;">Activité (Hiérarchie)</th>
+                          <th style="padding: 8px;">Type BPMN</th>
+                          <th style="padding: 8px;">Processus père</th>
+                          <th style="padding: 8px;">Variables d'Entrée (Inputs)</th>
+                          <th style="padding: 8px;">Variables de Sortie (Outputs)</th>
                         </tr>
                         <tr class="pmg-col-filter-row">
                           <th>
@@ -3152,6 +3161,12 @@
                             <select id="pmgFilterStep4Type" class="pmg-col-filter-select" onchange="onPmgStep4FilterChange()">
                               <option value="all">Tous les types</option>
                             </select>
+                          </th>
+                          <th>
+                            <div class="pmg-col-filter-input-wrap">
+                              <input type="text" id="pmgFilterStep4Parent" class="pmg-col-filter-input" placeholder="🔍 Processus père..." oninput="onPmgStep4FilterChange()">
+                              <button class="pmg-col-filter-clear" onclick="clearPmgStep4ColFilter('parent')">×</button>
+                            </div>
                           </th>
                           <th>
                             <div style="display:flex; gap:4px;">
@@ -3234,16 +3249,20 @@
                         onclick="autoFillPmgMissingDoc()">
                         ✨ Assistant IA : Suggérer Documentation
                       </button>
+                      <!-- Masqué temporairement
                       <button class="btn-ghost" style="padding: 4px 10px; font-size: 11px; height: 32px;"
                         onclick="renderPmgGlobalGridTable(); document.getElementById('pmgGlobalGridContainer').style.display = document.getElementById('pmgGlobalGridContainer').style.display === 'none' ? 'block' : 'none';">
                         🩻 Basculer Vue Grille Excel
                       </button>
+                      -->
                       <button class="btn-ghost" style="padding: 4px 10px; font-size: 11px; height: 32px;"
                         onclick="openPmgRealizationModeModal()">
                         ⚙️ Gérer les Modes
                       </button>
+                      <!-- Masqué temporairement
                       <button class="btn-ghost" style="padding: 4px 8px; font-size: 11px;"
                         onclick="applyDefaultModeToAllPmg()">Appliquer Mode par défaut</button>
+                      -->
                     </div>
                   </div>
 
@@ -3268,21 +3287,35 @@
                     <!-- Rempli dynamiquement par renderPmgGlobalGridTable() -->
                   </div>
 
-                  <div class="tbl-wrap"
-                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius-md);">
-                    <table style="width: 100%; font-size: 12px; border-collapse: separate; border-spacing: 0;">
+                  <div class="tbl-wrap pmg-step3-table-wrap"
+                    style="max-height: 440px; overflow: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius-md);">
+                    <table class="pmg-step3-table" style="width: 100%; font-size: 12px; border-collapse: separate; border-spacing: 0; table-layout: fixed;">
+                      <colgroup>
+                        <col style="width: 28%">
+                        <col style="width: 16%">
+                        <col style="width: 16%">
+                        <col style="width: 20%">
+                        <col style="width: 20%">
+                      </colgroup>
                       <thead style="position: sticky; top: 0; z-index: 5; background: var(--bg-card);">
                         <tr style="background: var(--bg-card); border-bottom: 1px solid var(--border-color);">
-                          <th style="padding: 8px; width: 30%;">Activité (Hiérarchie)</th>
-                          <th style="padding: 8px; width: 18%;">Mode de Réalisation</th>
-                          <th style="padding: 8px; width: 26%;">Applicable dans quel cas ? (Condition)</th>
-                          <th style="padding: 8px; width: 26%;">Commentaire / Documentation</th>
+                          <th style="padding: 8px;">Activité (Hiérarchie)</th>
+                          <th style="padding: 8px;">Processus père</th>
+                          <th style="padding: 8px;">Mode de Réalisation</th>
+                          <th style="padding: 8px;">Applicable dans quel cas ? (Condition)</th>
+                          <th style="padding: 8px;">Commentaire / Documentation</th>
                         </tr>
                         <tr class="pmg-col-filter-row">
                           <th>
                             <div class="pmg-col-filter-input-wrap">
                               <input type="text" id="pmgFilterStep5Act" class="pmg-col-filter-input" placeholder="🔍 Nom ou ID..." oninput="onPmgStep5FilterChange()">
                               <button class="pmg-col-filter-clear" onclick="clearPmgStep5ColFilter('act')">×</button>
+                            </div>
+                          </th>
+                          <th>
+                            <div class="pmg-col-filter-input-wrap">
+                              <input type="text" id="pmgFilterStep5Parent" class="pmg-col-filter-input" placeholder="🔍 Processus père..." oninput="onPmgStep5FilterChange()">
+                              <button class="pmg-col-filter-clear" onclick="clearPmgStep5ColFilter('parent')">×</button>
                             </div>
                           </th>
                           <th>

@@ -319,21 +319,30 @@ body {
   align-items: center;
 }
 
-.input-wrapper input {
+.input-wrapper input,
+#loginForm .input-wrapper input[type="text"],
+#loginForm .input-wrapper input[type="password"],
+.form-group .input-wrapper input[type="text"],
+.form-group .input-wrapper input[type="password"] {
   width: 100%;
+  box-sizing: border-box;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: var(--border-radius-md);
-  padding: 12px 14px 12px 42px;
+  /* Espace à gauche pour l'icône — ne pas écraser le placeholder */
+  padding: 12px 14px 12px 44px !important;
   color: var(--text-primary);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
+  height: 46px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.input-wrapper input:focus {
+.input-wrapper input:focus,
+#loginForm .input-wrapper input[type="text"]:focus,
+#loginForm .input-wrapper input[type="password"]:focus {
   outline: none;
   border-color: var(--brand-cyan);
   box-shadow: 0 0 0 4px rgba(0, 156, 215, 0.18), inset 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -342,14 +351,19 @@ body {
 .input-icon {
   position: absolute;
   left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
   color: var(--text-tertiary);
   pointer-events: none;
+  z-index: 1;
   transition: color 0.25s ease, transform 0.25s ease;
 }
 
-.input-wrapper input:focus+.input-icon {
+.input-wrapper:focus-within .input-icon {
   color: var(--brand-cyan);
-  transform: scale(1.1);
+  transform: translateY(-50%) scale(1.08);
 }
 
 .btn-login {
@@ -558,12 +572,25 @@ body {
 }
 
 .sidebar.collapsed .sidebar-header {
-  padding: 14px 8px;
+  padding: 10px 8px;
   justify-content: center;
+  min-height: 64px;
 }
 
+/* Garder l'icône / logo Paprika visible en mode réduit */
 .sidebar.collapsed .sidebar-brand {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.sidebar.collapsed .brand-logo-img {
+  height: 42px;
+  max-height: 44px;
+  max-width: 52px;
+  width: auto;
+  object-fit: contain;
 }
 
 .sidebar.collapsed .sidebar-toggle-btn {
@@ -575,7 +602,7 @@ body {
 }
 
 .sidebar.collapsed .sidebar-nav {
-  padding: 14px 8px;
+  padding: 10px 8px;
   align-items: center;
   overflow-x: hidden;
 }
@@ -594,10 +621,12 @@ body {
   width: 44px;
   height: 44px;
   padding: 0;
+  display: flex;
+  align-items: center;
   justify-content: center;
   border-radius: var(--border-radius-md);
   margin-bottom: 6px;
-  overflow: hidden;
+  overflow: visible;
   transform: none;
 }
 
@@ -609,6 +638,16 @@ body {
 .sidebar.collapsed .menu-header .caret-icon,
 .sidebar.collapsed .menu-header .nav-badge {
   display: none !important;
+}
+
+/* Icônes menu : toujours visibles et centrées à la fermeture */
+.sidebar.collapsed .menu-header svg:first-of-type {
+  display: block !important;
+  width: 16px;
+  height: 16px;
+  padding: 6px;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed .menu-header.active::before {
@@ -623,6 +662,8 @@ body {
   width: 44px;
   height: 44px;
   padding: 0;
+  display: flex;
+  align-items: center;
   justify-content: center;
   border-radius: var(--border-radius-md);
   margin-bottom: 4px;
@@ -631,6 +672,11 @@ body {
 .sidebar.collapsed .sidebar-nav .tab span,
 .sidebar.collapsed .sidebar-nav .tab .nav-badge {
   display: none !important;
+}
+
+.sidebar.collapsed .sidebar-nav .tab svg {
+  display: block !important;
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed .sidebar-footer {
@@ -1650,6 +1696,33 @@ tr:hover td {
   border: 1px solid var(--border-color);
   background: var(--bg-card);
   color: var(--text-primary);
+}
+
+.pmg-step5-case-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pmg-step5-case-input {
+  height: auto !important;
+  min-height: 34px;
+  resize: vertical;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pmg-gateway-cond-hint {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+  width: fit-content;
 }
 
 /* Étape 3 — table lisible + scroll horizontal si besoin */

@@ -217,6 +217,67 @@ window.flattenPmgForestForTable = function(activities, matchFn) {
   return rows;
 };
 
+/** Carte hiérarchique partagée (étapes 3 / 4 / 5) — même arborescence visuelle */
+window.buildPmgStepHierarchyCard = function(act, opts) {
+  const depth = opts?.depth || 0;
+  const isContextOnly = !!opts?.isContextOnly;
+  const safeIdx = opts?.safeIdx || 0;
+  const showAppelle = opts?.showAppelle !== false;
+  const showRootParent = !!opts?.showRootParent;
+
+  const levelColors = ['#3b82f6', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444', '#10b981', '#6366f1'];
+  const typeKey = window.getPmgTypeKey ? window.getPmgTypeKey(act.type || act.typeLabel) : '';
+  const meta = (typeof PMG_TYPE_META !== 'undefined' && PMG_TYPE_META[typeKey])
+    ? PMG_TYPE_META[typeKey]
+    : { icon: '📄', color: '#64748b' };
+  const isUserTask = typeKey === 'usertask' || (act.type || '').toLowerCase().includes('user');
+  const isCallAct = typeKey === 'callactivity' || (act.type || '').toLowerCase().includes('call');
+  const isSub = typeKey === 'subprocess' || (act.type || '').toLowerCase().includes('sous-processus') || isCallAct;
+  const displayLevel = act.level || (depth + 1);
+  const lvlColor = levelColors[(displayLevel - 1) % levelColors.length];
+  const icon = isSub ? '📁' : (meta.icon || (isUserTask ? '👤' : '📄'));
+  const borderColor = isContextOnly
+    ? 'rgba(59, 130, 246, 0.45)'
+    : (meta.color || 'var(--border-color)');
+  const cardBorder = isContextOnly
+    ? `1px dashed ${borderColor}`
+    : `1px solid ${borderColor}`;
+
+  let metaHtml = '';
+  if (showAppelle && isCallAct) {
+    if (act.calledElement) {
+      if (act.targetMissing) {
+        metaHtml += `<span class="pmg-step3-appelle pmg-step3-appelle--missing" title="Sous-processus introuvable : ${escAttr(act.calledElement)}">⚠️ Appelle : ${escHtml(act.calledElement)}</span>`;
+      } else {
+        metaHtml += `<span class="pmg-step3-appelle" title="Processus appelé : ${escAttr(act.calledElement)}">Appelle : ${escHtml(act.calledElement)}</span>`;
+      }
+    } else {
+      metaHtml += '<span class="pmg-step3-empty pmg-step3-appelle--undefined" title="Call Activity sans calledElement">Appel non défini</span>';
+    }
+  }
+  if (showRootParent && act.rootParentName) {
+    metaHtml += `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(act.rootParentName)}">🏛️ ${escHtml(act.rootParentName)}</span>`;
+  }
+
+  return `
+    <div class="pmg-step3-tree-indent" style="padding-left:${Math.min(depth, 6) * 16}px;">
+      <div class="pmg-step3-tree-card${isContextOnly ? ' pmg-step3-tree-card--context' : ''}" style="border:${cardBorder};">
+        <div class="pmg-step3-tree-card-main">
+          <span class="pmg-order-pill" title="Position #${act.orderIndex || (safeIdx + 1)}">#${act.orderIndex || (safeIdx + 1)}</span>
+          <span class="pmg-step3-tree-icon">${icon}</span>
+          <div class="pmg-step3-tree-body">
+            <div class="pmg-step3-tree-title-row">
+              <strong class="pmg-step3-tree-name" title="${escAttr(act.name)}">${escHtml(act.name)}</strong>
+              <span class="pmg-step3-tree-level" style="color:${lvlColor}; border-color:${lvlColor}44;">N${displayLevel}</span>
+            </div>
+            ${metaHtml ? `<div class="pmg-step3-tree-meta">${metaHtml}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
 window.setPmgActivityOrderMode = function(mode) {
   if (!window.PMG_ORDER_MODES[mode]) return;
   window.pmgActivityOrderMode = mode;
@@ -241,6 +302,8 @@ window.setPmgActivityOrderMode = function(mode) {
 
   if (window.renderPmgVisualTree) window.renderPmgVisualTree();
   if (window.renderPmgStep2ManualTable) window.renderPmgStep2ManualTable();
+  if (window.renderPmgStep3ManualTable) window.renderPmgStep3ManualTable();
+  if (window.renderPmgStep4ManualTable) window.renderPmgStep4ManualTable();
   if (window.renderPmgMatrix) window.renderPmgMatrix();
 };
 
@@ -1803,9 +1866,9 @@ window.applyPmgUserGroupMappings = function() {
 // =========================================================================
 
 window.pmgColFilters = {
-  step3: { act: '', type: 'all', entity: 'all', groupStatus: 'all', groupText: '', preset: null },
-  step4: { act: '', type: 'all', inStatus: 'all', inText: '', outStatus: 'all', outText: '', preset: null },
-  step5: { act: '', mode: 'all', case: '', comment: '', preset: null }
+  step3: { act: '', type: 'all', parent: '', entity: 'all', groupStatus: 'all', groupText: '', preset: null },
+  step4: { act: '', type: 'all', parent: '', inStatus: 'all', inText: '', outStatus: 'all', outText: '', preset: null },
+  step5: { act: '', parent: '', mode: 'all', case: '', comment: '', preset: null }
 };
 
 window.syncPmgStepActivityField = function(actId, field, val) {
@@ -1827,12 +1890,14 @@ window.syncPmgStepActivityField = function(actId, field, val) {
 window.onPmgStep3FilterChange = function() {
   const actInput = document.getElementById('pmgFilterStep3Act');
   const typeSelect = document.getElementById('pmgFilterStep3Type');
+  const parentInput = document.getElementById('pmgFilterStep3Parent');
   const entitySelect = document.getElementById('pmgFilterStep3Entity');
   const groupStatusSelect = document.getElementById('pmgFilterStep3GroupStatus');
   const groupTextInput = document.getElementById('pmgFilterStep3GroupText');
 
   window.pmgColFilters.step3.act = (actInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step3.type = typeSelect?.value || 'all';
+  window.pmgColFilters.step3.parent = (parentInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step3.entity = entitySelect?.value || 'all';
   window.pmgColFilters.step3.groupStatus = groupStatusSelect?.value || 'all';
   window.pmgColFilters.step3.groupText = (groupTextInput?.value || '').trim().toLowerCase();
@@ -1840,6 +1905,7 @@ window.onPmgStep3FilterChange = function() {
   // Highlight active filters
   if (actInput) actInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step3.act));
   if (typeSelect) typeSelect.classList.toggle('has-filter', window.pmgColFilters.step3.type !== 'all');
+  if (parentInput) parentInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step3.parent));
   if (entitySelect) entitySelect.classList.toggle('has-filter', window.pmgColFilters.step3.entity !== 'all');
   if (groupStatusSelect) groupStatusSelect.classList.toggle('has-filter', window.pmgColFilters.step3.groupStatus !== 'all');
   if (groupTextInput) groupTextInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step3.groupText));
@@ -1851,6 +1917,9 @@ window.clearPmgStep3ColFilter = function(field) {
   if (field === 'act') {
     const el = document.getElementById('pmgFilterStep3Act');
     if (el) el.value = '';
+  } else if (field === 'parent') {
+    const el = document.getElementById('pmgFilterStep3Parent');
+    if (el) el.value = '';
   } else if (field === 'groupText') {
     const el = document.getElementById('pmgFilterStep3GroupText');
     if (el) el.value = '';
@@ -1859,15 +1928,17 @@ window.clearPmgStep3ColFilter = function(field) {
 };
 
 window.resetPmgStep3Filters = function() {
-  window.pmgColFilters.step3 = { act: '', type: 'all', entity: 'all', groupStatus: 'all', groupText: '', preset: null };
+  window.pmgColFilters.step3 = { act: '', type: 'all', parent: '', entity: 'all', groupStatus: 'all', groupText: '', preset: null };
   const actInput = document.getElementById('pmgFilterStep3Act');
   const typeSelect = document.getElementById('pmgFilterStep3Type');
+  const parentInput = document.getElementById('pmgFilterStep3Parent');
   const entitySelect = document.getElementById('pmgFilterStep3Entity');
   const groupStatusSelect = document.getElementById('pmgFilterStep3GroupStatus');
   const groupTextInput = document.getElementById('pmgFilterStep3GroupText');
 
   if (actInput) { actInput.value = ''; actInput.classList.remove('has-filter'); }
   if (typeSelect) { typeSelect.value = 'all'; typeSelect.classList.remove('has-filter'); }
+  if (parentInput) { parentInput.value = ''; parentInput.classList.remove('has-filter'); }
   if (entitySelect) { entitySelect.value = 'all'; entitySelect.classList.remove('has-filter'); }
   if (groupStatusSelect) { groupStatusSelect.value = 'all'; groupStatusSelect.classList.remove('has-filter'); }
   if (groupTextInput) { groupTextInput.value = ''; groupTextInput.classList.remove('has-filter'); }
@@ -1875,56 +1946,6 @@ window.resetPmgStep3Filters = function() {
   document.querySelectorAll('#pmgStep3FilterToolbar .pmg-filter-pill-btn').forEach(b => b.classList.remove('active'));
 
   window.renderPmgStep2ManualTable();
-};
-
-/**
- * Alignement groupe candidat ↔ acteur couleur (DCI/CDD/OPS).
- * Ex: CDD_CPL sur acteur CDD = aligné ; CDD_CPL sur DCI = transverse.
- */
-window.isPmgGroupAlignedWithActor = function(groupVal, entity) {
-  if (!groupVal || !entity) return true;
-  const actor = String(entity).trim().toUpperCase();
-  if (!actor || actor === 'NON DÉFINI' || actor === 'NON DEFINI') return true;
-
-  const groups = (typeof window.parsePmgCandidateGroups === 'function')
-    ? window.parsePmgCandidateGroups(groupVal)
-    : String(groupVal).split(',').map(s => s.trim()).filter(Boolean);
-  if (!groups.length) return true;
-
-  const knownActors = ['DCI', 'CDD', 'OPS'];
-  const hasActorHint = groups.some(g => {
-    const gu = String(g).trim().toUpperCase();
-    return knownActors.some(a => gu === a || gu.startsWith(a + '_') || gu.startsWith(a));
-  });
-  // Pas de signal acteur dans le nom du groupe → non transverse par défaut
-  if (!hasActorHint) return true;
-
-  return groups.some(g => {
-    const gu = String(g).trim().toUpperCase();
-    return gu === actor || gu.startsWith(actor + '_') || gu.startsWith(actor);
-  });
-};
-
-window.isPmgActivityTransverse = function(act) {
-  const isUserTask = (act.type || '').toLowerCase().includes('user');
-  if (!isUserTask) return false;
-  const groupVal = (act.userGroup || '').trim();
-  if (!groupVal) return false;
-  const entity = (act.entity && act.entity !== 'Non défini') ? act.entity : '';
-  if (!entity) return false;
-
-  const mapping = window.pmgUserGroupMappings && window.pmgUserGroupMappings[groupVal];
-  if (mapping && mapping.targetEntity) {
-    const target = String(mapping.targetEntity).trim();
-    const targetUp = target.toUpperCase();
-    const knownActors = ['DCI', 'CDD', 'OPS'];
-    // Cible explicitement un autre acteur couleur
-    if (knownActors.includes(targetUp) && targetUp !== entity.toUpperCase()) {
-      return true;
-    }
-  }
-
-  return !window.isPmgGroupAlignedWithActor(groupVal, entity);
 };
 
 window.togglePmgStep3Preset = function(presetKey) {
@@ -1952,14 +1973,6 @@ window.togglePmgStep3Preset = function(presetKey) {
     const groupStatusSelect = document.getElementById('pmgFilterStep3GroupStatus');
     if (typeSelect) { typeSelect.value = 'usertask'; typeSelect.classList.add('has-filter'); }
     if (groupStatusSelect) { groupStatusSelect.value = 'no_group'; groupStatusSelect.classList.add('has-filter'); }
-  } else if (presetKey === 'transverse') {
-    // User Tasks dont le groupe n'est pas aligné avec l'acteur couleur
-    window.pmgColFilters.step3.type = 'usertask';
-    window.pmgColFilters.step3.groupStatus = 'transverse';
-    const typeSelect = document.getElementById('pmgFilterStep3Type');
-    const groupStatusSelect = document.getElementById('pmgFilterStep3GroupStatus');
-    if (typeSelect) { typeSelect.value = 'usertask'; typeSelect.classList.add('has-filter'); }
-    if (groupStatusSelect) { groupStatusSelect.value = 'transverse'; groupStatusSelect.classList.add('has-filter'); }
   } else if (presetKey === 'inherited') {
     window.pmgColFilters.step3.entity = '__inherited__';
     const entitySelect = document.getElementById('pmgFilterStep3Entity');
@@ -1973,6 +1986,7 @@ window.togglePmgStep3Preset = function(presetKey) {
 window.onPmgStep4FilterChange = function() {
   const actInput = document.getElementById('pmgFilterStep4Act');
   const typeSelect = document.getElementById('pmgFilterStep4Type');
+  const parentInput = document.getElementById('pmgFilterStep4Parent');
   const inStatusSelect = document.getElementById('pmgFilterStep4InStatus');
   const inTextInput = document.getElementById('pmgFilterStep4InText');
   const outStatusSelect = document.getElementById('pmgFilterStep4OutStatus');
@@ -1980,6 +1994,7 @@ window.onPmgStep4FilterChange = function() {
 
   window.pmgColFilters.step4.act = (actInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step4.type = typeSelect?.value || 'all';
+  window.pmgColFilters.step4.parent = (parentInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step4.inStatus = inStatusSelect?.value || 'all';
   window.pmgColFilters.step4.inText = (inTextInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step4.outStatus = outStatusSelect?.value || 'all';
@@ -1987,6 +2002,7 @@ window.onPmgStep4FilterChange = function() {
 
   if (actInput) actInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step4.act));
   if (typeSelect) typeSelect.classList.toggle('has-filter', window.pmgColFilters.step4.type !== 'all');
+  if (parentInput) parentInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step4.parent));
   if (inStatusSelect) inStatusSelect.classList.toggle('has-filter', window.pmgColFilters.step4.inStatus !== 'all');
   if (inTextInput) inTextInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step4.inText));
   if (outStatusSelect) outStatusSelect.classList.toggle('has-filter', window.pmgColFilters.step4.outStatus !== 'all');
@@ -1999,6 +2015,9 @@ window.clearPmgStep4ColFilter = function(field) {
   if (field === 'act') {
     const el = document.getElementById('pmgFilterStep4Act');
     if (el) el.value = '';
+  } else if (field === 'parent') {
+    const el = document.getElementById('pmgFilterStep4Parent');
+    if (el) el.value = '';
   } else if (field === 'inText') {
     const el = document.getElementById('pmgFilterStep4InText');
     if (el) el.value = '';
@@ -2010,9 +2029,10 @@ window.clearPmgStep4ColFilter = function(field) {
 };
 
 window.resetPmgStep4Filters = function() {
-  window.pmgColFilters.step4 = { act: '', type: 'all', inStatus: 'all', inText: '', outStatus: 'all', outText: '', preset: null };
+  window.pmgColFilters.step4 = { act: '', type: 'all', parent: '', inStatus: 'all', inText: '', outStatus: 'all', outText: '', preset: null };
   const actInput = document.getElementById('pmgFilterStep4Act');
   const typeSelect = document.getElementById('pmgFilterStep4Type');
+  const parentInput = document.getElementById('pmgFilterStep4Parent');
   const inStatusSelect = document.getElementById('pmgFilterStep4InStatus');
   const inTextInput = document.getElementById('pmgFilterStep4InText');
   const outStatusSelect = document.getElementById('pmgFilterStep4OutStatus');
@@ -2020,6 +2040,7 @@ window.resetPmgStep4Filters = function() {
 
   if (actInput) { actInput.value = ''; actInput.classList.remove('has-filter'); }
   if (typeSelect) { typeSelect.value = 'all'; typeSelect.classList.remove('has-filter'); }
+  if (parentInput) { parentInput.value = ''; parentInput.classList.remove('has-filter'); }
   if (inStatusSelect) { inStatusSelect.value = 'all'; inStatusSelect.classList.remove('has-filter'); }
   if (inTextInput) { inTextInput.value = ''; inTextInput.classList.remove('has-filter'); }
   if (outStatusSelect) { outStatusSelect.value = 'all'; outStatusSelect.classList.remove('has-filter'); }
@@ -2066,16 +2087,19 @@ window.togglePmgStep4Preset = function(presetKey) {
 // Step 5 Filtering & Helpers
 window.onPmgStep5FilterChange = function() {
   const actInput = document.getElementById('pmgFilterStep5Act');
+  const parentInput = document.getElementById('pmgFilterStep5Parent');
   const modeSelect = document.getElementById('pmgFilterStep5Mode');
   const caseInput = document.getElementById('pmgFilterStep5Case');
   const commentInput = document.getElementById('pmgFilterStep5Comment');
 
   window.pmgColFilters.step5.act = (actInput?.value || '').trim().toLowerCase();
+  window.pmgColFilters.step5.parent = (parentInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step5.mode = modeSelect?.value || 'all';
   window.pmgColFilters.step5.case = (caseInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step5.comment = (commentInput?.value || '').trim().toLowerCase();
 
   if (actInput) actInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step5.act));
+  if (parentInput) parentInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step5.parent));
   if (modeSelect) modeSelect.classList.toggle('has-filter', window.pmgColFilters.step5.mode !== 'all');
   if (caseInput) caseInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step5.case));
   if (commentInput) commentInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step5.comment));
@@ -2086,6 +2110,9 @@ window.onPmgStep5FilterChange = function() {
 window.clearPmgStep5ColFilter = function(field) {
   if (field === 'act') {
     const el = document.getElementById('pmgFilterStep5Act');
+    if (el) el.value = '';
+  } else if (field === 'parent') {
+    const el = document.getElementById('pmgFilterStep5Parent');
     if (el) el.value = '';
   } else if (field === 'case') {
     const el = document.getElementById('pmgFilterStep5Case');
@@ -2098,13 +2125,15 @@ window.clearPmgStep5ColFilter = function(field) {
 };
 
 window.resetPmgStep5Filters = function() {
-  window.pmgColFilters.step5 = { act: '', mode: 'all', case: '', comment: '', preset: null };
+  window.pmgColFilters.step5 = { act: '', parent: '', mode: 'all', case: '', comment: '', preset: null };
   const actInput = document.getElementById('pmgFilterStep5Act');
+  const parentInput = document.getElementById('pmgFilterStep5Parent');
   const modeSelect = document.getElementById('pmgFilterStep5Mode');
   const caseInput = document.getElementById('pmgFilterStep5Case');
   const commentInput = document.getElementById('pmgFilterStep5Comment');
 
   if (actInput) { actInput.value = ''; actInput.classList.remove('has-filter'); }
+  if (parentInput) { parentInput.value = ''; parentInput.classList.remove('has-filter'); }
   if (modeSelect) { modeSelect.value = 'all'; modeSelect.classList.remove('has-filter'); }
   if (caseInput) { caseInput.value = ''; caseInput.classList.remove('has-filter'); }
   if (commentInput) { commentInput.value = ''; commentInput.classList.remove('has-filter'); }
@@ -2188,8 +2217,12 @@ window.renderPmgStep2ManualTable = function() {
       const name = (act.name || '').toLowerCase();
       const id = (act.id || '').toLowerCase();
       const p = (act.parentProcessName || '').toLowerCase();
+      if (!name.includes(f.act) && !id.includes(f.act) && !p.includes(f.act)) return false;
+    }
+
+    if (f.parent) {
       const root = (act.rootParentName || '').toLowerCase();
-      if (!name.includes(f.act) && !id.includes(f.act) && !p.includes(f.act) && !root.includes(f.act)) return false;
+      if (!root.includes(f.parent)) return false;
     }
 
     if (f.type !== 'all') {
@@ -2212,14 +2245,9 @@ window.renderPmgStep2ManualTable = function() {
     const isUserTask = (act.type || '').toLowerCase().includes('user');
     const groupVal = (act.userGroup || '').trim();
     const hasGroup = groupVal.length > 0;
-    const isTransverse = typeof window.isPmgActivityTransverse === 'function'
-      ? window.isPmgActivityTransverse(act)
-      : false;
-
     if (f.groupStatus !== 'all') {
       if (f.groupStatus === 'with_group' && (!isUserTask || !hasGroup)) return false;
       if (f.groupStatus === 'no_group' && (!isUserTask || hasGroup)) return false;
-      if (f.groupStatus === 'transverse' && !isTransverse) return false;
       if (f.groupStatus === 'not_applicable' && isUserTask) return false;
     }
 
@@ -2262,9 +2290,6 @@ window.renderPmgStep2ManualTable = function() {
     const entityVal = act.entity && act.entity !== 'Non défini' ? act.entity : '';
     const groupVal = (typeof window.cleanPmgUserGroupName === 'function') ? window.cleanPmgUserGroupName(act.userGroup) : (act.userGroup || '');
     const hasGroup = groupVal.trim().length > 0;
-    const isTransverse = typeof window.isPmgActivityTransverse === 'function'
-      ? window.isPmgActivityTransverse(act)
-      : false;
     const depth = row.depth || 0;
     const isContextOnly = !!row.isContextOnly;
     const displayLevel = act.level || (depth + 1);
@@ -2296,11 +2321,6 @@ window.renderPmgStep2ManualTable = function() {
       ? `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(rootParentName)}">🏛️ ${escHtml(rootParentName)}</span>`
       : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
 
-    let groupExtraBadge = '';
-    if (isUserTask && hasGroup && isTransverse) {
-      groupExtraBadge = '<span style="background:rgba(245, 158, 11, 0.12); color:var(--warn); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(245, 158, 11, 0.25);">🔀 Transverse</span>';
-    }
-
     let groupCellHtml = '';
     if (isUserTask) {
       if (hasGroup) {
@@ -2309,7 +2329,6 @@ window.renderPmgStep2ManualTable = function() {
             <input type="text" id="pmgGroupInput_${safeIdx}" value="${escAttr(groupVal)}" placeholder="Ex: Validateurs_N1" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'userGroup', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
             <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
               <span class="pmg-badge-ok" style="font-size:10px; width:fit-content;">👤 Groupe candidat défini</span>
-              ${groupExtraBadge}
             </div>
           </div>
         `;
@@ -2349,8 +2368,9 @@ window.renderPmgStep2ManualTable = function() {
       inheritedPill = '<span style="font-size:10px; color:#94a3b8; margin-top:4px; display:block;">Optionnel</span>';
     }
 
-    const typeBadgeBg = isSub ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)';
-    const typeBadgeColor = isSub ? 'var(--brand-primary)' : 'var(--ok)';
+    const typeColors = window.getPmgTypeBadgeColors
+      ? window.getPmgTypeBadgeColors(act.type || act.typeLabel)
+      : { color: borderColor, background: borderColor + '26', borderColor };
 
     // Carte hiérarchie : nom + niveau + Appelle (si Call Activity)
     const treeCard = `
@@ -2375,7 +2395,7 @@ window.renderPmgStep2ManualTable = function() {
       <tr class="pmg-step3-tree-row" data-context="${isContextOnly ? '1' : '0'}" data-depth="${depth}" data-root-parent="${escAttr(act.rootParentId || '')}">
         <td class="pmg-step3-tree-cell">${treeCard}</td>
         <td class="pmg-step3-type-cell">
-          <span class="pmg-step3-type-pill" style="background:${typeBadgeBg}; color:${typeBadgeColor}; border-color:${typeBadgeColor}33;">
+          <span class="pmg-step3-type-pill" style="background:${typeColors.background}; color:${typeColors.color}; border-color:${typeColors.borderColor};">
             ${escHtml(act.typeLabel || act.type)}
           </span>
         </td>
@@ -2437,6 +2457,20 @@ window.getPmgTypeKey = function(rawType) {
   if (t.includes('send')) return 'sendtask';
   if (t.includes('receive')) return 'receivetask';
   return 'task';
+};
+
+/** Couleurs Type BPMN = même palette que la bordure des cartes Activité (Hiérarchie) */
+window.getPmgTypeBadgeColors = function(rawType) {
+  const typeKey = window.getPmgTypeKey ? window.getPmgTypeKey(rawType) : 'task';
+  const meta = (typeof PMG_TYPE_META !== 'undefined' && PMG_TYPE_META[typeKey])
+    ? PMG_TYPE_META[typeKey]
+    : { color: '#64748b' };
+  const color = meta.color || '#64748b';
+  return {
+    color,
+    background: color + '26',
+    borderColor: color
+  };
 };
 
 window.isPmgTypeVisible = function(rawType) {
@@ -2556,7 +2590,8 @@ window.selectPmgPreset = function(preset) {
     const key = window.getPmgTypeKey(act.type || act.typeLabel);
     const meta = PMG_TYPE_META[key] || {};
     if (preset === 'humans') {
-      window.pmgTypeFilters[key] = (meta.category === 'human' || meta.category === 'sub');
+      // Uniquement User Task — pas Manual / Call / Sous-processus
+      window.pmgTypeFilters[key] = (key === 'usertask');
     } else if (preset === 'automations') {
       window.pmgTypeFilters[key] = (meta.category === 'auto' || meta.category === 'sub');
     }
@@ -2662,14 +2697,15 @@ window.renderPmgVisualTree = function(activities) {
       let sharedBadge = '';
       if (node.isSharedSubprocess) {
         const sharedParents = node.sharedParentNames && node.sharedParentNames.length > 0 ? node.sharedParentNames.join(', ') : 'Multi-parents';
-        sharedBadge = `<span class="pmg-shared-pill" title="Sous-processus transversal partagé par : ${escHtml(sharedParents)}">🔗 Partagé (${(node.sharedParentNames || []).length} parents : ${escHtml(sharedParents)})</span>`;
+        sharedBadge = `<span class="pmg-shared-pill" title="Sous-processus partagé par : ${escHtml(sharedParents)}">🔗 Partagé (${(node.sharedParentNames || []).length} parents : ${escHtml(sharedParents)})</span>`;
       }
 
       // Order Index Pill
       const orderPill = `<span class="pmg-order-pill" title="Position d\'ordonnancement ${window.pmgActivityOrderMode} : #${node.orderIndex || 1}">#${node.orderIndex || 1}</span>`;
 
-      const typeBadgeBg = isSub ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)';
-      const typeBadgeColor = isSub ? 'var(--brand-primary)' : 'var(--ok)';
+      const typeColors = window.getPmgTypeBadgeColors
+        ? window.getPmgTypeBadgeColors(node.type || node.typeLabel)
+        : { color: meta.color || '#64748b', background: (meta.color || '#64748b') + '26', borderColor: meta.color || '#64748b' };
 
       html += `
         <li class="pmg-tree-node${isContextOnly ? ' pmg-tree-node--context' : ' pmg-tree-node--match'}" data-name="${escAttr((node.name || '').toLowerCase())}" data-id="${escAttr(safeId)}" data-type="${escAttr(typeKey)}" data-context="${isContextOnly ? '1' : '0'}" style="margin:6px 0; opacity:1;">
@@ -2680,7 +2716,7 @@ window.renderPmgVisualTree = function(activities) {
             <div style="display:flex; flex-direction:column; gap:4px; min-width:0; flex:1;">
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <strong style="color:var(--text-primary); font-size:12.5px;">${escHtml(node.name)}</strong>
-                <span style="background:${typeBadgeBg}; color:${typeBadgeColor}; padding:2px 7px; border-radius:10px; font-size:10.5px; font-weight:700;">${escHtml(node.typeLabel || node.type)}</span>
+                <span style="background:${typeColors.background}; color:${typeColors.color}; border:1px solid ${typeColors.borderColor}; padding:2px 7px; border-radius:10px; font-size:10.5px; font-weight:700;">${escHtml(node.typeLabel || node.type)}</span>
                 ${contextPill}
                 <span style="background:rgba(255,255,255,0.05); color:${lvlColor}; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid ${lvlColor}44; margin-left:auto;">Niveau ${node.level || 1}</span>
               </div>
@@ -3381,7 +3417,7 @@ window.renderPmgStep3ManualTable = function() {
 
   const activities = window.pmgTempSubprocesses || [];
   if (activities.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord charger les activités dans l\'étape 2.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord charger les activités dans l\'étape 2.</td></tr>';
     return;
   }
 
@@ -3395,20 +3431,25 @@ window.renderPmgStep3ManualTable = function() {
       const l = a.typeLabel || a.type || 'Tâche';
       typeMap.set(k, { label: l, count: (typeMap.get(k)?.count || 0) + 1 });
     });
-    let typeOpts = '<option value="all">Tous les types (' + activities.length + ')</option>';
+    let typeOpts = '<option value="all">Tous (' + activities.length + ')</option>';
     for (const [k, v] of typeMap.entries()) {
       typeOpts += '<option value="' + escAttr(k) + '" ' + (k === currentVal ? 'selected' : '') + '>' + escHtml(v.label) + ' (' + v.count + ')</option>';
     }
     typeSelect.innerHTML = typeOpts;
   }
 
-  // Filter activities
+  // Même prédicat + arborescence forest que l'étape 3
   const f = window.pmgColFilters.step4;
-  const filtered = activities.filter(act => {
+  const matchesStep4Filter = function(act) {
     if (f.act) {
       const name = (act.name || '').toLowerCase();
       const id = (act.id || '').toLowerCase();
       if (!name.includes(f.act) && !id.includes(f.act)) return false;
+    }
+
+    if (f.parent) {
+      const root = (act.rootParentName || '').toLowerCase();
+      if (!root.includes(f.parent)) return false;
     }
 
     if (f.type !== 'all') {
@@ -3421,89 +3462,67 @@ window.renderPmgStep3ManualTable = function() {
 
     if (f.inStatus === 'has' && ins.length === 0) return false;
     if (f.inStatus === 'none' && ins.length > 0) return false;
-    if (f.inText && !ins.some(v => v.toLowerCase().includes(f.inText))) return false;
+    if (f.inText && !ins.some(v => String(v).toLowerCase().includes(f.inText))) return false;
 
     if (f.outStatus === 'has' && outs.length === 0) return false;
     if (f.outStatus === 'none' && outs.length > 0) return false;
-    if (f.outText && !outs.some(v => v.toLowerCase().includes(f.outText))) return false;
+    if (f.outText && !outs.some(v => String(v).toLowerCase().includes(f.outText))) return false;
 
     return true;
-  });
+  };
 
-  // Update count badge
+  const treeRows = window.flattenPmgForestForTable(activities, matchesStep4Filter);
+  const matchedCount = treeRows.filter(r => r.isMatch).length;
+
   const countBadge = document.getElementById('pmgStep4FilterCount');
   if (countBadge) {
-    countBadge.innerHTML = '🎯 <strong>' + filtered.length + '</strong> / ' + activities.length + ' activités affichées';
+    countBadge.innerHTML = '🎯 <strong>' + matchedCount + '</strong> / ' + activities.length + ' activités affichées';
   }
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:25px; text-align:center; color:var(--text-tertiary); font-style:italic;">Aucune activité ne correspond aux filtres variables. <button class="btn-ghost" style="margin-left:8px; font-size:11px;" onclick="resetPmgStep4Filters()">Réinitialiser</button></td></tr>';
+  if (treeRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:25px; text-align:center; color:var(--text-tertiary); font-style:italic;">Aucune activité ne correspond aux filtres variables. <button class="btn-ghost" style="margin-left:8px; font-size:11px;" onclick="resetPmgStep4Filters()">Réinitialiser</button></td></tr>';
     return;
   }
 
-  // Hiérarchie relative aux lignes visibles (évite les └─ orphelins sous filtre)
-  const actByKey = new Map();
-  activities.forEach(a => {
-    const key = a.uniqueId || a.id;
-    if (key) actByKey.set(key, a);
-  });
-  const filteredKeys = new Set(filtered.map(a => a.uniqueId || a.id).filter(Boolean));
-
-  function getVisibleDepth(act) {
-    let depth = 0;
-    let pid = act.parentId;
-    const seen = new Set();
-    while (pid && !seen.has(pid)) {
-      seen.add(pid);
-      if (filteredKeys.has(pid)) depth++;
-      const parent = actByKey.get(pid);
-      pid = parent ? parent.parentId : null;
-      if (depth > 30) break;
-    }
-    return depth;
-  }
-
   let html = '';
-  filtered.forEach((act) => {
-    const origIdx = activities.indexOf(act);
+  treeRows.forEach((row) => {
+    const act = row.act;
+    const origIdx = activities.findIndex(a => (a.uniqueId || a.id) === (act.uniqueId || act.id));
+    const safeIdx = origIdx >= 0 ? origIdx : 0;
+    const depth = row.depth || 0;
+    const isContextOnly = !!row.isContextOnly;
     const inputsVal = (act.inputs || []).join(', ');
     const outputsVal = (act.outputs || []).join(', ');
-    const visibleDepth = getVisibleDepth(act);
-    const typeKey = window.getPmgTypeKey ? window.getPmgTypeKey(act.type || act.typeLabel) : '';
-    const isUserTask = typeKey === 'usertask';
-    const isScriptTask = typeKey === 'scripttask';
-    const isCallAct = typeKey === 'callactivity' || typeKey === 'subprocess';
+    const typeColors = window.getPmgTypeBadgeColors
+      ? window.getPmgTypeBadgeColors(act.type || act.typeLabel)
+      : { color: '#64748b', background: '#64748b26', borderColor: '#64748b' };
+    const rootParentName = act.rootParentName || '';
+    const parentCell = rootParentName
+      ? `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(rootParentName)}">🏛️ ${escHtml(rootParentName)}</span>`
+      : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
 
-    let typeBadgeStyle = 'background: rgba(59, 130, 246, 0.1); color: var(--brand-primary); border: 1px solid rgba(59, 130, 246, 0.25);';
-    if (isUserTask) {
-      typeBadgeStyle = 'background: rgba(234, 91, 12, 0.1); color: #ea5b0c; border: 1px solid rgba(234, 91, 12, 0.25);';
-    } else if (isScriptTask) {
-      typeBadgeStyle = 'background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3);';
-    } else if (isCallAct) {
-      typeBadgeStyle = 'background: rgba(16, 185, 129, 0.12); color: var(--ok); border: 1px solid rgba(16, 185, 129, 0.3);';
-    }
+    const treeCard = window.buildPmgStepHierarchyCard(act, {
+      depth,
+      isContextOnly,
+      safeIdx,
+      showAppelle: true,
+      showRootParent: false
+    });
 
-    const parentProcLabel = act.parentProcessName || act.rootParentName || 'Processus Principal';
     html += `
-      <tr style="border-bottom: 1px solid var(--border-color);">
-        <td style="padding: 8px; vertical-align: top;">
-          <span style="display:inline-block; margin-left:${visibleDepth * 12}px;">
-            ${visibleDepth > 0 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
-          </span>
-          <div style="font-size:10.5px; color:#94a3b8; margin-left:${visibleDepth * 12}px; margin-top:2px;">
-            id: <code>${escHtml(act.id)}</code> • <em style="color:#009cd7; font-weight:500;">🏛️ ${escHtml(parentProcLabel)}</em>
-          </div>
-        </td>
-        <td style="padding: 8px;">
-          <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight:700; ${typeBadgeStyle}">
+      <tr class="pmg-step3-tree-row" data-context="${isContextOnly ? '1' : '0'}" data-depth="${depth}" data-root-parent="${escAttr(act.rootParentId || '')}">
+        <td class="pmg-step3-tree-cell">${treeCard}</td>
+        <td class="pmg-step3-type-cell">
+          <span class="pmg-step3-type-pill" style="background:${typeColors.background}; color:${typeColors.color}; border-color:${typeColors.borderColor};">
             ${escHtml(act.typeLabel || act.type)}
           </span>
         </td>
-        <td style="padding: 6px;">
-          <input type="text" id="pmgInputsInput_${origIdx}" value="${escAttr(inputsVal)}" placeholder="Ex: varIn1, varIn2" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'inputs', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
+        <td class="pmg-step3-meta-cell">${parentCell}</td>
+        <td class="pmg-step3-field-cell">
+          <input type="text" id="pmgInputsInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(inputsVal)}" placeholder="Ex: varIn1, varIn2" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'inputs', this.value)">
         </td>
-        <td style="padding: 6px;">
-          <input type="text" id="pmgOutputsInput_${origIdx}" value="${escAttr(outputsVal)}" placeholder="Ex: varOut1, varOut2" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'outputs', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
+        <td class="pmg-step3-field-cell">
+          <input type="text" id="pmgOutputsInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(outputsVal)}" placeholder="Ex: varOut1, varOut2" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'outputs', this.value)">
         </td>
       </tr>
     `;
@@ -3621,7 +3640,7 @@ window.renderPmgStep4ManualTable = function() {
 
   const activities = window.pmgTempSubprocesses || [];
   if (activities.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord valider les activités dans l\'étape 2.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord valider les activités dans l\'étape 2.</td></tr>';
     return;
   }
 
@@ -3631,7 +3650,7 @@ window.renderPmgStep4ManualTable = function() {
   const modeSelectFilter = document.getElementById('pmgFilterStep5Mode');
   if (modeSelectFilter) {
     const currentVal = window.pmgColFilters.step5.mode || 'all';
-    let modeOpts = '<option value="all">Tous les modes (' + activities.length + ')</option>';
+    let modeOpts = '<option value="all">Tous (' + activities.length + ')</option>';
     modes.forEach(m => {
       const cnt = activities.filter(a => (a.realizationMode || '').toLowerCase() === m.toLowerCase()).length;
       modeOpts += '<option value="' + escAttr(m) + '" ' + (m.toLowerCase() === currentVal.toLowerCase() ? 'selected' : '') + '>' + escHtml(m) + ' (' + cnt + ')</option>';
@@ -3639,13 +3658,18 @@ window.renderPmgStep4ManualTable = function() {
     modeSelectFilter.innerHTML = modeOpts;
   }
 
-  // Filter activities
+  // Même prédicat + arborescence forest que l'étape 3
   const f = window.pmgColFilters.step5;
-  const filtered = activities.filter(act => {
+  const matchesStep5Filter = function(act) {
     if (f.act) {
       const name = (act.name || '').toLowerCase();
       const id = (act.id || '').toLowerCase();
       if (!name.includes(f.act) && !id.includes(f.act)) return false;
+    }
+
+    if (f.parent) {
+      const root = (act.rootParentName || '').toLowerCase();
+      if (!root.includes(f.parent)) return false;
     }
 
     if (f.mode !== 'all') {
@@ -3668,49 +3692,54 @@ window.renderPmgStep4ManualTable = function() {
     }
 
     return true;
-  });
+  };
 
-  // Update count badge
+  const treeRows = window.flattenPmgForestForTable(activities, matchesStep5Filter);
+  const matchedCount = treeRows.filter(r => r.isMatch).length;
+
   const countBadge = document.getElementById('pmgStep5FilterCount');
   if (countBadge) {
-    countBadge.innerHTML = '🎯 <strong>' + filtered.length + '</strong> / ' + activities.length + ' activités affichées';
+    countBadge.innerHTML = '🎯 <strong>' + matchedCount + '</strong> / ' + activities.length + ' activités affichées';
   }
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:25px; text-align:center; color:var(--text-tertiary); font-style:italic;">Aucune activité ne correspond aux filtres. <button class="btn-ghost" style="margin-left:8px; font-size:11px;" onclick="resetPmgStep5Filters()">Réinitialiser</button></td></tr>';
+  if (treeRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:25px; text-align:center; color:var(--text-tertiary); font-style:italic;">Aucune activité ne correspond aux filtres. <button class="btn-ghost" style="margin-left:8px; font-size:11px;" onclick="resetPmgStep5Filters()">Réinitialiser</button></td></tr>';
     return;
   }
 
-  // Hiérarchie relative aux lignes visibles (évite les └─ orphelins sous filtre)
-  const actByKey = new Map();
-  activities.forEach(a => {
-    const key = a.uniqueId || a.id;
-    if (key) actByKey.set(key, a);
-  });
-  const filteredKeys = new Set(filtered.map(a => a.uniqueId || a.id).filter(Boolean));
-
-  function getVisibleDepth(act) {
-    let depth = 0;
-    let pid = act.parentId;
-    const seen = new Set();
-    while (pid && !seen.has(pid)) {
-      seen.add(pid);
-      if (filteredKeys.has(pid)) depth++;
-      const parent = actByKey.get(pid);
-      pid = parent ? parent.parentId : null;
-      if (depth > 30) break;
-    }
-    return depth;
-  }
-
   let html = '';
-  filtered.forEach((act) => {
-    const origIdx = activities.indexOf(act);
-    const isSub = (act.type || '').toLowerCase().includes('sous-processus') || (act.type || '').toLowerCase().includes('call');
-    const defaultMode = act.realizationMode || (isSub ? 'Call Activity' : 'Manuelle');
-    const caseVal = act.applicableCase || '';
+  treeRows.forEach((row) => {
+    const act = row.act;
+    const origIdx = activities.findIndex(a => (a.uniqueId || a.id) === (act.uniqueId || act.id));
+    const safeIdx = origIdx >= 0 ? origIdx : 0;
+    const depth = row.depth || 0;
+    const isContextOnly = !!row.isContextOnly;
+    const typeKey = window.getPmgTypeKey ? window.getPmgTypeKey(act.type || act.typeLabel) : '';
+    const isUserTask = typeKey === 'usertask' || typeKey === 'manualtask';
+    const isSub = typeKey === 'callactivity' || typeKey === 'subprocess'
+      || (act.type || '').toLowerCase().includes('sous-processus')
+      || (act.type || '').toLowerCase().includes('call');
+    // User / Manual Task → Manuelle (corrige l'ancien défaut erroné SP0)
+    let defaultMode = act.realizationMode || '';
+    if (isUserTask && (!defaultMode || defaultMode.toLowerCase() === 'sp0')) {
+      defaultMode = 'Manuelle';
+      act.realizationMode = 'Manuelle';
+    } else if (!defaultMode) {
+      defaultMode = isSub ? 'Call Activity' : 'Manuelle';
+      act.realizationMode = defaultMode;
+    }
+    const gwConds = Array.isArray(act.gatewayConditions) ? act.gatewayConditions : [];
+    const caseVal = act.applicableCase || (gwConds.length ? gwConds.join(' ET ') : '');
+    if (!act.applicableCase && caseVal) act.applicableCase = caseVal;
     const commentVal = act.comment || '';
-    const visibleDepth = getVisibleDepth(act);
+    const rootParentName = act.rootParentName || '';
+    const parentCell = rootParentName
+      ? `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(rootParentName)}">🏛️ ${escHtml(rootParentName)}</span>`
+      : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
+    const gwCount = gwConds.length || (caseVal.includes(' ET Si ') ? caseVal.split(' ET Si ').length : (caseVal ? 1 : 0));
+    const caseHint = gwCount > 1
+      ? `<span class="pmg-gateway-cond-hint" title="${escAttr(caseVal)}">${gwCount} gateways amont</span>`
+      : (gwCount === 1 ? '<span class="pmg-gateway-cond-hint">1 gateway amont</span>' : '');
 
     let optionsHtml = '';
     modes.forEach(m => {
@@ -3718,27 +3747,31 @@ window.renderPmgStep4ManualTable = function() {
       optionsHtml += '<option value="' + escAttr(m) + '" ' + selected + '>' + escHtml(m) + '</option>';
     });
 
-    const parentProcLabel = act.parentProcessName || act.rootParentName || 'Processus Principal';
+    const treeCard = window.buildPmgStepHierarchyCard(act, {
+      depth,
+      isContextOnly,
+      safeIdx,
+      showAppelle: true,
+      showRootParent: false
+    });
+
     html += `
-      <tr style="border-bottom: 1px solid var(--border-color);">
-        <td style="padding: 8px; vertical-align: top;">
-          <span style="display:inline-block; margin-left:${visibleDepth * 12}px;">
-            ${visibleDepth > 0 ? '<span style="color:#009cd7;">└─ </span>' : ''}<strong>${escHtml(act.name)}</strong>
-          </span>
-          <div style="font-size:10.5px; color:#94a3b8; margin-left:${visibleDepth * 12}px; margin-top:2px;">
-            id: <code>${escHtml(act.id)}</code> • <em style="color:#009cd7; font-weight:500;">🏛️ ${escHtml(parentProcLabel)}</em>
-          </div>
-        </td>
-        <td style="padding: 6px; vertical-align: middle;">
-          <select id="pmgModeSelect_${origIdx}" class="pmg-mode-select" onchange="syncPmgStepActivityField('${escAttr(act.id)}', 'realizationMode', this.value)">
+      <tr class="pmg-step3-tree-row" data-context="${isContextOnly ? '1' : '0'}" data-depth="${depth}" data-root-parent="${escAttr(act.rootParentId || '')}">
+        <td class="pmg-step3-tree-cell">${treeCard}</td>
+        <td class="pmg-step3-meta-cell">${parentCell}</td>
+        <td class="pmg-step3-field-cell" style="vertical-align:middle;">
+          <select id="pmgModeSelect_${safeIdx}" class="pmg-mode-select" onchange="syncPmgStepActivityField('${escAttr(act.id)}', 'realizationMode', this.value)">
             ${optionsHtml}
           </select>
         </td>
-        <td style="padding: 6px; vertical-align: middle;">
-          <input type="text" id="pmgCaseInput_${origIdx}" class="pmg-step5-input" value="${escAttr(caseVal)}" placeholder="Ex: Si dossier prioritaire" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'applicableCase', this.value)">
+        <td class="pmg-step3-field-cell" style="vertical-align:middle;">
+          <div class="pmg-step5-case-wrap">
+            <textarea id="pmgCaseInput_${safeIdx}" class="pmg-step5-input pmg-step5-case-input" rows="${Math.min(Math.max(gwCount, 1), 4)}" placeholder="Ex: Si [gateway] = &quot;oui&quot; ET Si [gateway2] = &quot;non&quot;" title="${escAttr(caseVal)}" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'applicableCase', this.value)">${escHtml(caseVal)}</textarea>
+            ${caseHint}
+          </div>
         </td>
-        <td style="padding: 6px; vertical-align: middle;">
-          <input type="text" id="pmgCommentInput_${origIdx}" class="pmg-step5-input" value="${escAttr(commentVal)}" placeholder="Ex: Traitement physique" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'comment', this.value)">
+        <td class="pmg-step3-field-cell" style="vertical-align:middle;">
+          <input type="text" id="pmgCommentInput_${safeIdx}" class="pmg-step5-input" value="${escAttr(commentVal)}" placeholder="Ex: Traitement physique" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'comment', this.value)">
         </td>
       </tr>
     `;
@@ -4098,33 +4131,43 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
 
         // 4. Gateways & Sequence flows mapping
         const gatewayNames = new Map();
+        const gatewayDefaultFlow = new Map(); // gwId -> default sequenceFlow id
         const gateways = procEl.querySelectorAll('exclusiveGateway, bpmn\\:exclusiveGateway, inclusiveGateway, bpmn\\:inclusiveGateway, complexGateway, bpmn\\:complexGateway, eventBasedGateway, bpmn\\:eventBasedGateway');
         gateways.forEach(gw => {
           const gwId = gw.getAttribute('id');
           const gwName = gw.getAttribute('name') || '';
-          if (gwId) gatewayNames.set(gwId, gwName);
+          if (gwId) {
+            gatewayNames.set(gwId, gwName);
+            const defFlow = gw.getAttribute('default') || '';
+            if (defFlow) gatewayDefaultFlow.set(gwId, defFlow);
+          }
         });
 
-        const targetToCondition = new Map();
         const seqFlows = procEl.querySelectorAll('sequenceFlow, bpmn\\:sequenceFlow');
         const flowAdj = new Map();
+        const reverseAdj = new Map(); // target -> [{ sourceRef, composedCond, fromGateway }]
         const incomingCount = new Map();
 
         seqFlows.forEach(sf => {
           const targetRef = sf.getAttribute('targetRef');
           const sourceRef = sf.getAttribute('sourceRef');
+          const sfId = sf.getAttribute('id') || '';
           const sfName = (sf.getAttribute('name') || '').trim();
           const condEl = sf.querySelector('conditionExpression, bpmn\\:conditionExpression');
           let condText = condEl ? condEl.textContent.trim() : '';
+          const fromGateway = !!(sourceRef && gatewayNames.has(sourceRef));
+          const gwLabel = fromGateway ? (gatewayNames.get(sourceRef) || '') : '';
+          const isDefault = fromGateway && gatewayDefaultFlow.get(sourceRef) === sfId;
+          const branchLabel = sfName || (isDefault ? 'défaut' : '') || (condText ? condText : '');
 
           let composedCond = '';
-          const gwLabel = sourceRef ? (gatewayNames.get(sourceRef) || '') : '';
-
-          if (gwLabel && sfName) {
-            composedCond = `Si [${gwLabel}] = "${sfName}"`;
-            if (condText && condText !== sfName) composedCond += ` (${condText})`;
-          } else if (gwLabel && condText) {
+          if (fromGateway && gwLabel && branchLabel) {
+            composedCond = `Si [${gwLabel}] = "${branchLabel}"`;
+            if (condText && condText !== branchLabel) composedCond += ` (${condText})`;
+          } else if (fromGateway && gwLabel && condText) {
             composedCond = `Si [${gwLabel}] (${condText})`;
+          } else if (fromGateway && gwLabel) {
+            composedCond = `Si [${gwLabel}]`;
           } else if (sfName && condText && sfName !== condText) {
             composedCond = `Si "${sfName}" (${condText})`;
           } else if (sfName) {
@@ -4133,14 +4176,56 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
             composedCond = `Si ${condText}`;
           }
 
-          if (targetRef && composedCond) {
-            targetToCondition.set(targetRef, composedCond);
-          }
-
           if (sourceRef && targetRef) {
             if (!flowAdj.has(sourceRef)) flowAdj.set(sourceRef, []);
             flowAdj.get(sourceRef).push(targetRef);
             incomingCount.set(targetRef, (incomingCount.get(targetRef) || 0) + 1);
+
+            if (!reverseAdj.has(targetRef)) reverseAdj.set(targetRef, []);
+            reverseAdj.get(targetRef).push({
+              sourceRef,
+              composedCond,
+              fromGateway,
+              branchLabel
+            });
+          }
+        });
+
+        // Remonte les gateways amont d'une activité (chemin principal)
+        // Ex: 2 gateways → "Si [A] = \"oui\" ET Si [B] = \"non\""
+        const collectUpstreamGatewayConditions = function(nodeId) {
+          const conditions = [];
+          const visited = new Set();
+          let current = nodeId;
+          let guard = 0;
+          while (current && guard < 80) {
+            guard++;
+            if (visited.has(current)) break;
+            visited.add(current);
+            const incomings = reverseAdj.get(current) || [];
+            if (!incomings.length) break;
+
+            // Préférer l'arc issu d'une gateway avec condition / libellé
+            let chosen = incomings.find(e => e.fromGateway && e.composedCond)
+              || incomings.find(e => e.fromGateway)
+              || incomings[0];
+
+            if (chosen.fromGateway && chosen.composedCond) {
+              conditions.unshift(chosen.composedCond);
+            }
+            current = chosen.sourceRef;
+          }
+          return conditions;
+        };
+
+        const targetToCondition = new Map();
+        const targetToGatewayConditions = new Map();
+        // Pré-calcule pour tous les nœuds cibles des flows
+        reverseAdj.forEach((_, nodeId) => {
+          const conds = collectUpstreamGatewayConditions(nodeId);
+          if (conds.length) {
+            targetToGatewayConditions.set(nodeId, conds);
+            targetToCondition.set(nodeId, conds.join(' ET '));
           }
         });
 
@@ -4254,11 +4339,12 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
               realizationMode = 'Call Activity';
             } else if (['servicetask', 'scripttask', 'businessruletask', 'sendtask'].includes(localName)) {
               realizationMode = 'Automatique';
-            } else if (localName === 'usertask') {
-              realizationMode = 'SP0';
+            } else if (localName === 'usertask' || localName === 'manualtask') {
+              realizationMode = 'Manuelle';
             }
 
-            const applicableCase = targetToCondition.get(actId) || '';
+            const gatewayConditions = targetToGatewayConditions.get(actId) || [];
+            const applicableCase = targetToCondition.get(actId) || gatewayConditions.join(' ET ') || '';
             const taskDocEl = el.querySelector(':scope > documentation, :scope > bpmn\\:documentation');
             const comment = taskDocEl ? taskDocEl.textContent.trim() : '';
             const { inputs, outputs } = extractIoForNode(el);
@@ -4315,6 +4401,7 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
               outputs,
               realizationMode,
               applicableCase,
+              gatewayConditions,
               comment,
               calledElement,
               embeddedParentId,
@@ -5092,7 +5179,7 @@ window.loadPmgDemoBpmnSuite = function() {
     <bpmn:participant id="Participant_Finance" name="Direction Financière &amp; Comptabilité" processRef="Process_Paiement_Facturation" />
   </bpmn:collaboration>
   <bpmn:process id="Process_Paiement_Facturation" name="SP2 (Partagé) : Paiement, Facturation &amp; Avoirs" isExecutable="true">
-    <bpmn:documentation>Sous-processus transversal partagé (appelé par Commande P1 et SAV P2).</bpmn:documentation>
+    <bpmn:documentation>Sous-processus partagé (appelé par Commande P1 et SAV P2).</bpmn:documentation>
     <bpmn:laneSet id="LaneSet_Compta">
       <bpmn:lane id="Lane_Passerelle" name="Passerelle Bancaire">
         <bpmn:flowNodeRef>Task_Debiter_Compte</bpmn:flowNodeRef>
@@ -5130,7 +5217,7 @@ window.loadPmgDemoBpmnSuite = function() {
     <bpmn:participant id="Participant_Logistique" name="Plateforme Logistique &amp; Entrepôt" processRef="Process_Expedition_Logistique" />
   </bpmn:collaboration>
   <bpmn:process id="Process_Expedition_Logistique" name="SP3 (Partagé) : Expédition &amp; Livraison Colis" isExecutable="true">
-    <bpmn:documentation>Sous-processus transversal partagé pour l'emballage et l'expédition EDI (appelé par P1 et P2).</bpmn:documentation>
+    <bpmn:documentation>Sous-processus partagé pour l'emballage et l'expédition EDI (appelé par P1 et P2).</bpmn:documentation>
     <bpmn:laneSet id="LaneSet_Entrepot">
       <bpmn:lane id="Lane_Preparateurs" name="Opérateurs Entrepôt">
         <bpmn:flowNodeRef>Task_Preparer_Colis</bpmn:flowNodeRef>
@@ -6011,7 +6098,7 @@ window.renderPmgMatrix = function() {
     let sharedHtml = '';
     if (act.isSharedSubprocess) {
       const pList = (act.sharedParentNames || []).join(', ') || 'Multi-parents';
-      sharedHtml = '<span class="pmg-shared-pill" style="margin-left:6px;" title="Sous-processus transversal appelé par : ' + esc(pList) + '">🔗 Partagé (' + esc(pList) + ')</span>';
+      sharedHtml = '<span class="pmg-shared-pill" style="margin-left:6px;" title="Sous-processus partagé appelé par : ' + esc(pList) + '">🔗 Partagé (' + esc(pList) + ')</span>';
     }
 
     const groupVal = (typeof window.cleanPmgUserGroupName === 'function') ? window.cleanPmgUserGroupName(act.userGroup) : (act.userGroup || '');
@@ -6828,7 +6915,7 @@ window.renderPmgDashboard = function() {
     if (uniqueLanes.size > 3) {
       alerts.push({
         type: 'warning',
-        title: 'Processus transverse complexe',
+        title: 'Processus multi-acteurs complexe',
         desc: `Ce processus implique ${uniqueLanes.size} entités/acteurs différents. Risque accru de frictions inter-services.`
       });
     }

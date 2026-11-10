@@ -611,7 +611,7 @@ function lintIssueGuidance(ruleId, element, message) {
     'boundary-reference': ['Renseigner attachedToRef vers l’activité protégée.', 'Équipe modélisation', 'Déclencher l’erreur ou le timeout et confirmer l’interruption/la reprise attendue.'],
     'boundary-target': ['Rattacher cet événement à une activité existante du même scope.', 'Équipe modélisation', 'Déclencher cet événement et vérifier le chemin d’exception.'],
     'lane-reference': ['Corriger la référence flowNodeRef vers l’ID existant.', 'Équipe modélisation', 'Vérifier que l’activité apparaît dans le bon rôle ou la bonne lane.'],
-    'lane-assignment': ['Affecter l’activité à une lane ou documenter son rôle transverse.', 'Product Owner', 'Confirmer le propriétaire et le responsable de traitement du cas.'],
+    'lane-assignment': ['Affecter l’activité à une lane ou documenter son rôle métier.', 'Product Owner', 'Confirmer le propriétaire et le responsable de traitement du cas.'],
     'process-id-kebab': ['Renommer l’ID technique du processus en kebab-case (minuscules, chiffres et tirets, ex: mon-processus-metier).', 'Équipe modélisation', 'Vérifier la compatibilité avec les scripts CI/CD et redéployer le processus.'],
     'process-name-capital': ['Faire débuter le nom d’affichage du processus par une majuscule.', 'Product Owner', 'Confirmer la lisibilité du titre du processus dans Cockpit / Tasklist.'],
     'gateway-parallel-no-question': ['Supprimer le point d’interrogation sur la passerelle parallèle (AND) car elle ne pose pas de question.', 'Équipe modélisation', 'Vérifier que toutes les branches sortantes restent actives en parallèle.'],
