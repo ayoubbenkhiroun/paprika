@@ -4185,6 +4185,28 @@ tr:hover td {
   margin-bottom: 24px;
   position: relative;
   width: 100%;
+  overflow: hidden;
+}
+
+/* Piste entre le centre de l'étape 1 (10%) et de l'étape 5 (90%) */
+.pmg-stepper-track {
+  position: absolute;
+  top: 15px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--border-color);
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pmg-stepper-progress {
+  height: 100%;
+  width: 0%;
+  max-width: 100%;
+  background: var(--brand-primary);
+  transition: width 0.3s ease;
 }
 
 .step-node {
@@ -4195,6 +4217,7 @@ tr:hover td {
   z-index: 2;
   flex: 1;
   text-align: center;
+  min-width: 0;
 }
 
 .step-num {
@@ -4210,13 +4233,14 @@ tr:hover td {
   border: 2px solid var(--border-color);
   background: #ffffff;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .step-node.active .step-num {
-  background: var(--brand-gradient);
+  background: var(--brand-primary);
   color: white;
-  border-color: var(--brand-cyan);
-  box-shadow: 0 0 10px rgba(0, 156, 215, 0.4);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(0, 156, 215, 0.18);
 }
 
 .step-node.completed .step-num {

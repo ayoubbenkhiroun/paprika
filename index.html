@@ -2708,13 +2708,10 @@
                 </div>
               </div>
 
-              <!-- Stepper Header -->
+              <!-- Stepper Header : piste entre centres étape 1 → 5 (10% / 10%) -->
               <div class="pmg-stepper">
-                <div
-                  style="position: absolute; top: 15px; left: 8%; right: 8%; height: 2px; background: var(--border-color); z-index: 1;">
-                </div>
-                <div id="pmgStepperProgress"
-                  style="position: absolute; top: 15px; left: 8%; width: 0%; height: 2px; background: var(--brand-primary); z-index: 1; transition: width 0.3s;">
+                <div class="pmg-stepper-track" aria-hidden="true">
+                  <div id="pmgStepperProgress" class="pmg-stepper-progress"></div>
                 </div>
 
                 <div class="step-node active" id="step-node-1" onclick="pmgStepGoBack(1)" style="cursor: pointer;">

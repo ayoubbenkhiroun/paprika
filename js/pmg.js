@@ -4160,16 +4160,16 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           const isDefault = fromGateway && gatewayDefaultFlow.get(sourceRef) === sfId;
           const branchLabel = sfName || (isDefault ? 'défaut' : '') || (condText ? condText : '');
 
+          // Libellé lisible (oui/non) sans coller le FEEL brut — réservé au fallback
           let composedCond = '';
-          if (fromGateway && gwLabel && branchLabel) {
-            composedCond = `Si [${gwLabel}] = "${branchLabel}"`;
-            if (condText && condText !== branchLabel) composedCond += ` (${condText})`;
+          if (fromGateway && gwLabel && sfName) {
+            composedCond = `Si [${gwLabel}] = "${sfName}"`;
+          } else if (fromGateway && gwLabel && isDefault) {
+            composedCond = `Si [${gwLabel}] = "défaut"`;
           } else if (fromGateway && gwLabel && condText) {
-            composedCond = `Si [${gwLabel}] (${condText})`;
+            composedCond = `Si [${gwLabel}] = "${condText}"`;
           } else if (fromGateway && gwLabel) {
             composedCond = `Si [${gwLabel}]`;
-          } else if (sfName && condText && sfName !== condText) {
-            composedCond = `Si "${sfName}" (${condText})`;
           } else if (sfName) {
             composedCond = `Si "${sfName}"`;
           } else if (condText) {
@@ -4191,8 +4191,11 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           }
         });
 
-        // Remonte les gateways amont d'une activité (chemin principal)
-        // Ex: 2 gateways → "Si [A] = \"oui\" ET Si [B] = \"non\""
+        // Remonte UNIQUEMENT la chaîne de gateways directement en amont de l'activité.
+        // Ex diagramme : numATR=oui → Bypass=non → « Vérifier migration CSG »
+        //  → "Si [numATR renseigné?] = \"oui\" ET Si [s'agit-il d'un Bypass migration ?] = \"non\""
+        // Ne traverse PAS les tâches : évite de ramasser d'anciens Bypass=oui
+        // d'autres activités plus haut dans le processus.
         const collectUpstreamGatewayConditions = function(nodeId) {
           const conditions = [];
           const visited = new Set();
@@ -4205,15 +4208,18 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
             const incomings = reverseAdj.get(current) || [];
             if (!incomings.length) break;
 
-            // Préférer l'arc issu d'une gateway avec condition / libellé
-            let chosen = incomings.find(e => e.fromGateway && e.composedCond)
-              || incomings.find(e => e.fromGateway)
-              || incomings[0];
+            // Uniquement les arcs issus d'une gateway de décision
+            const gwEdges = incomings.filter(e => e.fromGateway && e.composedCond);
 
-            if (chosen.fromGateway && chosen.composedCond) {
-              conditions.unshift(chosen.composedCond);
+            if (gwEdges.length === 1) {
+              conditions.unshift(gwEdges[0].composedCond);
+              current = gwEdges[0].sourceRef;
+              continue;
             }
-            current = chosen.sourceRef;
+
+            // Plusieurs branches conditionnées (join / bypass) → ne pas choisir
+            // OU plus de gateway en entrée directe → fin de la chaîne liée
+            break;
           }
           return conditions;
         };
@@ -4638,6 +4644,7 @@ window.populatePmgAllStepsFromBpmnBatch = function(batchResult) {
     outputs: a.outputs,
     realizationMode: a.realizationMode,
     applicableCase: a.applicableCase,
+    gatewayConditions: Array.isArray(a.gatewayConditions) ? a.gatewayConditions.slice() : [],
     comment: a.comment,
     calledElement: a.calledElement,
     targetMissing: a.targetMissing,
