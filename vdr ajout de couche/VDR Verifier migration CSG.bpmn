@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="e787c33" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="VDR_Verifier_Migration_CSG" name="VDR Verifier migration CSG" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Vérification CSG commencée">
+      <bpmn:outgoing>Flow_13nerct</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_13nerct" sourceRef="StartEvent_1" targetRef="VDR_saveMigrationVariableValue" />
+    <bpmn:exclusiveGateway id="Gateway_0212jjs" name="Migration vérifiée ?">
+      <bpmn:incoming>Flow_1b0qa2g</bpmn:incoming>
+      <bpmn:incoming>Flow_12at7tx</bpmn:incoming>
+      <bpmn:incoming>Flow_00jsg2o</bpmn:incoming>
+      <bpmn:outgoing>Flow_0zmrayv</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0zmrayv" name="non" sourceRef="Gateway_0212jjs" targetRef="Gateway_010lqjh" />
+    <bpmn:exclusiveGateway id="Gateway_0cg05zo">
+      <bpmn:incoming>Flow_06vs3v8</bpmn:incoming>
+      <bpmn:incoming>Flow_0xn71ko</bpmn:incoming>
+      <bpmn:outgoing>Flow_0lswk2p</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0ekn6d5" sourceRef="VDR_saisirLeNumeroCsg" targetRef="Gateway_0clpxj3" />
+    <bpmn:sequenceFlow id="Flow_0lswk2p" sourceRef="Gateway_0cg05zo" targetRef="Gateway_1jaws90" />
+    <bpmn:exclusiveGateway id="Gateway_1jaws90" name="est ce que compatible csg?" default="Flow_17v0bih">
+      <bpmn:incoming>Flow_0lswk2p</bpmn:incoming>
+      <bpmn:outgoing>Flow_1xsklwq</bpmn:outgoing>
+      <bpmn:outgoing>Flow_17v0bih</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1xsklwq" name="non" sourceRef="Gateway_1jaws90" targetRef="Gateway_1n4sy3q">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=lower case(compatibiliteCsg)="non"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_17v0bih" name="oui" sourceRef="Gateway_1jaws90" targetRef="Gateway_1i9nk7k" />
+    <bpmn:exclusiveGateway id="Gateway_19xzuhh">
+      <bpmn:incoming>Flow_1detlin</bpmn:incoming>
+      <bpmn:incoming>Flow_0070wtg</bpmn:incoming>
+      <bpmn:incoming>Flow_0k5ij4u</bpmn:incoming>
+      <bpmn:outgoing>Flow_0g0l5e1</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0mv3iw9" sourceRef="VDR_recupererLesGcrImesDeCsg" targetRef="Gateway_1n0zd1g" />
+    <bpmn:sequenceFlow id="Flow_06m0gm2" sourceRef="VDR_recupererLesGcrDeMigrationCsg" targetRef="Gateway_02hgem0" />
+    <bpmn:endEvent id="Event_07q1ew1" name="Migration CSG vérifiée">
+      <bpmn:incoming>Flow_0g0l5e1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0g0l5e1" sourceRef="Gateway_19xzuhh" targetRef="Event_07q1ew1" />
+    <bpmn:sequenceFlow id="Flow_06vs3v8" name="oui" sourceRef="Gateway_010lqjh" targetRef="Gateway_0cg05zo" />
+    <bpmn:callActivity id="VDR_recupererLesGcrImesDeCsg" name="Récupérer les GCR IMES de CSG">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="VDR_Recuperer_Liste_GCR_Manuellement" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=groupeSUPPORT" target="groupeSUPPORT" />
+          <zeebe:input source="=groupeRELANCE" target="groupeRELANCE" />
+          <zeebe:input source="=objectInstanceId" target="objectInstanceId" />
+          <zeebe:input source="=region" target="region" />
+          <zeebe:input source="=upper case(solutionDO)" target="LP" />
+          <zeebe:input source="=migration" target="migration" />
+          <zeebe:input source="=migrationActivities" target="migrationActivities" />
+          <zeebe:input source="=migration_max_wait_loop" target="migration_max_wait_loop" />
+          <zeebe:input source="=migration_loop" target="migration_loop" />
+          <zeebe:input source="=gcrImesCsg" target="_listGCRFiltred" />
+          <zeebe:input source="=gcrImesCsg" target="gcrImesCsg" />
+          <zeebe:input source="=compatibiliteCsg" target="compatibiliteCsg" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0pfflbs</bpmn:incoming>
+      <bpmn:outgoing>Flow_0mv3iw9</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:callActivity id="VDR_recupererLesGcrDeMigrationCsg" name="Récupérer les GCR de migration CSG">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="VDR_Recuperer_Liste_GCR_Manuellement" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=groupeRELANCE" target="groupeRELANCE" />
+          <zeebe:input source="=groupeSUPPORT" target="groupeSUPPORT" />
+          <zeebe:input source="=objectInstanceId" target="objectInstanceId" />
+          <zeebe:input source="=region" target="region" />
+          <zeebe:input source="=upper case(solutionDO)" target="LP" />
+          <zeebe:input source="=migration" target="migration" />
+          <zeebe:input source="=migrationActivities" target="migrationActivities" />
+          <zeebe:input source="=migration_max_wait_loop" target="migration_max_wait_loop" />
+          <zeebe:input source="=migration_loop" target="migration_loop" />
+          <zeebe:input source="=gcrMigrationCsg" target="_listGCRFiltred" />
+          <zeebe:input source="=gcrMigrationCsg" target="gcrMigrationCsg" />
+          <zeebe:input source="=compatibiliteCsg" target="compatibiliteCsg" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0ne8hwp</bpmn:incoming>
+      <bpmn:outgoing>Flow_06m0gm2</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:userTask id="VDR_saisirLeNumeroCsg" name="Saisir le numéro CSG">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="VDR_FORM_SaisirLeNumeroCSG" />
+        <zeebe:assignmentDefinition candidateGroups="=[&#34;CDD_GSP&#34;]" />
+        <zeebe:taskSchedule dueDate="=now() + duration(&#34;P1D&#34;)" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=numCSG" target="numCSG" />
+          <zeebe:output source="=objectInstanceId" target="objectInstanceId" />
+          <zeebe:output source="=region" target="region" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_03ymw3m</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ekn6d5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_1ue7c3q" name="quel constructeur?" default="Flow_1b0qa2g">
+      <bpmn:incoming>Flow_0ki0di9</bpmn:incoming>
+      <bpmn:outgoing>Flow_0jsfcuk</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1b0qa2g</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Gateway_157jggz" name="évolution demandées contient 5GTDD?" default="Flow_1detlin">
+      <bpmn:incoming>Flow_0jsfcuk</bpmn:incoming>
+      <bpmn:outgoing>Flow_1detlin</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12at7tx</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0jsfcuk" name="HUAWEI" sourceRef="Gateway_1ue7c3q" targetRef="Gateway_157jggz">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=lower case(constructeur)="huawei"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1detlin" name="non" sourceRef="Gateway_157jggz" targetRef="Gateway_19xzuhh" />
+    <bpmn:sequenceFlow id="Flow_1b0qa2g" name="E///" sourceRef="Gateway_1ue7c3q" targetRef="Gateway_0212jjs" />
+    <bpmn:sequenceFlow id="Flow_12at7tx" name="oui" sourceRef="Gateway_157jggz" targetRef="Gateway_0212jjs">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=some item in evolutionsFiltred satisfies (item.libelleTechnologie2 = "NR3500")
+  </bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="Gateway_0f7ogln" name="LP47 ?" default="Flow_00jsg2o">
+      <bpmn:incoming>Flow_0n036yh</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ki0di9</bpmn:outgoing>
+      <bpmn:outgoing>Flow_00jsg2o</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0ki0di9" name="Oui" sourceRef="Gateway_0f7ogln" targetRef="Gateway_1ue7c3q">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=lower case(solutionDO) = lower case("LP47")</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_00jsg2o" name="non" sourceRef="Gateway_0f7ogln" targetRef="Gateway_0212jjs" />
+    <bpmn:exclusiveGateway id="Gateway_010lqjh" name="ID CSG présent?" default="Flow_06vs3v8">
+      <bpmn:incoming>Flow_0zmrayv</bpmn:incoming>
+      <bpmn:outgoing>Flow_0yvt1q2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_06vs3v8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0yvt1q2" sourceRef="Gateway_010lqjh" targetRef="Gateway_1bahe3k">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=numeroCsg = null or numeroCsg = ""</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="Gateway_1n4sy3q" name="s&#39;agit-il d&#39;un Bypass migration ?" default="Flow_0pfflbs">
+      <bpmn:incoming>Flow_1xsklwq</bpmn:incoming>
+      <bpmn:outgoing>Flow_0pfflbs</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0nxc939</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0pfflbs" name="non" sourceRef="Gateway_1n4sy3q" targetRef="VDR_recupererLesGcrImesDeCsg" />
+    <bpmn:exclusiveGateway id="Gateway_1n0zd1g">
+      <bpmn:incoming>Flow_0mv3iw9</bpmn:incoming>
+      <bpmn:incoming>Flow_0nxc939</bpmn:incoming>
+      <bpmn:outgoing>Flow_0070wtg</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0070wtg" sourceRef="Gateway_1n0zd1g" targetRef="Gateway_19xzuhh" />
+    <bpmn:sequenceFlow id="Flow_0nxc939" name="oui" sourceRef="Gateway_1n4sy3q" targetRef="Gateway_1n0zd1g">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=("Récupérer les GCR IMES de CSG" in migrationActivities) and "O" = upper case(migration)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="Gateway_1i9nk7k" name="s&#39;agit-il d&#39;un Bypass migration ?" default="Flow_0ne8hwp">
+      <bpmn:incoming>Flow_17v0bih</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ne8hwp</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1j18yx9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0ne8hwp" name="non" sourceRef="Gateway_1i9nk7k" targetRef="VDR_recupererLesGcrDeMigrationCsg" />
+    <bpmn:exclusiveGateway id="Gateway_02hgem0">
+      <bpmn:incoming>Flow_06m0gm2</bpmn:incoming>
+      <bpmn:incoming>Flow_1j18yx9</bpmn:incoming>
+      <bpmn:outgoing>Flow_0k5ij4u</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0k5ij4u" sourceRef="Gateway_02hgem0" targetRef="Gateway_19xzuhh" />
+    <bpmn:sequenceFlow id="Flow_1j18yx9" name="oui" sourceRef="Gateway_1i9nk7k" targetRef="Gateway_02hgem0">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=("Récupérer les GCR de migration CSG" in migrationActivities) and "O" = upper case(migration)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0a4nfj9" sourceRef="VDR_saveMigrationVariableValue" targetRef="Gateway_0nztnto" />
+    <bpmn:exclusiveGateway id="Gateway_0nztnto" default="Flow_0yp8cri">
+      <bpmn:incoming>Flow_0a4nfj9</bpmn:incoming>
+      <bpmn:incoming>Flow_0s2rtmc</bpmn:incoming>
+      <bpmn:outgoing>Flow_0yp8cri</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1578lvm</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0yp8cri" sourceRef="Gateway_0nztnto" targetRef="VDR_restMigrationVariableValue" />
+    <bpmn:exclusiveGateway id="Gateway_05e69di" default="Flow_07yiysn">
+      <bpmn:incoming>Flow_1578lvm</bpmn:incoming>
+      <bpmn:outgoing>Flow_06lju5p</bpmn:outgoing>
+      <bpmn:outgoing>Flow_07yiysn</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1578lvm" sourceRef="Gateway_0nztnto" targetRef="Gateway_05e69di">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=migration="O" and migration_loop &lt; number(migration_max_wait_loop)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="Event_0b46qux">
+      <bpmn:incoming>Flow_06lju5p</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_06lju5p" sourceRef="Gateway_05e69di" targetRef="Event_0b46qux">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=how_migration_stop = "true"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0n036yh" sourceRef="VDR_restMigrationVariableValue" targetRef="Gateway_0f7ogln" />
+    <bpmn:intermediateCatchEvent id="Event_1rt6mni" name="attendre 2 secondes">
+      <bpmn:incoming>Flow_07yiysn</bpmn:incoming>
+      <bpmn:outgoing>Flow_19dgdvy</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_0fs9x2x">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">="PT2S"</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_07yiysn" sourceRef="Gateway_05e69di" targetRef="Event_1rt6mni" />
+    <bpmn:sequenceFlow id="Flow_19dgdvy" sourceRef="Event_1rt6mni" targetRef="VDR_incLoop" />
+    <bpmn:sequenceFlow id="Flow_0s2rtmc" sourceRef="VDR_incLoop" targetRef="Gateway_0nztnto" />
+    <bpmn:scriptTask id="VDR_incLoop" name="inc loop">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=migration_loop + 1" resultVariable="migration_loop" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_19dgdvy</bpmn:incoming>
+      <bpmn:outgoing>Flow_0s2rtmc</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="VDR_saveMigrationVariableValue" name="save migration variable value">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=migration" resultVariable="old_migration" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_13nerct</bpmn:incoming>
+      <bpmn:outgoing>Flow_0a4nfj9</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="VDR_restMigrationVariableValue" name="reset migration variable value">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=old_migration" resultVariable="migration" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0yp8cri</bpmn:incoming>
+      <bpmn:outgoing>Flow_0n036yh</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_1bahe3k" name="s&#39;agit-il d&#39;un Bypass migration ?" default="Flow_03ymw3m">
+      <bpmn:incoming>Flow_0yvt1q2</bpmn:incoming>
+      <bpmn:outgoing>Flow_03ymw3m</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1mxjw36</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_03ymw3m" name="non" sourceRef="Gateway_1bahe3k" targetRef="VDR_saisirLeNumeroCsg" />
+    <bpmn:exclusiveGateway id="Gateway_0clpxj3">
+      <bpmn:incoming>Flow_0ekn6d5</bpmn:incoming>
+      <bpmn:incoming>Flow_1mxjw36</bpmn:incoming>
+      <bpmn:outgoing>Flow_0xn71ko</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0xn71ko" sourceRef="Gateway_0clpxj3" targetRef="Gateway_0cg05zo" />
+    <bpmn:sequenceFlow id="Flow_1mxjw36" name="oui" sourceRef="Gateway_1bahe3k" targetRef="Gateway_0clpxj3">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=("Saisir le numéro CSG" in migrationActivities) and "O" = upper case(migration)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:group id="Group_1p4mudq" categoryValueRef="CategoryValue_1v5n4pv" />
+  </bpmn:process>
+  <bpmn:category id="Category_1aahqle">
+    <bpmn:categoryValue id="CategoryValue_1v5n4pv" value="Partie de blocage" />
+  </bpmn:category>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="VDR_Verifier_Migration_CSG">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="-438" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="-459" y="285" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0212jjs_di" bpmnElement="Gateway_0212jjs" isMarkerVisible="true">
+        <dc:Bounds x="755" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="679" y="226" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0cg05zo_di" bpmnElement="Gateway_0cg05zo" isMarkerVisible="true">
+        <dc:Bounds x="1405" y="235" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1jaws90_di" bpmnElement="Gateway_1jaws90" isMarkerVisible="true">
+        <dc:Bounds x="1535" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1520" y="205" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_19xzuhh_di" bpmnElement="Gateway_19xzuhh" isMarkerVisible="true">
+        <dc:Bounds x="2125" y="235" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_07q1ew1_di" bpmnElement="Event_07q1ew1">
+        <dc:Bounds x="2252" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2234" y="285" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_06htkdg_di" bpmnElement="VDR_recupererLesGcrImesDeCsg">
+        <dc:Bounds x="1840" y="220" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_13hj4ld_di" bpmnElement="VDR_recupererLesGcrDeMigrationCsg">
+        <dc:Bounds x="1840" y="480" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0pjp9t2_di" bpmnElement="VDR_saisirLeNumeroCsg">
+        <dc:Bounds x="1150" y="220" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1ue7c3q_di" bpmnElement="Gateway_1ue7c3q" isMarkerVisible="true">
+        <dc:Bounds x="405" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="397" y="296" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_157jggz_di" bpmnElement="Gateway_157jggz" isMarkerVisible="true">
+        <dc:Bounds x="755" y="125" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="678" y="90" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0f7ogln_di" bpmnElement="Gateway_0f7ogln" isMarkerVisible="true">
+        <dc:Bounds x="255" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="264" y="186" width="35" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_010lqjh_di" bpmnElement="Gateway_010lqjh" isMarkerVisible="true">
+        <dc:Bounds x="895" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="868" y="212" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1n4sy3q_di" bpmnElement="Gateway_1n4sy3q" isMarkerVisible="true">
+        <dc:Bounds x="1705" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1688" y="292" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1n0zd1g_di" bpmnElement="Gateway_1n0zd1g" isMarkerVisible="true">
+        <dc:Bounds x="2015" y="235" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1i9nk7k_di" bpmnElement="Gateway_1i9nk7k" isMarkerVisible="true">
+        <dc:Bounds x="1705" y="495" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1688" y="465" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_02hgem0_di" bpmnElement="Gateway_02hgem0" isMarkerVisible="true">
+        <dc:Bounds x="2015" y="495" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0nztnto_di" bpmnElement="Gateway_0nztnto" isMarkerVisible="true" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="-75" y="235" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_05e69di_di" bpmnElement="Gateway_05e69di" isMarkerVisible="true" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="-75" y="125" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0b46qux_di" bpmnElement="Event_0b46qux" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="32" y="132" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1rt6mni_di" bpmnElement="Event_1rt6mni" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="-128" y="-78" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="-135" y="-114" width="50" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_059od48_di" bpmnElement="VDR_incLoop">
+        <dc:Bounds x="-220" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0rakijp_di" bpmnElement="VDR_saveMigrationVariableValue" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="-320" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1losi8d_di" bpmnElement="VDR_restMigrationVariableValue" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="80" y="220" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1bahe3k_di" bpmnElement="Gateway_1bahe3k" isMarkerVisible="true">
+        <dc:Bounds x="1015" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="998" y="292" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0clpxj3_di" bpmnElement="Gateway_0clpxj3" isMarkerVisible="true">
+        <dc:Bounds x="1305" y="235" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Group_1p4mudq_di" bpmnElement="Group_1p4mudq">
+        <dc:Bounds x="-350" y="-140" width="560" height="540" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="-123" y="-167" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_13nerct_di" bpmnElement="Flow_13nerct">
+        <di:waypoint x="-402" y="260" />
+        <di:waypoint x="-320" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0zmrayv_di" bpmnElement="Flow_0zmrayv">
+        <di:waypoint x="805" y="260" />
+        <di:waypoint x="895" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="965" y="273" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ekn6d5_di" bpmnElement="Flow_0ekn6d5">
+        <di:waypoint x="1250" y="260" />
+        <di:waypoint x="1305" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0lswk2p_di" bpmnElement="Flow_0lswk2p">
+        <di:waypoint x="1455" y="260" />
+        <di:waypoint x="1535" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1xsklwq_di" bpmnElement="Flow_1xsklwq">
+        <di:waypoint x="1585" y="260" />
+        <di:waypoint x="1705" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1640" y="233" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17v0bih_di" bpmnElement="Flow_17v0bih">
+        <di:waypoint x="1560" y="285" />
+        <di:waypoint x="1560" y="520" />
+        <di:waypoint x="1705" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1582" y="362" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0mv3iw9_di" bpmnElement="Flow_0mv3iw9">
+        <di:waypoint x="1940" y="260" />
+        <di:waypoint x="2015" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06m0gm2_di" bpmnElement="Flow_06m0gm2">
+        <di:waypoint x="1940" y="520" />
+        <di:waypoint x="2015" y="520" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0g0l5e1_di" bpmnElement="Flow_0g0l5e1">
+        <di:waypoint x="2175" y="260" />
+        <di:waypoint x="2252" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06vs3v8_di" bpmnElement="Flow_06vs3v8">
+        <di:waypoint x="920" y="285" />
+        <di:waypoint x="920" y="380" />
+        <di:waypoint x="1430" y="380" />
+        <di:waypoint x="1430" y="285" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1169" y="362" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0jsfcuk_di" bpmnElement="Flow_0jsfcuk">
+        <di:waypoint x="430" y="235" />
+        <di:waypoint x="430" y="150" />
+        <di:waypoint x="755" y="150" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="520" y="163" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1detlin_di" bpmnElement="Flow_1detlin">
+        <di:waypoint x="780" y="125" />
+        <di:waypoint x="780" y="50" />
+        <di:waypoint x="2150" y="50" />
+        <di:waypoint x="2150" y="235" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1456" y="32" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1b0qa2g_di" bpmnElement="Flow_1b0qa2g">
+        <di:waypoint x="455" y="260" />
+        <di:waypoint x="755" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="597" y="242" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12at7tx_di" bpmnElement="Flow_12at7tx">
+        <di:waypoint x="780" y="175" />
+        <di:waypoint x="780" y="235" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="753" y="193" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ki0di9_di" bpmnElement="Flow_0ki0di9">
+        <di:waypoint x="305" y="260" />
+        <di:waypoint x="405" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="347" y="242" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_00jsg2o_di" bpmnElement="Flow_00jsg2o">
+        <di:waypoint x="280" y="285" />
+        <di:waypoint x="280" y="340" />
+        <di:waypoint x="780" y="340" />
+        <di:waypoint x="780" y="285" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="521" y="322" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0yvt1q2_di" bpmnElement="Flow_0yvt1q2">
+        <di:waypoint x="945" y="260" />
+        <di:waypoint x="1015" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0pfflbs_di" bpmnElement="Flow_0pfflbs">
+        <di:waypoint x="1755" y="260" />
+        <di:waypoint x="1840" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1788" y="242" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0070wtg_di" bpmnElement="Flow_0070wtg">
+        <di:waypoint x="2065" y="260" />
+        <di:waypoint x="2125" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0nxc939_di" bpmnElement="Flow_0nxc939">
+        <di:waypoint x="1730" y="235" />
+        <di:waypoint x="1730" y="150" />
+        <di:waypoint x="2040" y="150" />
+        <di:waypoint x="2040" y="235" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1878" y="132" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ne8hwp_di" bpmnElement="Flow_0ne8hwp">
+        <di:waypoint x="1755" y="520" />
+        <di:waypoint x="1840" y="520" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1788" y="502" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0k5ij4u_di" bpmnElement="Flow_0k5ij4u">
+        <di:waypoint x="2065" y="520" />
+        <di:waypoint x="2150" y="520" />
+        <di:waypoint x="2150" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1j18yx9_di" bpmnElement="Flow_1j18yx9">
+        <di:waypoint x="1730" y="545" />
+        <di:waypoint x="1730" y="650" />
+        <di:waypoint x="2040" y="650" />
+        <di:waypoint x="2040" y="545" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1878" y="632" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0a4nfj9_di" bpmnElement="Flow_0a4nfj9">
+        <di:waypoint x="-220" y="260" />
+        <di:waypoint x="-75" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0yp8cri_di" bpmnElement="Flow_0yp8cri">
+        <di:waypoint x="-25" y="260" />
+        <di:waypoint x="80" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1578lvm_di" bpmnElement="Flow_1578lvm">
+        <di:waypoint x="-50" y="235" />
+        <di:waypoint x="-50" y="175" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06lju5p_di" bpmnElement="Flow_06lju5p">
+        <di:waypoint x="-25" y="150" />
+        <di:waypoint x="32" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0n036yh_di" bpmnElement="Flow_0n036yh">
+        <di:waypoint x="180" y="260" />
+        <di:waypoint x="255" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07yiysn_di" bpmnElement="Flow_07yiysn">
+        <di:waypoint x="-50" y="125" />
+        <di:waypoint x="-50" y="-60" />
+        <di:waypoint x="-92" y="-60" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19dgdvy_di" bpmnElement="Flow_19dgdvy">
+        <di:waypoint x="-128" y="-60" />
+        <di:waypoint x="-250" y="-60" />
+        <di:waypoint x="-250" y="100" />
+        <di:waypoint x="-220" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0s2rtmc_di" bpmnElement="Flow_0s2rtmc">
+        <di:waypoint x="-170" y="140" />
+        <di:waypoint x="-170" y="260" />
+        <di:waypoint x="-75" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03ymw3m_di" bpmnElement="Flow_03ymw3m">
+        <di:waypoint x="1065" y="260" />
+        <di:waypoint x="1150" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1099" y="242" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0xn71ko_di" bpmnElement="Flow_0xn71ko">
+        <di:waypoint x="1355" y="260" />
+        <di:waypoint x="1405" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1mxjw36_di" bpmnElement="Flow_1mxjw36">
+        <di:waypoint x="1040" y="235" />
+        <di:waypoint x="1040" y="160" />
+        <di:waypoint x="1330" y="160" />
+        <di:waypoint x="1330" y="235" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1178" y="142" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

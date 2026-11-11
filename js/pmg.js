@@ -30,6 +30,53 @@ if (!window.qq) {
 }
 if (!window.validateFileSize) window.validateFileSize = function() { return true; };
 
+/** Gateways « Bypass migration » : toujours ignorées dans Applicable dans quel cas ? */
+window.isPmgBypassMigrationLabel = function(text) {
+  return /bypass\s*migration/i.test(String(text || ''));
+};
+
+/** "Si [LP 47?] = \"oui\"" → "[LP 47?] = \"oui\"" */
+window.formatPmgApplicableConditionPart = function(composedCond) {
+  return String(composedCond || '').replace(/^Si\s+/i, '').trim();
+};
+
+/** Condition métier utilisable (ex. [LP 47?] = "oui") — ignore les gateways sans branche */
+window.isPmgMeaningfulGatewayCondition = function(composedCond, branchLabel) {
+  if (window.isPmgBypassMigrationLabel(composedCond) || window.isPmgBypassMigrationLabel(branchLabel)) return false;
+  const c = String(composedCond || '').trim();
+  if (!c) return false;
+  if (branchLabel && String(branchLabel).trim()) return true;
+  return /=\s*["']/.test(c);
+};
+
+/**
+ * Assemble le libellé Applicable dans quel cas ?
+ * - 1 activité : [LP 47?] = "oui" et l'activité "…" est réalisée !
+ * - N activités (parallèle) : [TDJ…] = "oui" et les activités "A" et "B" sont réalisées en parallèle !
+ */
+window.buildPmgApplicableCaseLabel = function(gatewayConditions, precedingActivityNames) {
+  const parts = (Array.isArray(gatewayConditions) ? gatewayConditions : [])
+    .map(c => window.formatPmgApplicableConditionPart(c))
+    .filter(Boolean);
+
+  let names = [];
+  if (Array.isArray(precedingActivityNames)) {
+    names = precedingActivityNames.map(n => String(n || '').trim()).filter(Boolean);
+  } else if (precedingActivityNames) {
+    names = [String(precedingActivityNames).trim()].filter(Boolean);
+  }
+  // Dédupliquer en conservant l'ordre
+  names = names.filter((n, i) => names.indexOf(n) === i);
+
+  if (names.length === 1) {
+    parts.push(`l'activité "${names[0]}" est réalisée !`);
+  } else if (names.length > 1) {
+    const listed = names.map(n => `"${n}"`).join(' et ');
+    parts.push(`les activités ${listed} sont réalisées en parallèle !`);
+  }
+  return parts.join(' et ');
+};
+
 window.openPmgEditTreeNodeModalFromEl = function(el) {
   const actId = el.getAttribute('data-act-id');
   if (actId && typeof window.openPmgEditTreeNodeModal === 'function') {
@@ -4584,14 +4631,14 @@ window.renderPmgStep4ManualTable = function() {
       act.realizationMode = defaultMode;
     }
     const gwConds = Array.isArray(act.gatewayConditions) ? act.gatewayConditions : [];
-    const caseVal = act.applicableCase || (gwConds.length ? gwConds.join(' ET ') : '');
+    const caseVal = act.applicableCase || window.buildPmgApplicableCaseLabel(gwConds, act.precedingActivityNames || act.precedingActivityName) || '';
     if (!act.applicableCase && caseVal) act.applicableCase = caseVal;
     const commentVal = act.comment || '';
     const rootParentName = act.rootParentName || '';
     const parentCell = rootParentName
       ? `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(rootParentName)}">🏛️ ${escHtml(rootParentName)}</span>`
       : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
-    const gwCount = gwConds.length || (caseVal.includes(' ET Si ') ? caseVal.split(' ET Si ').length : (caseVal ? 1 : 0));
+    const gwCount = gwConds.length;
     const caseHint = gwCount > 1
       ? `<span class="pmg-gateway-cond-hint" title="${escAttr(caseVal)}">${gwCount} conditions enchaînées</span>`
       : (gwCount === 1 ? '<span class="pmg-gateway-cond-hint">1 condition enchaînée</span>' : '');
@@ -4620,7 +4667,7 @@ window.renderPmgStep4ManualTable = function() {
         </td>
         <td class="pmg-step3-field-cell" style="vertical-align:middle;">
           <div class="pmg-step5-case-wrap">
-            ${window.pmgEditableField(`<textarea id="pmgCaseInput_${safeIdx}" class="pmg-step5-input pmg-step5-case-input" rows="${Math.min(Math.max(gwCount, 1), 4)}" placeholder="Ex: Si [gateway] = &quot;oui&quot; ET Si [gateway2] = &quot;non&quot;" title="${escAttr(caseVal)}" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'applicableCase', this.value)">${escHtml(caseVal)}</textarea>`)}
+            ${window.pmgEditableField(`<textarea id="pmgCaseInput_${safeIdx}" class="pmg-step5-input pmg-step5-case-input" rows="${Math.min(Math.max(gwCount, 1), 4)}" placeholder="Ex: [TDJ…] = &quot;oui&quot; et les activités &quot;A&quot; et &quot;B&quot; sont réalisées en parallèle !" title="${escAttr(caseVal)}" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'applicableCase', this.value)">${escHtml(caseVal)}</textarea>`)}
             ${caseHint}
           </div>
         </td>
@@ -5003,8 +5050,24 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
 
         const seqFlows = procEl.querySelectorAll('sequenceFlow, bpmn\\:sequenceFlow');
         const flowAdj = new Map();
-        const reverseAdj = new Map(); // target -> [{ sourceRef, composedCond, fromGateway }]
+        const reverseAdj = new Map(); // target -> [{ sourceRef, composedCond, fromGateway, gwLabel, isBypass }]
         const incomingCount = new Map();
+
+        // Index des activités + gateways parallèles du process
+        const activityNodeNames = new Map();
+        const parallelGatewayIds = new Set();
+        Array.from(procEl.getElementsByTagName('*')).forEach(el => {
+          if (el.prefix === 'zeebe' || el.prefix === 'camunda' || el.prefix === 'modeler') return;
+          const ln = (el.localName || '').toLowerCase();
+          const id = el.getAttribute('id');
+          if (!id) return;
+          if (ln === 'parallelgateway') {
+            parallelGatewayIds.add(id);
+            return;
+          }
+          if (!['usertask', 'servicetask', 'manualtask', 'scripttask', 'sendtask', 'receivetask', 'businessruletask', 'task', 'callactivity', 'subprocess'].includes(ln)) return;
+          activityNodeNames.set(id, el.getAttribute('name') || id);
+        });
 
         seqFlows.forEach(sf => {
           const targetRef = sf.getAttribute('targetRef');
@@ -5017,6 +5080,7 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           const gwLabel = fromGateway ? (gatewayNames.get(sourceRef) || '') : '';
           const isDefault = fromGateway && gatewayDefaultFlow.get(sourceRef) === sfId;
           const branchLabel = sfName || (isDefault ? 'défaut' : '') || (condText ? condText : '');
+          const isBypass = fromGateway && window.isPmgBypassMigrationLabel(gwLabel);
 
           // Libellé lisible (oui/non) sans coller le FEEL brut — réservé au fallback
           let composedCond = '';
@@ -5044,53 +5108,251 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
               sourceRef,
               composedCond,
               fromGateway,
+              gwLabel,
+              isBypass,
               branchLabel
             });
           }
         });
 
-        // Remonte UNIQUEMENT la chaîne de gateways directement en amont de l'activité.
-        // Ex diagramme : numATR=oui → Bypass=non → « Vérifier migration CSG »
-        //  → "Si [numATR renseigné?] = \"oui\" ET Si [s'agit-il d'un Bypass migration ?] = \"non\""
-        // Ne traverse PAS les tâches : évite de ramasser d'anciens Bypass=oui
-        // d'autres activités plus haut dans le processus.
-        const collectUpstreamGatewayConditions = function(nodeId) {
+        // Remonte la chaîne amont pour « Applicable dans quel cas ? » :
+        // - ignore TOUJOURS les gateways Bypass migration (mais traverse quand même)
+        // - garde les autres conditions (ex. LP 47? / TDJ byTel = oui)
+        // - join parallèle (éventuellement imbriqué) → toutes les activités frontières
+        //   des branches (activités directes OU via d'autres gateways parallèles)
+        const collectActivitiesFromParallelJoin = function(joinId, blocked) {
+          const names = [];
+          const seenNames = new Set();
+          const addName = (n) => {
+            const name = String(n || '').trim();
+            if (!name || seenNames.has(name)) return;
+            seenNames.add(name);
+            names.push(name);
+          };
+
+          // Gateway de décision nommée (LP 47?, TDJ…) — ne pas remonter derrière
+          const isNamedDecisionGateway = function(nodeId) {
+            if (!gatewayNames.has(nodeId) || parallelGatewayIds.has(nodeId)) return false;
+            const label = String(gatewayNames.get(nodeId) || '').trim();
+            if (!label || /^Gateway_/i.test(label)) return false;
+            return !window.isPmgBypassMigrationLabel(label);
+          };
+
+          const isParallelJoin = function(nodeId) {
+            return parallelGatewayIds.has(nodeId) && (reverseAdj.get(nodeId) || []).length > 1;
+          };
+
+          const exploreFrontier = function(nodeId, localBlocked) {
+            if (!nodeId || localBlocked.has(nodeId)) return;
+            const blockedNow = new Set(localBlocked);
+            blockedNow.add(nodeId);
+
+            if (activityNodeNames.has(nodeId)) {
+              addName(activityNodeNames.get(nodeId));
+              return;
+            }
+
+            if (parallelGatewayIds.has(nodeId)) {
+              const incs = reverseAdj.get(nodeId) || [];
+              if (!incs.length) return;
+              if (incs.length > 1) {
+                // JOIN imbriqué : toutes les branches sont requises
+                incs.forEach(e => exploreFrontier(e.sourceRef, blockedNow));
+              } else {
+                // SPLIT : uniquement l'amont (ne pas élargir les sorties)
+                exploreFrontier(incs[0].sourceRef, blockedNow);
+              }
+              return;
+            }
+
+            let cur = nodeId;
+            let guard = 0;
+            while (cur && guard < 100) {
+              guard++;
+              if (activityNodeNames.has(cur)) {
+                addName(activityNodeNames.get(cur));
+                return;
+              }
+              if (parallelGatewayIds.has(cur)) {
+                exploreFrontier(cur, blockedNow);
+                return;
+              }
+              if (blockedNow.has(cur) && cur !== nodeId) return;
+              blockedNow.add(cur);
+
+              const incs = reverseAdj.get(cur) || [];
+              if (!incs.length) return;
+
+              const nonBypass = incs.filter(e => !e.isBypass);
+              const pool = nonBypass.length ? nonBypass : incs;
+
+              const poolActs = pool.filter(e => activityNodeNames.has(e.sourceRef));
+              const poolPar = pool.filter(e => parallelGatewayIds.has(e.sourceRef));
+
+              if (poolActs.length || poolPar.length) {
+                poolActs.forEach(e => addName(activityNodeNames.get(e.sourceRef)));
+                poolPar.forEach(e => exploreFrontier(e.sourceRef, blockedNow));
+                // Frères XOR (merges anonymes) : explorer, mais pas les décisions nommées (LP47…)
+                pool.filter(e => !activityNodeNames.has(e.sourceRef) && !parallelGatewayIds.has(e.sourceRef))
+                  .forEach(e => {
+                    if (isNamedDecisionGateway(e.sourceRef)) return;
+                    exploreFrontier(e.sourceRef, blockedNow);
+                  });
+                return;
+              }
+
+              if (pool.length === 1) {
+                const only = pool[0].sourceRef;
+                if (isNamedDecisionGateway(only) && !isParallelJoin(only)) {
+                  // Remonter quand même via la branche déjà suivie (arc unique)
+                  cur = only;
+                  continue;
+                }
+                cur = only;
+                continue;
+              }
+
+              // Plusieurs chemins gateway-only : explorer chaque frontière
+              pool.forEach(e => {
+                if (isNamedDecisionGateway(e.sourceRef)) return;
+                exploreFrontier(e.sourceRef, blockedNow);
+              });
+              // Si tout était décision nommée, suivre le premier non-bypass
+              if (![...pool].some(e => !isNamedDecisionGateway(e.sourceRef))) {
+                cur = pool[0].sourceRef;
+                continue;
+              }
+              return;
+            }
+          };
+
+          (reverseAdj.get(joinId) || []).forEach(edge => {
+            exploreFrontier(edge.sourceRef, blocked || new Set());
+          });
+          return names;
+        };
+
+        const collectUpstreamApplicableContext = function(nodeId) {
           const conditions = [];
+          let precedingActivityNames = [];
           const visited = new Set();
           let current = nodeId;
           let guard = 0;
-          while (current && guard < 80) {
+
+          while (current && guard < 120) {
             guard++;
             if (visited.has(current)) break;
             visited.add(current);
             const incomings = reverseAdj.get(current) || [];
             if (!incomings.length) break;
 
-            // Uniquement les arcs issus d'une gateway de décision
-            const gwEdges = incomings.filter(e => e.fromGateway && e.composedCond);
+            // Gateway parallèle (join) : remonter TOUTES les activités des branches amont
+            if (parallelGatewayIds.has(current) && incomings.length > 1) {
+              precedingActivityNames = collectActivitiesFromParallelJoin(current, visited);
+              break;
+            }
 
-            if (gwEdges.length === 1) {
-              conditions.unshift(gwEdges[0].composedCond);
-              current = gwEdges[0].sourceRef;
+            const actEdges = incomings.filter(e => activityNodeNames.has(e.sourceRef));
+
+            // Plusieurs activités directes (join parallèle sans id détecté, ou merge multi-activités)
+            if (actEdges.length > 1) {
+              precedingActivityNames = actEdges
+                .map(e => activityNodeNames.get(e.sourceRef) || '')
+                .filter(Boolean);
+              break;
+            }
+
+            // Une seule activité directe
+            if (actEdges.length === 1 && (incomings.length === 1 || incomings.every(e => activityNodeNames.has(e.sourceRef) || e.isBypass || (e.fromGateway && e.composedCond)))) {
+              // Si join exclusif activité + bypass → prendre l'activité
+              if (actEdges.length === 1) {
+                precedingActivityNames = [activityNodeNames.get(actEdges[0].sourceRef) || ''].filter(Boolean);
+                break;
+              }
+            }
+            if (actEdges.length === 1 && incomings.length === 1) {
+              precedingActivityNames = [activityNodeNames.get(actEdges[0].sourceRef) || ''].filter(Boolean);
+              break;
+            }
+            if (actEdges.length === 1) {
+              // Join exclusif avec activité + autres arcs → activité précédente unique
+              precedingActivityNames = [activityNodeNames.get(actEdges[0].sourceRef) || ''].filter(Boolean);
+              break;
+            }
+
+            // Une seule entrée : suivre (gateway / parallèle split / autre)
+            let edge = null;
+            if (incomings.length === 1) {
+              edge = incomings[0];
+            } else {
+              // Join exclusif sans activité directe : une décision non-bypass, sinon bypass, sinon stop
+              const decisionEdges = incomings.filter(e => e.fromGateway && e.composedCond && !e.isBypass);
+              if (decisionEdges.length === 1) {
+                edge = decisionEdges[0];
+              } else {
+                const bypassEdges = incomings.filter(e => e.fromGateway && e.isBypass);
+                if (bypassEdges.length === 1 && decisionEdges.length === 0) {
+                  edge = bypassEdges[0];
+                } else {
+                  // Si toutes les sources mènent à des activités via branches → parallèle déguisé
+                  const branchActs = collectActivitiesFromParallelJoin(current, visited);
+                  if (branchActs.length > 1) {
+                    precedingActivityNames = branchActs;
+                    break;
+                  }
+                  if (branchActs.length === 1) {
+                    precedingActivityNames = branchActs;
+                    break;
+                  }
+                  break;
+                }
+              }
+            }
+
+            if (!edge) break;
+
+            if (activityNodeNames.has(edge.sourceRef)) {
+              precedingActivityNames = [activityNodeNames.get(edge.sourceRef) || ''].filter(Boolean);
+              break;
+            }
+
+            // Prochaine étape = gateway parallèle join → collecter toutes les branches
+            if (parallelGatewayIds.has(edge.sourceRef)) {
+              if (window.isPmgMeaningfulGatewayCondition(edge.composedCond, edge.branchLabel)) {
+                conditions.unshift(edge.composedCond);
+              }
+              const joinIncs = reverseAdj.get(edge.sourceRef) || [];
+              if (joinIncs.length > 1) {
+                precedingActivityNames = collectActivitiesFromParallelJoin(edge.sourceRef, visited);
+                break;
+              }
+              // Split parallèle (1 entrée) : continuer derrière
+              current = edge.sourceRef;
               continue;
             }
 
-            // Plusieurs branches conditionnées (join / bypass) → ne pas choisir
-            // OU plus de gateway en entrée directe → fin de la chaîne liée
-            break;
+            if (window.isPmgMeaningfulGatewayCondition(edge.composedCond, edge.branchLabel)) {
+              conditions.unshift(edge.composedCond);
+            }
+
+            current = edge.sourceRef;
           }
-          return conditions;
+
+          return { conditions, precedingActivityNames };
         };
 
         const targetToCondition = new Map();
         const targetToGatewayConditions = new Map();
+        const targetToPrecedingActivities = new Map();
         // Pré-calcule pour tous les nœuds cibles des flows
         reverseAdj.forEach((_, nodeId) => {
-          const conds = collectUpstreamGatewayConditions(nodeId);
-          if (conds.length) {
-            targetToGatewayConditions.set(nodeId, conds);
-            targetToCondition.set(nodeId, conds.join(' ET '));
+          const ctx = collectUpstreamApplicableContext(nodeId);
+          if (ctx.conditions.length) targetToGatewayConditions.set(nodeId, ctx.conditions);
+          if (ctx.precedingActivityNames && ctx.precedingActivityNames.length) {
+            targetToPrecedingActivities.set(nodeId, ctx.precedingActivityNames);
           }
+          const label = window.buildPmgApplicableCaseLabel(ctx.conditions, ctx.precedingActivityNames);
+          if (label) targetToCondition.set(nodeId, label);
         });
 
         // Compute Execution Flow Topological Order (BFS from startEvents)
@@ -5208,7 +5470,10 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
             }
 
             const gatewayConditions = targetToGatewayConditions.get(actId) || [];
-            const applicableCase = targetToCondition.get(actId) || gatewayConditions.join(' ET ') || '';
+            const precedingActivityNames = targetToPrecedingActivities.get(actId) || [];
+            const applicableCase = targetToCondition.get(actId)
+              || window.buildPmgApplicableCaseLabel(gatewayConditions, precedingActivityNames)
+              || '';
             const taskDocEl = el.querySelector(':scope > documentation, :scope > bpmn\\:documentation');
             const comment = taskDocEl ? taskDocEl.textContent.trim() : '';
             const { inputs, outputs } = extractIoForNode(el);
@@ -5266,6 +5531,8 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
               realizationMode,
               applicableCase,
               gatewayConditions,
+              precedingActivityNames,
+              precedingActivityName: precedingActivityNames[0] || '',
               comment,
               calledElement,
               embeddedParentId,
@@ -5503,6 +5770,8 @@ window.populatePmgAllStepsFromBpmnBatch = function(batchResult) {
     realizationMode: a.realizationMode,
     applicableCase: a.applicableCase,
     gatewayConditions: Array.isArray(a.gatewayConditions) ? a.gatewayConditions.slice() : [],
+    precedingActivityNames: Array.isArray(a.precedingActivityNames) ? a.precedingActivityNames.slice() : (a.precedingActivityName ? [a.precedingActivityName] : []),
+    precedingActivityName: a.precedingActivityName || (Array.isArray(a.precedingActivityNames) ? (a.precedingActivityNames[0] || '') : ''),
     comment: a.comment,
     calledElement: a.calledElement,
     targetMissing: a.targetMissing,

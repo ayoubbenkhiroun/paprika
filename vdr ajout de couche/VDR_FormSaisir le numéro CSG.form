@@ -1,0 +1,1 @@
+{"executionPlatform":"Camunda Cloud","executionPlatformVersion":"8.7.0","exporter":{"name":"Camunda Web Modeler","version":"57aa69a"},"schemaVersion":18,"id":"VDR_FORM_SaisirLeNumeroCSG","components":[{"label":"Numéro CSG","type":"textfield","layout":{"row":"Row_1pvt6sx","columns":null},"id":"Field_1ox3bcc","key":"numCSG"}],"type":"default"}

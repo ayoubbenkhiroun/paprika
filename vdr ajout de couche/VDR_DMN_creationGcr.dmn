@@ -1,0 +1,758 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" id="VDR_DMN_Gcr" name="DRD" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Web Modeler" exporterVersion="8429cc4" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.7.0">
+  <decision id="VDR_DMN_CreationGcr" name="VDR_DMN_CreationGcr">
+    <description></description>
+    <question></question>
+    <allowedAnswers></allowedAnswers>
+    <informationRequirement id="InformationRequirement_0uh4jil">
+      <requiredInput href="#demandeur" />
+    </informationRequirement>
+    <informationRequirement id="InformationRequirement_07fhoas">
+      <requiredInput href="#modeleNum" />
+    </informationRequirement>
+    <decisionTable id="DecisionTable_1y3olnj">
+      <input id="Input_1" label="Opérateur">
+        <inputExpression id="InputExpression_1" typeRef="list">
+          <text>mappedEvolutions.operateur</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_1f4nszs" label="Numéro de modèle">
+        <inputExpression id="LiteralExpression_0bcsbz5" typeRef="string">
+          <text>mappedEvolutions.modeleNum</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_0vbohwh" label="Bande fréquentielle">
+        <inputExpression id="LiteralExpression_17dsb3f" typeRef="string">
+          <text>mappedEvolutions.libelleTechnologie2</text>
+        </inputExpression>
+      </input>
+      <output id="Output_1" label="Responsable Changement" name="responsableChangement" typeRef="string" />
+      <output id="OutputClause_0kvmpc5" label="Type Changement" name="typeChangement" typeRef="string" />
+      <output id="OutputClause_0cbj3dl" label="Migration" name="migration" typeRef="string" />
+      <output id="OutputClause_1707pvg" label="Description Changement" name="descriptionChangement" typeRef="string" />
+      <output id="OutputClause_12qeplx" label="modeleNum" name="modeleNum" typeRef="string" />
+      <output id="OutputClause_0sq70ib" label="neName" name="neName" typeRef="string" />
+      <rule id="DecisionRule_1flhoew">
+        <inputEntry id="UnaryTests_0dewrvz">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_199ho5t">
+          <text>"INTGEN-00000090"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0vsza5c">
+          <text>"NR2100"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1pkmudq">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_131t4as">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0vn98p6">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1t0cebs">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1a2laq9">
+          <text>"INTGEN-00000090"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0vsyk4a">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1rr46nt">
+        <inputEntry id="UnaryTests_0ze8zjs">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_17ioggv">
+          <text>"INTGEN-00000090"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_14dec4k">
+          <text>"NR2100"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1c39wl5">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1vx1jys">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1xd99rj">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1yubc5k">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0zwfpvd">
+          <text>"INTGEN-00000090"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0m7l8qo">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_07uopxq">
+        <inputEntry id="UnaryTests_0e066zv">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0ddrqqk">
+          <text>"INTGEN-00005052"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_19iwirg">
+          <text>"NR2100"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1ok1kep">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1byhiid">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0p8v2rx">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0azl2c6">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0zcruwr">
+          <text>"INTGEN-00005052"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_00u8mcv">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1okzyq5">
+        <inputEntry id="UnaryTests_1qsygk5">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0akgz71">
+          <text>"INTGEN-00005052"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1q7939m">
+          <text>"NR2100"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1le1oje">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_067ia4p">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1lra08e">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_062bni5">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0pnrhxo">
+          <text>"INTGEN-00005052"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_18gjnag">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_09uml1q">
+        <inputEntry id="UnaryTests_016n5p1">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1nrb4jc">
+          <text>"INTGEN-00005084"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1h3ipta">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0qidcyj">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0efw54z">
+          <text>"Ambition Mobile FullBand Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1x2707d">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_12s4m1l">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1yetpqv">
+          <text>"INTGEN-00005084"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_09yzrkv">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_15g5ns6">
+        <inputEntry id="UnaryTests_1us3fz2">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0rtr42j">
+          <text>"INTGEN-00005084"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_15q9ug9">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_12gagi3">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0beynwr">
+          <text>"Ambition Mobile FullBand Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_06y017b">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_05wlbr8">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0ae47gr">
+          <text>"INTGEN-00005084"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1hx7iw8">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_18zwmp2">
+        <inputEntry id="UnaryTests_15szosr">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0681t60">
+          <text>"INTGEN-00005085"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1lneuzr">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_091394v">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_19chib0">
+          <text>"Ambition Mobile FullBand Huawei"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_009gi1g">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1pprcni">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1h900zu">
+          <text>"INTGEN-00005085"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0b8p35l">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0rzno4r">
+        <inputEntry id="UnaryTests_11m6ypp">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1trcnn3">
+          <text>"INTGEN-00005085"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1e7siqy">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1bqvzlr">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0v9ol2t">
+          <text>"Ambition Mobile FullBand Huawei"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1efc40q">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_12w7tne">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1ku0n8w">
+          <text>"INTGEN-00005085"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1akwdiw">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_08ut9oy">
+        <inputEntry id="UnaryTests_1oxdzlf">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1ixkvha">
+          <text>"INTGEN-00005143"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0w6okrp">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1btjhgt">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1xgftch">
+          <text>"Ambition Mobile FullBand Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1nb85ny">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1wu1poq">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0r3d9ti">
+          <text>"INTGEN-00005143"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_09b0gzg">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1nc05j2">
+        <inputEntry id="UnaryTests_09tpbuu">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_16q8ysh">
+          <text>"INTGEN-00005143"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1fwbysp">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0o5degq">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_16vd2wl">
+          <text>"Ambition Mobile FullBand Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0tzicl5">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0jwr87k">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0qxwr4n">
+          <text>"INTGEN-00005143"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0hm057f">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1mptm1e">
+        <inputEntry id="UnaryTests_1osptia">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_12tdp35">
+          <text>"INTGEN-00005141"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1tvoip2">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1hyqs39">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1obv3ct">
+          <text>"Ambition Mobile FullBand Huawei"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0m8o0lh">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1xsjgtw">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0kc3qz1">
+          <text>"INTGEN-00005141"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0wk2r36">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0z09htl">
+        <inputEntry id="UnaryTests_018hmr9">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1bkuu5w">
+          <text>"INTGEN-00005141"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_06oa0d7">
+          <text>"SWAP"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0w6syri">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_17lwcrl">
+          <text>"Ambition Mobile FullBand Huawei"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1y4uho7">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1ffxmwr">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0kqv6yw">
+          <text>"INTGEN-00005141"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0d45oan">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_04qk8tn">
+        <inputEntry id="UnaryTests_09tvqmw">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_07vqfzz">
+          <text>"INTGEN-00004613"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0muf0qq">
+          <text>"NR3500"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_06qxgrr">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1fqq9m6">
+          <text>"LP6.10 IMES 5G"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0yz9bd5">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1dyc3ei">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1ljvp5d">
+          <text>"INTGEN-00004613"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_16bjthj">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0pigd5m">
+        <inputEntry id="UnaryTests_08isjdi">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0hqvh4c">
+          <text>"INTGEN-00004614"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_01rgjsx">
+          <text>"NR3500"</text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_14k6e7b">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1azmq18">
+          <text>"LP6.10 IMES 5G"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0pu2trs">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_132fm0d">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1dt9emg">
+          <text>"INTGEN-00004614"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1fhnsx7">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0vqfthw">
+        <inputEntry id="UnaryTests_060fxpq">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1rqi0my">
+          <text>"INTGEN-00005083"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_19bjta6">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0v7fbce">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_00jfjkh">
+          <text>"Ambition Mobile FullBand Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0b7ygr8">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1kgvxic">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1y8wg23">
+          <text>"INTGEN-00005083"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1h8edsq">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_198t464">
+        <inputEntry id="UnaryTests_1yjz0li">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_18bnnyq">
+          <text>"INTGEN-00005086"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1btlgmq">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0fz0g0v">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1fe1dc5">
+          <text>"Ambition Mobile FullBand Huawei"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_14i06u8">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_14sl3c9">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_11k7e7s">
+          <text>"INTGEN-00005086"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_19i1w4y">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0qg0r14">
+        <inputEntry id="UnaryTests_0qjb8nh">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_04g2cqf">
+          <text>"INTGEN-00005144"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0azd9f9">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1l465bp">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0qjyu2z">
+          <text>"Ambition Mobile FullBand Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_034ya9d">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1a1gzxh">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1shulq2">
+          <text>"INTGEN-00005144"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1xbar8r">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1gghrao">
+        <inputEntry id="UnaryTests_1oz176q">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1o4fwrg">
+          <text>"INTGEN-00005142"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_09jjg5v">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_03u3rgn">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0qgk97w">
+          <text>"Ambition Mobile FullBand Huawei"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_08s41sj">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1pry58h">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0yuwufb">
+          <text>"INTGEN-00005142"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1qles7d">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_01daieh">
+        <inputEntry id="UnaryTests_01369x3">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1runppx">
+          <text>"INTGEN-00005144"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0k1czpv">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0j51mab">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1kcu5f0">
+          <text>"Ambition Mobile FullBand Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1t7ynr7">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1fimtgk">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_039x9ep">
+          <text>"INTGEN-00005144"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0ijs15h">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0qohb12">
+        <inputEntry id="UnaryTests_1wcfepr">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_09w3fkg">
+          <text>"INTGEN-00005142"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0p4u8ss">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_01wzkqb">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1mmiukr">
+          <text>"Ambition Mobile FullBand Huawei"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0fxjsx5">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0cbglpw">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1ef925w">
+          <text>"INTGEN-00005142"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0vecrtu">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_11z0xxv">
+        <inputEntry id="UnaryTests_05sufgb">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0y1aubc">
+          <text>"INTGEN-00005014"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0f91mbj">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0ld17sq">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_13kp9em">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_09d98st">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1b254q8">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0ytuxen">
+          <text>"INTGEN-00005014"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_04fl99p">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0e6kccb">
+        <inputEntry id="UnaryTests_12rz1nd">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_04zzr1r">
+          <text>"INTGEN-00005014"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1to72ig">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0c12u9g">
+          <text>"Usine de prod ALU"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0ic15fg">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0zzcsqb">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0vf66fw">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_007xvkv">
+          <text>"INTGEN-00005014"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_00ne0in">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_0p9bknl">
+        <inputEntry id="UnaryTests_1xvkvd1">
+          <text>"BYT"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_1sqehzx">
+          <text>"INTGEN-00005015"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0yfn5mt">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_01wcnsg">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0ubf3ms">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1glvydy">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0njo6yg">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1hu08y5">
+          <text>"INTGEN-00005015"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_101kkk5">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+      <rule id="DecisionRule_1rj9qog">
+        <inputEntry id="UnaryTests_0hz40oc">
+          <text>"SFR"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_01da23x">
+          <text>"INTGEN-00005015"</text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0vb4vvq">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_1e87m94">
+          <text>"Usine de prod Ericsson"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_151mdga">
+          <text>"BOLT"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0302sqk">
+          <text>"N"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0x26omh">
+          <text>mappedEvolutions.libelleTechnologie2 + " " + mappedEvolutions.operateur</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_0qid8p6">
+          <text>"INTGEN-00005015"</text>
+        </outputEntry>
+        <outputEntry id="LiteralExpression_1tsv978">
+          <text>mappedEvolutions.neName</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <inputData id="demandeur" name="Demandeur" />
+  <inputData id="modeleNum" name="Numéro de modèle" />
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram>
+      <dmndi:DMNShape dmnElementRef="VDR_DMN_CreationGcr">
+        <dc:Bounds height="80" width="180" x="240" y="110" />
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_1wlelnu" dmnElementRef="demandeur">
+        <dc:Bounds height="45" width="125" x="157" y="337" />
+      </dmndi:DMNShape>
+      <dmndi:DMNEdge id="DMNEdge_02965ph" dmnElementRef="InformationRequirement_0uh4jil">
+        <di:waypoint x="220" y="337" />
+        <di:waypoint x="300" y="210" />
+        <di:waypoint x="300" y="190" />
+      </dmndi:DMNEdge>
+      <dmndi:DMNShape id="DMNShape_0t3esdp" dmnElementRef="modeleNum">
+        <dc:Bounds height="45" width="125" x="367" y="347" />
+      </dmndi:DMNShape>
+      <dmndi:DMNEdge id="DMNEdge_16co0to" dmnElementRef="InformationRequirement_07fhoas">
+        <di:waypoint x="430" y="347" />
+        <di:waypoint x="360" y="210" />
+        <di:waypoint x="360" y="190" />
+      </dmndi:DMNEdge>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>
