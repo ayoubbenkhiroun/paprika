@@ -1683,6 +1683,56 @@ window.closePmgUserGroupMappingModal = function() {
   if (modal) modal.style.display = 'none';
 };
 
+window.PMG_STANDARD_ACTORS = ['DCI', 'CDD', 'OPS'];
+
+window.isPmgStandardActor = function(val) {
+  if (!val) return false;
+  return window.PMG_STANDARD_ACTORS.includes(String(val).trim().toUpperCase());
+};
+
+/** Préfère un acteur couleur (CDD/DCI/OPS) parmi une liste d'entités */
+window.pickPmgPreferredActor = function(actors) {
+  const list = (actors || []).map(a => String(a || '').trim()).filter(Boolean);
+  if (!list.length) return '';
+  const preferred = window.PMG_STANDARD_ACTORS
+    .map(code => list.find(a => a.toUpperCase() === code))
+    .find(Boolean);
+  return preferred || list[0];
+};
+
+/** Entités proposées : DCI/CDD/OPS + entités custom (ex. CPLM) — sans « Hérité » */
+window.getPmgActorEntityOptions = function() {
+  const activities = window.pmgTempSubprocesses || window.pmgActivities || [];
+  const set = new Set();
+
+  const addEntity = function(raw) {
+    const e = String(raw || '').trim();
+    if (!e) return;
+    if (/^non\s*défini$/i.test(e) || /^hérit/i.test(e)) return;
+    // Ignore les noms de processus trop longs (ex. "Process VDR …")
+    if (e.length > 40 || /^process\b/i.test(e)) return;
+    if (window.isPmgStandardActor(e)) set.add(e.toUpperCase());
+    else set.add(e);
+  };
+
+  window.PMG_STANDARD_ACTORS.forEach(addEntity);
+  activities.forEach(a => addEntity(a.entity));
+
+  // Inclure aussi les cibles saisies dans le mappage Groupes & Acteurs
+  Object.keys(window.pmgUserGroupMappings || {}).forEach(g => {
+    addEntity(window.pmgUserGroupMappings[g]?.targetEntity);
+  });
+
+  return Array.from(set).sort((a, b) => {
+    const ia = window.PMG_STANDARD_ACTORS.indexOf(a.toUpperCase());
+    const ib = window.PMG_STANDARD_ACTORS.indexOf(b.toUpperCase());
+    if (ia >= 0 && ib >= 0) return ia - ib;
+    if (ia >= 0) return -1;
+    if (ib >= 0) return 1;
+    return a.localeCompare(b, 'fr', { sensitivity: 'base' });
+  });
+};
+
 window.renderPmgUserGroupMappingContent = function() {
   const container = document.getElementById('pmgUserGroupMappingModalBody');
   if (!container) return;
@@ -1691,22 +1741,12 @@ window.renderPmgUserGroupMappingContent = function() {
   
   // 1. Collect distinct candidateGroups + acteurs couleurs (entity) associés
   const groupStats = new Map(); // groupName -> { count, associatedLanes, sampleActs, candidateDisplay, candidateEditable }
-  const allKnownLanes = new Set(); // acteurs couleurs DCI/CDD/OPS (+ lanes classiques)
-  const allCandidateGroups = new Set();
 
   activities.forEach(act => {
-    if (act.entity && act.entity !== 'Non défini') {
-      allKnownLanes.add(act.entity);
-    }
     const isUser = (act.type || '').toLowerCase().includes('user');
     if (isUser && act.userGroup && act.userGroup.trim().length > 0) {
       const gName = act.userGroup.trim();
       const rawSource = act.candidateGroupsRaw || act.userGroup;
-      const list = (act.candidateGroupsList && act.candidateGroupsList.length)
-        ? act.candidateGroupsList
-        : ((typeof window.parsePmgCandidateGroups === 'function') ? window.parsePmgCandidateGroups(rawSource) : gName.split(',').map(s => s.trim()).filter(Boolean));
-      list.forEach(g => allCandidateGroups.add(g));
-
       if (!groupStats.has(gName)) {
         const display = (typeof window.formatPmgCandidateGroupsDisplay === 'function')
           ? window.formatPmgCandidateGroupsDisplay(rawSource)
@@ -1722,13 +1762,12 @@ window.renderPmgUserGroupMappingContent = function() {
       const st = groupStats.get(gName);
       st.count++;
       // Acteurs issus des codes couleur BPMN (DCI / CDD / OPS)
-      if (act.entity && act.entity !== 'Non défini') st.associatedLanes.add(act.entity);
+      if (act.entity && act.entity !== 'Non défini' && window.isPmgStandardActor(act.entity)) {
+        st.associatedLanes.add(String(act.entity).trim().toUpperCase());
+      }
       if (st.sampleActs.length < 3) st.sampleActs.push(act.name);
     }
   });
-
-  const lanesList = Array.from(allKnownLanes).sort();
-  const candidateList = Array.from(allCandidateGroups).sort();
 
   if (groupStats.size === 0) {
     container.innerHTML = '<div style="padding:25px; text-align:center; color:var(--text-tertiary); font-size:12.5px;">⚠️ Aucun groupe candidat (camunda:candidateGroups / zeebe:assignmentDefinition) n\'a été trouvé sur les User Tasks du lot BPMN.</div>';
@@ -1739,14 +1778,24 @@ window.renderPmgUserGroupMappingContent = function() {
   let rowIdx = 0;
 
   groupStats.forEach((st, gName) => {
-    // Cible préremplie avec les candidateGroups (éditables), pas les acteurs couleurs
-    const currentMapped = window.pmgUserGroupMappings[gName]?.targetEntity || st.candidateEditable || '';
+    const preferredActor = window.pickPmgPreferredActor(Array.from(st.associatedLanes)) || 'CDD';
+    const stored = window.pmgUserGroupMappings[gName];
+    // Défaut = Acteur (jamais le groupe candidat) ; si custom, garder le nom saisi librement
+    let currentMapped = preferredActor;
+    if (stored?.isCustom && (stored.targetEntity || '').trim()) {
+      currentMapped = String(stored.targetEntity).trim();
+    } else if (stored?.targetEntity && window.isPmgStandardActor(stored.targetEntity)) {
+      currentMapped = String(stored.targetEntity).trim().toUpperCase();
+    } else if (stored?.targetEntity && stored.targetEntity !== st.candidateEditable) {
+      currentMapped = String(stored.targetEntity).trim();
+    }
+
     const lanesStr = Array.from(st.associatedLanes).map(l =>
       `<span style="display:inline-block; margin:1px 3px 1px 0; padding:1px 7px; border-radius:10px; font-size:10.5px; font-weight:700; background:rgba(0,156,215,0.1); color:var(--brand-primary); border:1px solid rgba(0,156,215,0.25);">${escHtml(l)}</span>`
-    ).join('') || '<span style="color:var(--text-tertiary); font-style:italic;">Aucun acteur couleur</span>';
+    ).join('') || '<span style="color:var(--text-tertiary); font-style:italic;">Aucun acteur</span>';
 
-    // Auto-persist default mapping (candidateGroups) si absent
-    if (!window.pmgUserGroupMappings[gName]) {
+    // Auto-persist défaut = Acteur si pas encore de saisie custom
+    if (!stored || (!stored.isCustom && (!stored.targetEntity || stored.targetEntity === st.candidateEditable))) {
       window.pmgUserGroupMappings[gName] = { targetEntity: currentMapped, isCustom: false };
     }
 
@@ -1769,23 +1818,14 @@ window.renderPmgUserGroupMappingContent = function() {
           <code class="pmg-ugmap-cand" title="Valeur camunda:candidateGroups / zeebe:assignmentDefinition">${escHtml(st.candidateDisplay)}</code>
         </td>
         <td>
-          <input type="text" id="pmgMappedEntity_${rowIdx}" class="pmg-ugmap-input" list="pmgKnownGroupsAndLanesList" value="${escAttr(currentMapped)}" placeholder="Ex: CDD_SUPPORT_CENTRAL, groupeCPL" onchange="savePmgSingleGroupMapping('${gNameJs}', this.value)" oninput="savePmgSingleGroupMapping('${gNameJs}', this.value)">
+          ${window.pmgEditableField(`<input type="text" id="pmgMappedEntity_${rowIdx}" class="pmg-ugmap-input" value="${escAttr(currentMapped)}" placeholder="Ex: CDD, OPS, Direction Métier..." readonly onblur="lockPmgEditableField(this)" onchange="savePmgSingleGroupMapping('${gNameJs}', this.value)" oninput="savePmgSingleGroupMapping('${gNameJs}', this.value)">`)}
         </td>
       </tr>
     `;
     rowIdx++;
   });
 
-  const datalistOpts = [
-    ...candidateList.map(g => `<option value="${escAttr(g)}">`),
-    ...lanesList.map(l => `<option value="${escAttr(l)}">`)
-  ].join('');
-
   container.innerHTML = `
-    <datalist id="pmgKnownGroupsAndLanesList">
-      ${datalistOpts}
-    </datalist>
-
     <div class="pmg-ugmap-table-wrap">
       <table class="pmg-ugmap-table">
         <colgroup>
@@ -1801,7 +1841,7 @@ window.renderPmgUserGroupMappingContent = function() {
             <th class="pmg-ugmap-center">Occurrences</th>
             <th>Acteurs</th>
             <th>Groupes candidats</th>
-            <th>Entité / Cible</th>
+            <th>Entité / Cible (Acteur)</th>
           </tr>
         </thead>
         <tbody>
@@ -1812,12 +1852,48 @@ window.renderPmgUserGroupMappingContent = function() {
   `;
 };
 
+window.syncPmgMappedEntityToActivities = function(groupName, entityVal) {
+  if (!groupName) return;
+  let newEntity = String(entityVal || '').trim();
+  if (window.isPmgStandardActor(newEntity)) newEntity = newEntity.toUpperCase();
+  if (!newEntity) return;
+
+  const applyToList = function(list) {
+    if (!Array.isArray(list)) return 0;
+    let n = 0;
+    list.forEach((act, idx) => {
+      const isUser = (act.type || '').toLowerCase().includes('user');
+      if (!isUser || (act.userGroup || '').trim() !== groupName) return;
+      act.entity = newEntity;
+      act.isInheritedEntity = false;
+      act.entityFromColor = window.isPmgStandardActor(newEntity);
+      const entityInput = document.getElementById(`pmgEntityInput_${idx}`);
+      if (entityInput) entityInput.value = newEntity;
+      n++;
+    });
+    return n;
+  };
+
+  applyToList(window.pmgTempSubprocesses);
+  if (window.pmgActivities && window.pmgActivities !== window.pmgTempSubprocesses) {
+    applyToList(window.pmgActivities);
+  }
+};
+
 window.savePmgSingleGroupMapping = function(groupName, entityVal) {
   if (!groupName) return;
+  let actor = (entityVal || '').trim();
+  // Normalise uniquement les acteurs standards (CDD/DCI/OPS)
+  if (window.isPmgStandardActor(actor)) actor = actor.toUpperCase();
   window.pmgUserGroupMappings[groupName] = {
-    targetEntity: (entityVal || '').trim(),
+    targetEntity: actor,
     isCustom: true
   };
+  // Sync live → Acteur / Entité (étape 3) + filtre select
+  window.syncPmgMappedEntityToActivities(groupName, actor);
+  if (typeof window.refreshPmgStep3EntityFilterOptions === 'function') {
+    window.refreshPmgStep3EntityFilterOptions();
+  }
 };
 
 window.applyPmgUserGroupMappings = function() {
@@ -1830,34 +1906,43 @@ window.applyPmgUserGroupMappings = function() {
       const gName = act.userGroup.trim();
       const mapping = window.pmgUserGroupMappings[gName];
       if (mapping && mapping.targetEntity) {
-        const newGroups = mapping.targetEntity.trim();
-        // Met à jour les candidateGroups éditables (valeur cible)
-        act.userGroup = newGroups;
-        act.candidateGroupsRaw = newGroups;
-        act.candidateGroupsList = (typeof window.parsePmgCandidateGroups === 'function')
-          ? window.parsePmgCandidateGroups(newGroups)
-          : newGroups.split(',').map(s => s.trim()).filter(Boolean);
-        // Conserve l'acteur couleur (DCI/CDD/OPS) dans entity s'il est déjà présent ;
-        // sinon, utilise la cible comme entité de rattachement.
-        if (!act.entity || act.entity === 'Non défini') {
-          act.entity = newGroups;
-        }
-        const groupInput = document.getElementById(`pmgGroupInput_${idx}`);
-        if (groupInput) groupInput.value = newGroups;
+        let newEntity = String(mapping.targetEntity).trim();
+        if (window.isPmgStandardActor(newEntity)) newEntity = newEntity.toUpperCase();
+        // Met à jour Acteur / Entité (étape 3) — conserve les groupes candidats
+        act.entity = newEntity;
+        act.isInheritedEntity = false;
+        act.entityFromColor = window.isPmgStandardActor(newEntity);
+
         const entityInput = document.getElementById(`pmgEntityInput_${idx}`);
-        if (entityInput && (!act.entity || act.entity === newGroups)) {
-          entityInput.value = act.entity;
-        }
+        if (entityInput) entityInput.value = newEntity;
         updatedCount++;
       }
     }
   });
 
+  // Sync aussi pmgActivities si distinct
+  if (window.pmgActivities && window.pmgActivities !== activities) {
+    window.pmgActivities.forEach(act => {
+      const isUser = (act.type || '').toLowerCase().includes('user');
+      if (!isUser || !act.userGroup) return;
+      const mapping = window.pmgUserGroupMappings[act.userGroup.trim()];
+      if (mapping && mapping.targetEntity) {
+        let newEntity = String(mapping.targetEntity).trim();
+        if (window.isPmgStandardActor(newEntity)) newEntity = newEntity.toUpperCase();
+        act.entity = newEntity;
+        act.isInheritedEntity = false;
+      }
+    });
+  }
+
+  if (typeof window.refreshPmgStep3EntityFilterOptions === 'function') {
+    window.refreshPmgStep3EntityFilterOptions();
+  }
   if (window.renderPmgStep2ManualTable) window.renderPmgStep2ManualTable();
   if (window.renderPmgStep3ManualTable) window.renderPmgStep3ManualTable();
   if (window.renderPmgStep3Kpis) window.renderPmgStep3Kpis();
   window.closePmgUserGroupMappingModal();
-  alert(`🚀 Mappage appliqué avec succès : ${updatedCount} tâche(s) utilisateur(s) mise(s) à jour (candidateGroups). Les acteurs couleurs (DCI/CDD/OPS) sont conservés.`);
+  alert(`📌 Mappage appliqué avec succès : ${updatedCount} tâche(s) utilisateur(s) mise(s) à jour (Acteur / Entité). Les groupes candidats sont conservés.`);
 };
 
 
@@ -1871,17 +1956,729 @@ window.pmgColFilters = {
   step5: { act: '', parent: '', mode: 'all', case: '', comment: '', preset: null }
 };
 
-window.syncPmgStepActivityField = function(actId, field, val) {
-  const list = window.pmgTempSubprocesses || window.pmgActivities || [];
-  const act = list.find(a => a.id === actId);
-  if (act) {
-    if (field === 'inputs' || field === 'outputs') {
-      act[field] = typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : (val || []);
+/**
+ * Enveloppe un champ en mode consultation + icône crayon pour éditer.
+ * Usage: pmgEditableField(`<input ...>`) ou pmgEditableField(`<textarea>...</textarea>`)
+ */
+window.pmgEditableField = function(controlHtml) {
+  return `<div class="pmg-editable-wrap">
+    ${controlHtml}
+    <button type="button" class="pmg-edit-toggle" onclick="event.preventDefault(); event.stopPropagation(); togglePmgEditableField(this);" title="Modifier ce champ" aria-label="Modifier ce champ">✏️</button>
+  </div>`;
+};
+
+window.togglePmgEditableField = function(btn) {
+  const wrap = btn && btn.closest ? btn.closest('.pmg-editable-wrap') : null;
+  if (!wrap) return;
+  const field = wrap.querySelector('input, textarea, select');
+  if (!field) return;
+
+  if (wrap.classList.contains('is-editing')) {
+    window.lockPmgEditableField(field, true);
+    return;
+  }
+
+  wrap.classList.add('is-editing');
+  field.readOnly = false;
+  field.removeAttribute('readonly');
+  if (field.tagName === 'SELECT') {
+    field.disabled = false;
+    field.removeAttribute('disabled');
+  }
+  btn.classList.add('is-active');
+  btn.title = 'Verrouiller le champ';
+  btn.setAttribute('aria-label', 'Verrouiller le champ');
+  try {
+    field.focus();
+    if (field.tagName === 'INPUT' && typeof field.select === 'function') field.select();
+  } catch (_) { /* ignore */ }
+};
+
+window.lockPmgEditableField = function(field, force) {
+  if (!field) return;
+  const wrap = field.closest('.pmg-editable-wrap');
+  if (!wrap) return;
+
+  const doLock = function() {
+    if (!force && wrap.contains(document.activeElement)) return;
+    wrap.classList.remove('is-editing');
+    if (field.tagName === 'SELECT') {
+      field.disabled = true;
+      field.setAttribute('disabled', 'disabled');
     } else {
-      act[field] = val;
+      field.readOnly = true;
+      field.setAttribute('readonly', 'readonly');
     }
-    if (field === 'entity') {
-      act.isInheritedEntity = false;
+    const btn = wrap.querySelector('.pmg-edit-toggle');
+    if (btn) {
+      btn.classList.remove('is-active');
+      btn.title = 'Modifier ce champ';
+      btn.setAttribute('aria-label', 'Modifier ce champ');
+    }
+  };
+
+  if (force) doLock();
+  else setTimeout(doLock, 120);
+};
+
+window.normalizePmgEditableValue = function(field, val) {
+  if (field === 'inputs' || field === 'outputs') {
+    if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
+    return String(val || '').split(',').map(s => s.trim()).filter(Boolean);
+  }
+  let v = String(val ?? '').trim();
+  if (field === 'userGroup' && /^—?\s*N\/A$/i.test(v)) v = '';
+  if (field === 'userGroup' && typeof window.cleanPmgUserGroupName === 'function') {
+    v = window.cleanPmgUserGroupName(v);
+  }
+  return v;
+};
+
+/** Met à jour un champ activité (étapes + matrice + grille) — toujours éditable */
+window.syncPmgStepActivityField = function(actId, field, val) {
+  const normalized = window.normalizePmgEditableValue(field, val);
+  const lists = [window.pmgTempSubprocesses, window.pmgActivities].filter(Array.isArray);
+  lists.forEach(list => {
+    list.forEach(act => {
+      if (!act) return;
+      if (act.id !== actId && act.uniqueId !== actId) return;
+      act[field] = normalized;
+      if (field === 'entity') act.isInheritedEntity = false;
+      if (field === 'userGroup') act.userGroupWarning = !(act.userGroup || '').trim();
+    });
+  });
+  if (typeof window.savePmgStateToLocalStorage === 'function') {
+    try { window.savePmgStateToLocalStorage(); } catch (_) { /* ignore */ }
+  }
+};
+
+// ---------- Combobox Processus père (liste + recherche dynamique) — étapes 3/4/5 ----------
+window.getPmgRootParentOptions = function() {
+  const activities = window.pmgTempSubprocesses || window.pmgActivities || [];
+  // Uniquement les vrais processus père (racines effectives), pas les sous-processus orphelins
+  const roots = (window.pmgRootProcesses && window.pmgRootProcesses.length)
+    ? window.pmgRootProcesses
+    : ((window.pmgBatchResult && window.pmgBatchResult.rootProcesses) || []);
+
+  if (roots.length > 0) {
+    return roots.map(r => {
+      const name = (r.name || r.id || '').trim();
+      const id = r.id || '';
+      const count = activities.filter(a =>
+        (id && a.rootParentId === id) ||
+        ((a.rootParentName || '').trim() === name)
+      ).length;
+      return { name, count, id };
+    }).filter(o => o.name)
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+  }
+
+  // Fallback si pas de batch : noms racine distincts hors orphelins évidents
+  const map = new Map();
+  activities.forEach(a => {
+    const name = (a.rootParentName || '').trim();
+    if (!name) return;
+    map.set(name, (map.get(name) || 0) + 1);
+  });
+  return Array.from(map.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+};
+
+window._pmgParentComboState = window._pmgParentComboState || { openStep: null, activeIndex: -1 };
+
+window._pmgParentComboIds = function(step) {
+  return {
+    input: `pmgFilterStep${step}Parent`,
+    list: `pmgFilterStep${step}ParentList`,
+    combo: null
+  };
+};
+
+window._pmgParentComboTriggerFilter = function(step) {
+  if (step === 3 && typeof window.onPmgStep3FilterChange === 'function') window.onPmgStep3FilterChange();
+  else if (step === 4 && typeof window.onPmgStep4FilterChange === 'function') window.onPmgStep4FilterChange();
+  else if (step === 5 && typeof window.onPmgStep5FilterChange === 'function') window.onPmgStep5FilterChange();
+};
+
+window.renderPmgParentComboList = function(step, filterText) {
+  const list = document.getElementById(`pmgFilterStep${step}ParentList`);
+  if (!list) return;
+  const q = String(filterText || '').trim().toLowerCase();
+  const options = window.getPmgRootParentOptions();
+  const filtered = q
+    ? options.filter(o => o.name.toLowerCase().includes(q))
+    : options;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="pmg-parent-combo-empty">${options.length ? 'Aucun processus père ne correspond' : 'Aucun processus père détecté'}</div>`;
+    return;
+  }
+
+  const totalActs = options.reduce((sum, o) => sum + (o.count || 0), 0);
+  let html = `<button type="button" class="pmg-parent-combo-item pmg-parent-combo-item--all" role="option" data-value="" onclick="selectPmgParentCombo(${step}, '')">
+      <span>Tous les processus père</span>
+      <span class="pmg-parent-combo-count">${totalActs}</span>
+    </button>`;
+
+  filtered.forEach((o, idx) => {
+    html += `<button type="button" class="pmg-parent-combo-item" role="option" data-value="${escAttr(o.name)}" data-idx="${idx}" onclick="selectPmgParentCombo(${step}, this.getAttribute('data-value'))">
+        <span title="${escAttr(o.name)}">🏛️ ${escHtml(o.name)}</span>
+        <span class="pmg-parent-combo-count">${o.count}</span>
+      </button>`;
+  });
+  list.innerHTML = html;
+};
+
+window.openPmgParentCombo = function(step) {
+  // Fermer les autres
+  [3, 4, 5].forEach(s => {
+    if (s !== step) window.closePmgParentCombo(s);
+  });
+  if (typeof window.closePmgGroupCombo === 'function') window.closePmgGroupCombo();
+  if (typeof window.closePmgIoCombo === 'function') window.closePmgIoCombo();
+  const input = document.getElementById(`pmgFilterStep${step}Parent`);
+  const list = document.getElementById(`pmgFilterStep${step}ParentList`);
+  if (!input || !list) return;
+  window.renderPmgParentComboList(step, input.value);
+  list.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+  window._pmgParentComboState.openStep = step;
+  window._pmgParentComboState.activeIndex = -1;
+};
+
+window.closePmgParentCombo = function(step) {
+  const input = document.getElementById(`pmgFilterStep${step}Parent`);
+  const list = document.getElementById(`pmgFilterStep${step}ParentList`);
+  if (list) list.hidden = true;
+  if (input) input.setAttribute('aria-expanded', 'false');
+  if (window._pmgParentComboState.openStep === step) {
+    window._pmgParentComboState.openStep = null;
+    window._pmgParentComboState.activeIndex = -1;
+  }
+};
+
+window.togglePmgParentCombo = function(step) {
+  const list = document.getElementById(`pmgFilterStep${step}ParentList`);
+  if (!list) return;
+  if (list.hidden) {
+    window.openPmgParentCombo(step);
+    const input = document.getElementById(`pmgFilterStep${step}Parent`);
+    if (input) input.focus();
+  } else {
+    window.closePmgParentCombo(step);
+  }
+};
+
+window.onPmgParentComboInput = function(step) {
+  const input = document.getElementById(`pmgFilterStep${step}Parent`);
+  window.openPmgParentCombo(step);
+  window.renderPmgParentComboList(step, input ? input.value : '');
+  window._pmgParentComboTriggerFilter(step);
+};
+
+window.selectPmgParentCombo = function(step, value) {
+  const input = document.getElementById(`pmgFilterStep${step}Parent`);
+  if (input) {
+    input.value = value || '';
+    input.classList.toggle('has-filter', Boolean(value));
+  }
+  window.closePmgParentCombo(step);
+  window._pmgParentComboTriggerFilter(step);
+};
+
+window.onPmgParentComboKeydown = function(event, step) {
+  const list = document.getElementById(`pmgFilterStep${step}ParentList`);
+  if (!list) return;
+  const items = Array.from(list.querySelectorAll('.pmg-parent-combo-item'));
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    window.closePmgParentCombo(step);
+    return;
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (list.hidden) window.openPmgParentCombo(step);
+    if (!items.length) return;
+    let idx = window._pmgParentComboState.activeIndex;
+    if (event.key === 'ArrowDown') idx = Math.min(items.length - 1, idx + 1);
+    else idx = Math.max(0, idx <= 0 ? 0 : idx - 1);
+    window._pmgParentComboState.activeIndex = idx;
+    items.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+    items[idx].scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  if (event.key === 'Enter') {
+    const idx = window._pmgParentComboState.activeIndex;
+    if (!list.hidden && idx >= 0 && items[idx]) {
+      event.preventDefault();
+      const val = items[idx].getAttribute('data-value') || '';
+      window.selectPmgParentCombo(step, val);
+    } else {
+      window.closePmgParentCombo(step);
+      window._pmgParentComboTriggerFilter(step);
+    }
+  }
+};
+
+// ---------- Combobox Groupes candidats (liste + recherche) — étape 3 ----------
+window.getPmgCandidateGroupOptions = function() {
+  const activities = window.pmgTempSubprocesses || window.pmgActivities || [];
+  const map = new Map();
+  let withGroup = 0;
+  let noGroup = 0;
+  let notApplicable = 0;
+
+  activities.forEach(a => {
+    const isUser = (a.type || '').toLowerCase().includes('user');
+    const g = (typeof window.cleanPmgUserGroupName === 'function')
+      ? window.cleanPmgUserGroupName(a.userGroup)
+      : String(a.userGroup || '').trim();
+    if (!isUser) {
+      notApplicable++;
+      return;
+    }
+    if (g) {
+      withGroup++;
+      map.set(g, (map.get(g) || 0) + 1);
+    } else {
+      noGroup++;
+    }
+  });
+
+  return {
+    groups: Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })),
+    withGroup,
+    noGroup,
+    notApplicable,
+    total: activities.length
+  };
+};
+
+window._pmgGroupComboState = window._pmgGroupComboState || { open: false, activeIndex: -1 };
+
+window.renderPmgGroupComboList = function(filterText) {
+  const list = document.getElementById('pmgFilterStep3GroupList');
+  if (!list) return;
+  const q = String(filterText || '').trim().toLowerCase();
+  const data = window.getPmgCandidateGroupOptions();
+  const filteredGroups = q
+    ? data.groups.filter(g => g.name.toLowerCase().includes(q))
+    : data.groups;
+
+  const statusItems = [
+    { value: '', status: 'all', label: 'Tous les groupes', count: data.total, cls: 'pmg-parent-combo-item--all' },
+    { value: '__with_group__', status: 'with_group', label: '👤 Avec groupe', count: data.withGroup, cls: '' },
+    { value: '__no_group__', status: 'no_group', label: '⚠️ Sans groupe', count: data.noGroup, cls: '' },
+    { value: '__na__', status: 'not_applicable', label: '— N/A', count: data.notApplicable, cls: '' }
+  ];
+
+  let html = '';
+  statusItems.forEach((it, idx) => {
+    // En recherche texte, ne garder "Tous" + groupes matchés (pas les statuts sauf si label match)
+    if (q && it.status !== 'all' && !it.label.toLowerCase().includes(q)) return;
+    html += `<button type="button" class="pmg-parent-combo-item ${it.cls}" role="option" data-value="${escAttr(it.value)}" data-status="${escAttr(it.status)}" data-idx="${idx}" onclick="selectPmgGroupCombo(this.getAttribute('data-value'), this.getAttribute('data-status'), this.textContent)">
+        <span>${escHtml(it.label)}</span>
+        <span class="pmg-parent-combo-count">${it.count}</span>
+      </button>`;
+  });
+
+  if (!filteredGroups.length && q) {
+    html += `<div class="pmg-parent-combo-empty">Aucun groupe ne correspond</div>`;
+  } else {
+    filteredGroups.forEach((g, idx) => {
+      html += `<button type="button" class="pmg-parent-combo-item" role="option" data-value="${escAttr(g.name)}" data-status="all" data-idx="${idx}" onclick="selectPmgGroupCombo(this.getAttribute('data-value'), 'all', '')">
+          <span title="${escAttr(g.name)}">👤 ${escHtml(g.name)}</span>
+          <span class="pmg-parent-combo-count">${g.count}</span>
+        </button>`;
+    });
+  }
+
+  list.innerHTML = html;
+};
+
+window.openPmgGroupCombo = function() {
+  [3, 4, 5].forEach(s => {
+    if (typeof window.closePmgParentCombo === 'function') window.closePmgParentCombo(s);
+  });
+  if (typeof window.closePmgIoCombo === 'function') window.closePmgIoCombo();
+  const input = document.getElementById('pmgFilterStep3GroupText');
+  const list = document.getElementById('pmgFilterStep3GroupList');
+  const statusEl = document.getElementById('pmgFilterStep3GroupStatus');
+  if (!input || !list) return;
+  // Si un statut (Avec/Sans/N/A) est actif, afficher la liste complète (pas le libellé comme filtre)
+  const status = statusEl?.value || 'all';
+  window.renderPmgGroupComboList(status !== 'all' ? '' : (input.value || ''));
+  list.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+  window._pmgGroupComboState.open = true;
+  window._pmgGroupComboState.activeIndex = -1;
+};
+
+window.closePmgGroupCombo = function() {
+  const input = document.getElementById('pmgFilterStep3GroupText');
+  const list = document.getElementById('pmgFilterStep3GroupList');
+  if (list) list.hidden = true;
+  if (input) input.setAttribute('aria-expanded', 'false');
+  window._pmgGroupComboState.open = false;
+  window._pmgGroupComboState.activeIndex = -1;
+};
+
+window.togglePmgGroupCombo = function() {
+  const list = document.getElementById('pmgFilterStep3GroupList');
+  if (!list) return;
+  if (list.hidden) {
+    window.openPmgGroupCombo();
+    const input = document.getElementById('pmgFilterStep3GroupText');
+    if (input) input.focus();
+  } else {
+    window.closePmgGroupCombo();
+  }
+};
+
+window.onPmgGroupComboInput = function() {
+  const input = document.getElementById('pmgFilterStep3GroupText');
+  const statusEl = document.getElementById('pmgFilterStep3GroupStatus');
+  // Saisie libre = recherche dynamique sur le nom du groupe
+  if (statusEl) statusEl.value = 'all';
+  window.openPmgGroupCombo();
+  window.renderPmgGroupComboList(input ? input.value : '');
+  if (typeof window.onPmgStep3FilterChange === 'function') window.onPmgStep3FilterChange();
+};
+
+window.selectPmgGroupCombo = function(value, status, labelText) {
+  const input = document.getElementById('pmgFilterStep3GroupText');
+  const statusEl = document.getElementById('pmgFilterStep3GroupStatus');
+  const st = status || 'all';
+  if (statusEl) statusEl.value = st;
+
+  if (input) {
+    if (st === 'all' && !value) {
+      input.value = '';
+    } else if (st === 'with_group') {
+      input.value = '👤 Avec groupe';
+    } else if (st === 'no_group') {
+      input.value = '⚠️ Sans groupe';
+    } else if (st === 'not_applicable') {
+      input.value = '— N/A';
+    } else {
+      input.value = value || '';
+    }
+    input.classList.toggle('has-filter', Boolean(input.value));
+  }
+
+  // Pour les statuts spéciaux, ne pas filtrer aussi par texte du libellé
+  if (st !== 'all' && input) {
+    // groupText vidé dans onPmgStep3FilterChange si status != all — géré ci-dessous via flag
+    input.dataset.statusFilter = st;
+  } else if (input) {
+    delete input.dataset.statusFilter;
+  }
+
+  window.closePmgGroupCombo();
+  if (typeof window.onPmgStep3FilterChange === 'function') window.onPmgStep3FilterChange();
+};
+
+window.onPmgGroupComboKeydown = function(event) {
+  const list = document.getElementById('pmgFilterStep3GroupList');
+  if (!list) return;
+  const items = Array.from(list.querySelectorAll('.pmg-parent-combo-item'));
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    window.closePmgGroupCombo();
+    return;
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (list.hidden) window.openPmgGroupCombo();
+    if (!items.length) return;
+    let idx = window._pmgGroupComboState.activeIndex;
+    if (event.key === 'ArrowDown') idx = Math.min(items.length - 1, idx + 1);
+    else idx = Math.max(0, idx <= 0 ? 0 : idx - 1);
+    window._pmgGroupComboState.activeIndex = idx;
+    items.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+    items[idx].scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  if (event.key === 'Enter') {
+    const idx = window._pmgGroupComboState.activeIndex;
+    if (!list.hidden && idx >= 0 && items[idx]) {
+      event.preventDefault();
+      const val = items[idx].getAttribute('data-value') || '';
+      const st = items[idx].getAttribute('data-status') || 'all';
+      window.selectPmgGroupCombo(val, st, '');
+    } else {
+      window.closePmgGroupCombo();
+      if (typeof window.onPmgStep3FilterChange === 'function') window.onPmgStep3FilterChange();
+    }
+  }
+};
+
+// ---------- Combobox Variables In/Out (liste + recherche) — étape 4 ----------
+window._pmgIoComboState = window._pmgIoComboState || { openKind: null, activeIndex: -1 };
+
+window._pmgIoComboIds = function(kind) {
+  const k = kind === 'out' ? 'out' : 'in';
+  const Cap = k === 'out' ? 'Out' : 'In';
+  return {
+    kind: k,
+    statusId: `pmgFilterStep4${Cap}Status`,
+    textId: `pmgFilterStep4${Cap}Text`,
+    listId: `pmgFilterStep4${Cap}List`,
+    statusKey: `${k}Status`,
+    textKey: `${k}Text`,
+    fieldLabel: k === 'out' ? 'sortie' : 'entrée',
+    icon: k === 'out' ? '📤' : '📥'
+  };
+};
+
+window.getPmgIoVariableOptions = function(kind) {
+  const ids = window._pmgIoComboIds(kind);
+  const activities = window.pmgTempSubprocesses || window.pmgActivities || [];
+  const map = new Map();
+  let withVars = 0;
+  let withoutVars = 0;
+
+  activities.forEach(a => {
+    const arr = (ids.kind === 'out' ? a.outputs : a.inputs) || [];
+    const cleaned = arr.map(v => String(v || '').trim()).filter(Boolean);
+    if (cleaned.length) {
+      withVars++;
+      cleaned.forEach(name => map.set(name, (map.get(name) || 0) + 1));
+    } else {
+      withoutVars++;
+    }
+  });
+
+  return {
+    vars: Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })),
+    withVars,
+    withoutVars,
+    total: activities.length
+  };
+};
+
+window.renderPmgIoComboList = function(kind, filterText) {
+  const ids = window._pmgIoComboIds(kind);
+  const list = document.getElementById(ids.listId);
+  if (!list) return;
+  const q = String(filterText || '').trim().toLowerCase();
+  const data = window.getPmgIoVariableOptions(ids.kind);
+  const filtered = q
+    ? data.vars.filter(v => v.name.toLowerCase().includes(q))
+    : data.vars;
+
+  const statusItems = [
+    { value: '', status: 'all', label: `Toutes les variables ${ids.fieldLabel}`, count: data.total, cls: 'pmg-parent-combo-item--all' },
+    { value: '__has__', status: 'has', label: `${ids.icon} Avec variable`, count: data.withVars, cls: '' },
+    { value: '__none__', status: 'none', label: `⚠️ Sans variable`, count: data.withoutVars, cls: '' }
+  ];
+
+  let html = '';
+  statusItems.forEach((it) => {
+    if (q && it.status !== 'all' && !it.label.toLowerCase().includes(q)) return;
+    html += `<button type="button" class="pmg-parent-combo-item ${it.cls}" role="option" data-value="${escAttr(it.value)}" data-status="${escAttr(it.status)}" onclick="selectPmgIoCombo('${ids.kind}', this.getAttribute('data-value'), this.getAttribute('data-status'))">
+        <span>${escHtml(it.label)}</span>
+        <span class="pmg-parent-combo-count">${it.count}</span>
+      </button>`;
+  });
+
+  if (!filtered.length && q) {
+    html += `<div class="pmg-parent-combo-empty">Aucune variable ne correspond</div>`;
+  } else {
+    filtered.forEach((v) => {
+      html += `<button type="button" class="pmg-parent-combo-item" role="option" data-value="${escAttr(v.name)}" data-status="all" onclick="selectPmgIoCombo('${ids.kind}', this.getAttribute('data-value'), 'all')">
+          <span title="${escAttr(v.name)}">${ids.icon} ${escHtml(v.name)}</span>
+          <span class="pmg-parent-combo-count">${v.count}</span>
+        </button>`;
+    });
+  }
+
+  list.innerHTML = html;
+};
+
+window.closePmgIoCombo = function(kind) {
+  const closeOne = (k) => {
+    const ids = window._pmgIoComboIds(k);
+    const input = document.getElementById(ids.textId);
+    const list = document.getElementById(ids.listId);
+    if (list) list.hidden = true;
+    if (input) input.setAttribute('aria-expanded', 'false');
+    if (window._pmgIoComboState.openKind === k) {
+      window._pmgIoComboState.openKind = null;
+      window._pmgIoComboState.activeIndex = -1;
+    }
+  };
+  if (kind) closeOne(kind);
+  else { closeOne('in'); closeOne('out'); }
+};
+
+window.openPmgIoCombo = function(kind) {
+  const ids = window._pmgIoComboIds(kind);
+  [3, 4, 5].forEach(s => {
+    if (typeof window.closePmgParentCombo === 'function') window.closePmgParentCombo(s);
+  });
+  if (typeof window.closePmgGroupCombo === 'function') window.closePmgGroupCombo();
+  window.closePmgIoCombo(ids.kind === 'in' ? 'out' : 'in');
+
+  const input = document.getElementById(ids.textId);
+  const list = document.getElementById(ids.listId);
+  const statusEl = document.getElementById(ids.statusId);
+  if (!input || !list) return;
+  const status = statusEl?.value || 'all';
+  window.renderPmgIoComboList(ids.kind, status !== 'all' ? '' : (input.value || ''));
+  list.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+  window._pmgIoComboState.openKind = ids.kind;
+  window._pmgIoComboState.activeIndex = -1;
+};
+
+window.togglePmgIoCombo = function(kind) {
+  const ids = window._pmgIoComboIds(kind);
+  const list = document.getElementById(ids.listId);
+  if (!list) return;
+  if (list.hidden) {
+    window.openPmgIoCombo(ids.kind);
+    const input = document.getElementById(ids.textId);
+    if (input) input.focus();
+  } else {
+    window.closePmgIoCombo(ids.kind);
+  }
+};
+
+window.onPmgIoComboInput = function(kind) {
+  const ids = window._pmgIoComboIds(kind);
+  const input = document.getElementById(ids.textId);
+  const statusEl = document.getElementById(ids.statusId);
+  if (statusEl) statusEl.value = 'all';
+  if (input) delete input.dataset.statusFilter;
+  window.openPmgIoCombo(ids.kind);
+  window.renderPmgIoComboList(ids.kind, input ? input.value : '');
+  if (typeof window.onPmgStep4FilterChange === 'function') window.onPmgStep4FilterChange();
+};
+
+window.selectPmgIoCombo = function(kind, value, status) {
+  const ids = window._pmgIoComboIds(kind);
+  const input = document.getElementById(ids.textId);
+  const statusEl = document.getElementById(ids.statusId);
+  const st = status || 'all';
+  if (statusEl) statusEl.value = st;
+
+  if (input) {
+    if (st === 'all' && !value) {
+      input.value = '';
+    } else if (st === 'has') {
+      input.value = `${ids.icon} Avec variable`;
+    } else if (st === 'none') {
+      input.value = '⚠️ Sans variable';
+    } else {
+      input.value = value || '';
+    }
+    input.classList.toggle('has-filter', Boolean(input.value));
+    if (st !== 'all') input.dataset.statusFilter = st;
+    else delete input.dataset.statusFilter;
+  }
+
+  window.closePmgIoCombo(ids.kind);
+  if (typeof window.onPmgStep4FilterChange === 'function') window.onPmgStep4FilterChange();
+};
+
+window.onPmgIoComboKeydown = function(event, kind) {
+  const ids = window._pmgIoComboIds(kind);
+  const list = document.getElementById(ids.listId);
+  if (!list) return;
+  const items = Array.from(list.querySelectorAll('.pmg-parent-combo-item'));
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    window.closePmgIoCombo(ids.kind);
+    return;
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (list.hidden) window.openPmgIoCombo(ids.kind);
+    if (!items.length) return;
+    let idx = window._pmgIoComboState.activeIndex;
+    if (event.key === 'ArrowDown') idx = Math.min(items.length - 1, idx + 1);
+    else idx = Math.max(0, idx <= 0 ? 0 : idx - 1);
+    window._pmgIoComboState.activeIndex = idx;
+    items.forEach((el, i) => el.classList.toggle('is-active', i === idx));
+    items[idx].scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  if (event.key === 'Enter') {
+    const idx = window._pmgIoComboState.activeIndex;
+    if (!list.hidden && idx >= 0 && items[idx]) {
+      event.preventDefault();
+      const val = items[idx].getAttribute('data-value') || '';
+      const st = items[idx].getAttribute('data-status') || 'all';
+      window.selectPmgIoCombo(ids.kind, val, st);
+    } else {
+      window.closePmgIoCombo(ids.kind);
+      if (typeof window.onPmgStep4FilterChange === 'function') window.onPmgStep4FilterChange();
+    }
+  }
+};
+
+// Fermer les listes au clic extérieur
+if (!window.__pmgParentComboDocBound) {
+  window.__pmgParentComboDocBound = true;
+  document.addEventListener('click', function(e) {
+    const t = e.target;
+    if (t && t.closest && t.closest('.pmg-parent-combo')) return;
+    [3, 4, 5].forEach(s => window.closePmgParentCombo(s));
+    if (typeof window.closePmgGroupCombo === 'function') window.closePmgGroupCombo();
+    if (typeof window.closePmgIoCombo === 'function') window.closePmgIoCombo();
+  });
+}
+
+/** Rafraîchit le select Acteur / Entité (étape 3) avec DCI/CDD/OPS + entités custom (CPLM…) */
+window.refreshPmgStep3EntityFilterOptions = function() {
+  const entitySelect = document.getElementById('pmgFilterStep3Entity');
+  if (!entitySelect) return;
+
+  const activities = window.pmgTempSubprocesses || window.pmgActivities || [];
+  const currentVal = window.pmgColFilters?.step3?.entity || entitySelect.value || 'all';
+
+  const entityMap = new Map();
+  activities.forEach(a => {
+    const e = (a.entity || '').trim();
+    if (!e || /^non\s*défini$/i.test(e) || /^hérit/i.test(e)) return;
+    if (e.length > 40 || /^process\b/i.test(e)) return;
+    const key = window.isPmgStandardActor(e) ? e.toUpperCase() : e;
+    entityMap.set(key, (entityMap.get(key) || 0) + 1);
+  });
+
+  const actorOpts = (typeof window.getPmgActorEntityOptions === 'function')
+    ? window.getPmgActorEntityOptions()
+    : ['DCI', 'CDD', 'OPS'];
+
+  let entOpts = '<option value="all">Tous (' + activities.length + ')</option>';
+  actorOpts.forEach(code => {
+    const count = entityMap.get(code)
+      || entityMap.get(String(code).toUpperCase())
+      || 0;
+    const selected = (String(currentVal) === String(code)
+      || String(currentVal).toUpperCase() === String(code).toUpperCase()) ? 'selected' : '';
+    entOpts += '<option value="' + escAttr(code) + '" ' + selected + '>'
+      + escHtml(code) + (count ? ' (' + count + ')' : '') + '</option>';
+  });
+  entitySelect.innerHTML = entOpts;
+
+  if (currentVal === '__inherited__') {
+    entitySelect.value = 'all';
+    if (window.pmgColFilters?.step3) window.pmgColFilters.step3.entity = 'all';
+  } else {
+    // Conserver la sélection si toujours présente
+    const stillThere = Array.from(entitySelect.options).some(o => o.value === currentVal
+      || o.value.toUpperCase() === String(currentVal).toUpperCase());
+    if (stillThere) {
+      const match = Array.from(entitySelect.options).find(o =>
+        o.value === currentVal || o.value.toUpperCase() === String(currentVal).toUpperCase());
+      if (match) entitySelect.value = match.value;
     }
   }
 };
@@ -1899,16 +2696,27 @@ window.onPmgStep3FilterChange = function() {
   window.pmgColFilters.step3.type = typeSelect?.value || 'all';
   window.pmgColFilters.step3.parent = (parentInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step3.entity = entitySelect?.value || 'all';
-  window.pmgColFilters.step3.groupStatus = groupStatusSelect?.value || 'all';
-  window.pmgColFilters.step3.groupText = (groupTextInput?.value || '').trim().toLowerCase();
+
+  const groupStatus = groupStatusSelect?.value || 'all';
+  window.pmgColFilters.step3.groupStatus = groupStatus;
+  // Statut spécial (Avec/Sans/N/A) : ne pas filtrer aussi sur le libellé affiché
+  if (groupStatus !== 'all') {
+    window.pmgColFilters.step3.groupText = '';
+  } else {
+    window.pmgColFilters.step3.groupText = (groupTextInput?.value || '').trim().toLowerCase();
+  }
 
   // Highlight active filters
   if (actInput) actInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step3.act));
   if (typeSelect) typeSelect.classList.toggle('has-filter', window.pmgColFilters.step3.type !== 'all');
   if (parentInput) parentInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step3.parent));
   if (entitySelect) entitySelect.classList.toggle('has-filter', window.pmgColFilters.step3.entity !== 'all');
-  if (groupStatusSelect) groupStatusSelect.classList.toggle('has-filter', window.pmgColFilters.step3.groupStatus !== 'all');
-  if (groupTextInput) groupTextInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step3.groupText));
+  if (groupTextInput) {
+    groupTextInput.classList.toggle(
+      'has-filter',
+      groupStatus !== 'all' || Boolean(window.pmgColFilters.step3.groupText)
+    );
+  }
 
   window.renderPmgStep2ManualTable();
 };
@@ -1920,9 +2728,13 @@ window.clearPmgStep3ColFilter = function(field) {
   } else if (field === 'parent') {
     const el = document.getElementById('pmgFilterStep3Parent');
     if (el) el.value = '';
-  } else if (field === 'groupText') {
+    if (typeof window.closePmgParentCombo === 'function') window.closePmgParentCombo(3);
+  } else if (field === 'groupText' || field === 'group') {
     const el = document.getElementById('pmgFilterStep3GroupText');
-    if (el) el.value = '';
+    const statusEl = document.getElementById('pmgFilterStep3GroupStatus');
+    if (el) { el.value = ''; delete el.dataset.statusFilter; }
+    if (statusEl) statusEl.value = 'all';
+    if (typeof window.closePmgGroupCombo === 'function') window.closePmgGroupCombo();
   }
   window.onPmgStep3FilterChange();
 };
@@ -1940,8 +2752,13 @@ window.resetPmgStep3Filters = function() {
   if (typeSelect) { typeSelect.value = 'all'; typeSelect.classList.remove('has-filter'); }
   if (parentInput) { parentInput.value = ''; parentInput.classList.remove('has-filter'); }
   if (entitySelect) { entitySelect.value = 'all'; entitySelect.classList.remove('has-filter'); }
-  if (groupStatusSelect) { groupStatusSelect.value = 'all'; groupStatusSelect.classList.remove('has-filter'); }
-  if (groupTextInput) { groupTextInput.value = ''; groupTextInput.classList.remove('has-filter'); }
+  if (groupStatusSelect) { groupStatusSelect.value = 'all'; }
+  if (groupTextInput) {
+    groupTextInput.value = '';
+    groupTextInput.classList.remove('has-filter');
+    delete groupTextInput.dataset.statusFilter;
+  }
+  if (typeof window.closePmgGroupCombo === 'function') window.closePmgGroupCombo();
 
   document.querySelectorAll('#pmgStep3FilterToolbar .pmg-filter-pill-btn').forEach(b => b.classList.remove('active'));
 
@@ -1969,10 +2786,17 @@ window.togglePmgStep3Preset = function(presetKey) {
     // User Tasks sans candidateGroups
     window.pmgColFilters.step3.type = 'usertask';
     window.pmgColFilters.step3.groupStatus = 'no_group';
+    window.pmgColFilters.step3.groupText = '';
     const typeSelect = document.getElementById('pmgFilterStep3Type');
     const groupStatusSelect = document.getElementById('pmgFilterStep3GroupStatus');
+    const groupTextInput = document.getElementById('pmgFilterStep3GroupText');
     if (typeSelect) { typeSelect.value = 'usertask'; typeSelect.classList.add('has-filter'); }
-    if (groupStatusSelect) { groupStatusSelect.value = 'no_group'; groupStatusSelect.classList.add('has-filter'); }
+    if (groupStatusSelect) groupStatusSelect.value = 'no_group';
+    if (groupTextInput) {
+      groupTextInput.value = '⚠️ Sans groupe';
+      groupTextInput.classList.add('has-filter');
+      groupTextInput.dataset.statusFilter = 'no_group';
+    }
   } else if (presetKey === 'inherited') {
     window.pmgColFilters.step3.entity = '__inherited__';
     const entitySelect = document.getElementById('pmgFilterStep3Entity');
@@ -1995,18 +2819,24 @@ window.onPmgStep4FilterChange = function() {
   window.pmgColFilters.step4.act = (actInput?.value || '').trim().toLowerCase();
   window.pmgColFilters.step4.type = typeSelect?.value || 'all';
   window.pmgColFilters.step4.parent = (parentInput?.value || '').trim().toLowerCase();
-  window.pmgColFilters.step4.inStatus = inStatusSelect?.value || 'all';
-  window.pmgColFilters.step4.inText = (inTextInput?.value || '').trim().toLowerCase();
-  window.pmgColFilters.step4.outStatus = outStatusSelect?.value || 'all';
-  window.pmgColFilters.step4.outText = (outTextInput?.value || '').trim().toLowerCase();
+
+  const inStatus = inStatusSelect?.value || 'all';
+  const outStatus = outStatusSelect?.value || 'all';
+  window.pmgColFilters.step4.inStatus = inStatus;
+  window.pmgColFilters.step4.outStatus = outStatus;
+  // Statut spécial (Avec/Sans) : ne pas filtrer aussi sur le libellé affiché
+  window.pmgColFilters.step4.inText = inStatus !== 'all' ? '' : (inTextInput?.value || '').trim().toLowerCase();
+  window.pmgColFilters.step4.outText = outStatus !== 'all' ? '' : (outTextInput?.value || '').trim().toLowerCase();
 
   if (actInput) actInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step4.act));
   if (typeSelect) typeSelect.classList.toggle('has-filter', window.pmgColFilters.step4.type !== 'all');
   if (parentInput) parentInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step4.parent));
-  if (inStatusSelect) inStatusSelect.classList.toggle('has-filter', window.pmgColFilters.step4.inStatus !== 'all');
-  if (inTextInput) inTextInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step4.inText));
-  if (outStatusSelect) outStatusSelect.classList.toggle('has-filter', window.pmgColFilters.step4.outStatus !== 'all');
-  if (outTextInput) outTextInput.classList.toggle('has-filter', Boolean(window.pmgColFilters.step4.outText));
+  if (inTextInput) {
+    inTextInput.classList.toggle('has-filter', inStatus !== 'all' || Boolean(window.pmgColFilters.step4.inText));
+  }
+  if (outTextInput) {
+    outTextInput.classList.toggle('has-filter', outStatus !== 'all' || Boolean(window.pmgColFilters.step4.outText));
+  }
 
   window.renderPmgStep3ManualTable();
 };
@@ -2018,12 +2848,19 @@ window.clearPmgStep4ColFilter = function(field) {
   } else if (field === 'parent') {
     const el = document.getElementById('pmgFilterStep4Parent');
     if (el) el.value = '';
-  } else if (field === 'inText') {
+    if (typeof window.closePmgParentCombo === 'function') window.closePmgParentCombo(4);
+  } else if (field === 'inText' || field === 'in') {
     const el = document.getElementById('pmgFilterStep4InText');
-    if (el) el.value = '';
-  } else if (field === 'outText') {
+    const statusEl = document.getElementById('pmgFilterStep4InStatus');
+    if (el) { el.value = ''; delete el.dataset.statusFilter; }
+    if (statusEl) statusEl.value = 'all';
+    if (typeof window.closePmgIoCombo === 'function') window.closePmgIoCombo('in');
+  } else if (field === 'outText' || field === 'out') {
     const el = document.getElementById('pmgFilterStep4OutText');
-    if (el) el.value = '';
+    const statusEl = document.getElementById('pmgFilterStep4OutStatus');
+    if (el) { el.value = ''; delete el.dataset.statusFilter; }
+    if (statusEl) statusEl.value = 'all';
+    if (typeof window.closePmgIoCombo === 'function') window.closePmgIoCombo('out');
   }
   window.onPmgStep4FilterChange();
 };
@@ -2041,10 +2878,19 @@ window.resetPmgStep4Filters = function() {
   if (actInput) { actInput.value = ''; actInput.classList.remove('has-filter'); }
   if (typeSelect) { typeSelect.value = 'all'; typeSelect.classList.remove('has-filter'); }
   if (parentInput) { parentInput.value = ''; parentInput.classList.remove('has-filter'); }
-  if (inStatusSelect) { inStatusSelect.value = 'all'; inStatusSelect.classList.remove('has-filter'); }
-  if (inTextInput) { inTextInput.value = ''; inTextInput.classList.remove('has-filter'); }
-  if (outStatusSelect) { outStatusSelect.value = 'all'; outStatusSelect.classList.remove('has-filter'); }
-  if (outTextInput) { outTextInput.value = ''; outTextInput.classList.remove('has-filter'); }
+  if (inStatusSelect) inStatusSelect.value = 'all';
+  if (outStatusSelect) outStatusSelect.value = 'all';
+  if (inTextInput) {
+    inTextInput.value = '';
+    inTextInput.classList.remove('has-filter');
+    delete inTextInput.dataset.statusFilter;
+  }
+  if (outTextInput) {
+    outTextInput.value = '';
+    outTextInput.classList.remove('has-filter');
+    delete outTextInput.dataset.statusFilter;
+  }
+  if (typeof window.closePmgIoCombo === 'function') window.closePmgIoCombo();
 
   document.querySelectorAll('#pmgStep4FilterToolbar .pmg-filter-pill-btn').forEach(b => b.classList.remove('active'));
 
@@ -2064,21 +2910,35 @@ window.togglePmgStep4Preset = function(presetKey) {
   const chipBtn = document.getElementById('pmgChipStep4' + presetKey.charAt(0).toUpperCase() + presetKey.slice(1));
   if (chipBtn) chipBtn.classList.add('active');
 
+  const applyIoStatus = (kind, status) => {
+    const ids = window._pmgIoComboIds(kind);
+    const statusEl = document.getElementById(ids.statusId);
+    const textEl = document.getElementById(ids.textId);
+    if (statusEl) statusEl.value = status;
+    if (textEl) {
+      textEl.value = status === 'has'
+        ? `${ids.icon} Avec variable`
+        : (status === 'none' ? '⚠️ Sans variable' : '');
+      textEl.classList.toggle('has-filter', status !== 'all');
+      if (status !== 'all') textEl.dataset.statusFilter = status;
+      else delete textEl.dataset.statusFilter;
+    }
+    if (kind === 'in') {
+      window.pmgColFilters.step4.inStatus = status;
+      window.pmgColFilters.step4.inText = '';
+    } else {
+      window.pmgColFilters.step4.outStatus = status;
+      window.pmgColFilters.step4.outText = '';
+    }
+  };
+
   if (presetKey === 'withInputs') {
-    window.pmgColFilters.step4.inStatus = 'has';
-    const s = document.getElementById('pmgFilterStep4InStatus');
-    if (s) { s.value = 'has'; s.classList.add('has-filter'); }
+    applyIoStatus('in', 'has');
   } else if (presetKey === 'withOutputs') {
-    window.pmgColFilters.step4.outStatus = 'has';
-    const s = document.getElementById('pmgFilterStep4OutStatus');
-    if (s) { s.value = 'has'; s.classList.add('has-filter'); }
+    applyIoStatus('out', 'has');
   } else if (presetKey === 'noVars') {
-    window.pmgColFilters.step4.inStatus = 'none';
-    window.pmgColFilters.step4.outStatus = 'none';
-    const s1 = document.getElementById('pmgFilterStep4InStatus');
-    const s2 = document.getElementById('pmgFilterStep4OutStatus');
-    if (s1) { s1.value = 'none'; s1.classList.add('has-filter'); }
-    if (s2) { s2.value = 'none'; s2.classList.add('has-filter'); }
+    applyIoStatus('in', 'none');
+    applyIoStatus('out', 'none');
   }
 
   window.renderPmgStep3ManualTable();
@@ -2114,6 +2974,7 @@ window.clearPmgStep5ColFilter = function(field) {
   } else if (field === 'parent') {
     const el = document.getElementById('pmgFilterStep5Parent');
     if (el) el.value = '';
+    if (typeof window.closePmgParentCombo === 'function') window.closePmgParentCombo(5);
   } else if (field === 'case') {
     const el = document.getElementById('pmgFilterStep5Case');
     if (el) el.value = '';
@@ -2194,20 +3055,8 @@ window.renderPmgStep2ManualTable = function() {
     typeSelect.innerHTML = typeOpts;
   }
 
-  const entitySelect = document.getElementById('pmgFilterStep3Entity');
-  if (entitySelect) {
-    const currentVal = window.pmgColFilters.step3.entity || 'all';
-    const entityMap = new Map();
-    activities.forEach(a => {
-      const e = (a.entity && a.entity !== 'Non défini') ? a.entity : 'Non défini';
-      entityMap.set(e, (entityMap.get(e) || 0) + 1);
-    });
-    let entOpts = '<option value="all">Tous (' + activities.length + ')</option>';
-    entOpts += '<option value="__inherited__" ' + ('__inherited__' === currentVal ? 'selected' : '') + '>↳ Hérités</option>';
-    for (const [e, count] of entityMap.entries()) {
-      entOpts += '<option value="' + escAttr(e) + '" ' + (e === currentVal ? 'selected' : '') + '>' + escHtml(e) + ' (' + count + ')</option>';
-    }
-    entitySelect.innerHTML = entOpts;
+  if (typeof window.refreshPmgStep3EntityFilterOptions === 'function') {
+    window.refreshPmgStep3EntityFilterOptions();
   }
 
   // Filtre = prédicat de match (même logique qu'avant)
@@ -2232,18 +3081,20 @@ window.renderPmgStep2ManualTable = function() {
 
     if (f.entity !== 'all') {
       if (f.entity === '__inherited__') {
-        const colorSet = new Set(['DCI', 'CDD', 'OPS']);
-        const isColorEnt = colorSet.has(String(act.entity || '').toUpperCase());
-        // Parent racine + Hérité du parent (acteurs couleur) + héritage classique
+        const isColorEnt = window.isPmgStandardActor
+          ? window.isPmgStandardActor(act.entity)
+          : ['DCI', 'CDD', 'OPS'].includes(String(act.entity || '').toUpperCase());
         if (!isColorEnt && !act.isInheritedEntity) return false;
       } else {
-        const ent = (act.entity && act.entity !== 'Non défini') ? act.entity : 'Non défini';
-        if (ent !== f.entity) return false;
+        const ent = (act.entity && act.entity !== 'Non défini') ? String(act.entity).trim() : '';
+        if (String(ent).toUpperCase() !== String(f.entity).toUpperCase()) return false;
       }
     }
 
     const isUserTask = (act.type || '').toLowerCase().includes('user');
-    const groupVal = (act.userGroup || '').trim();
+    const groupVal = (typeof window.cleanPmgUserGroupName === 'function')
+      ? window.cleanPmgUserGroupName(act.userGroup)
+      : String(act.userGroup || '').trim();
     const hasGroup = groupVal.length > 0;
     if (f.groupStatus !== 'all') {
       if (f.groupStatus === 'with_group' && (!isUserTask || !hasGroup)) return false;
@@ -2321,12 +3172,13 @@ window.renderPmgStep2ManualTable = function() {
       ? `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(rootParentName)}">🏛️ ${escHtml(rootParentName)}</span>`
       : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
 
+    const actKey = escAttr(act.uniqueId || act.id);
     let groupCellHtml = '';
     if (isUserTask) {
       if (hasGroup) {
         groupCellHtml = `
           <div style="display:flex; flex-direction:column; gap:4px;">
-            <input type="text" id="pmgGroupInput_${safeIdx}" value="${escAttr(groupVal)}" placeholder="Ex: Validateurs_N1" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'userGroup', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); padding: 4px 8px;">
+            ${window.pmgEditableField(`<input type="text" id="pmgGroupInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(groupVal)}" placeholder="Ex: Validateurs_N1" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'userGroup', this.value)">`)}
             <div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
               <span class="pmg-badge-ok" style="font-size:10px; width:fit-content;">👤 Groupe candidat défini</span>
             </div>
@@ -2335,16 +3187,15 @@ window.renderPmgStep2ManualTable = function() {
       } else {
         groupCellHtml = `
           <div style="display:flex; flex-direction:column; gap:4px;">
-            <input type="text" id="pmgGroupInput_${safeIdx}" class="pmg-input-warn" value="" placeholder="⚠️ Saisir le groupe candidat (ex: Gestionnaires_RH)" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'userGroup', this.value)" style="width: 100%; height: 32px; font-size: 12px; border-radius: var(--border-radius-md); padding: 4px 8px;">
+            ${window.pmgEditableField(`<input type="text" id="pmgGroupInput_${safeIdx}" class="pmg-step3-field-input pmg-input-warn" value="" placeholder="⚠️ Saisir le groupe candidat (ex: Gestionnaires_RH)" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'userGroup', this.value)">`)}
             <span class="pmg-badge-warn" style="font-size:10px; width:fit-content;">⚠️ Warning : User Task sans groupe candidat</span>
           </div>
         `;
       }
     } else {
-      const naLabel = act.typeLabel || act.type || 'N/A';
-      groupCellHtml = `
-        <input type="text" id="pmgGroupInput_${safeIdx}" class="pmg-step3-na-input" value="— N/A" title="Non applicable (${escAttr(naLabel)})" readonly>
-      `;
+      groupCellHtml = window.pmgEditableField(
+        `<input type="text" id="pmgGroupInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(groupVal)}" placeholder="Groupe (optionnel)" title="Modifiable pour tous les types BPMN" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'userGroup', this.value)">`
+      );
     }
 
     const isColorActor = entityVal && colorActors.has(String(entityVal).toUpperCase());
@@ -2372,7 +3223,7 @@ window.renderPmgStep2ManualTable = function() {
       ? window.getPmgTypeBadgeColors(act.type || act.typeLabel)
       : { color: borderColor, background: borderColor + '26', borderColor };
 
-    // Carte hiérarchie : nom + niveau + Appelle (si Call Activity)
+    // Carte hiérarchie : nom en consultation seule (pas d'action de modification)
     const treeCard = `
       <div class="pmg-step3-tree-indent" style="padding-left:${Math.min(depth, 6) * 16}px;">
         <div class="pmg-step3-tree-card${isContextOnly ? ' pmg-step3-tree-card--context' : ''}" style="border:${cardBorder};">
@@ -2401,7 +3252,7 @@ window.renderPmgStep2ManualTable = function() {
         </td>
         <td class="pmg-step3-meta-cell">${parentCell}</td>
         <td class="pmg-step3-field-cell">
-          <input type="text" id="pmgEntityInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(entityVal)}" placeholder="Ex: CDD ou Direction Réseau" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'entity', this.value)">
+          ${window.pmgEditableField(`<input type="text" id="pmgEntityInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(entityVal)}" placeholder="Ex: CDD ou Direction Réseau" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'entity', this.value)">`)}
           ${inheritedPill}
         </td>
         <td class="pmg-step3-field-cell">
@@ -3331,10 +4182,13 @@ window.validatePmgStep3Entities = function() {
 
     activities.forEach((act, idx) => {
       const entityVal = (document.getElementById(`pmgEntityInput_${idx}`)?.value || '').trim();
-      const groupVal = (document.getElementById(`pmgGroupInput_${idx}`)?.value || '').trim();
+      let groupVal = (document.getElementById(`pmgGroupInput_${idx}`)?.value || '').trim();
+      if (/^—?\s*N\/A$/i.test(groupVal)) groupVal = '';
 
       act.entity = entityVal || 'Non défini';
-      act.userGroup = groupVal || '';
+      act.userGroup = window.normalizePmgEditableValue
+        ? window.normalizePmgEditableValue('userGroup', groupVal)
+        : (groupVal || '');
       if (entityVal || groupVal) updatedCount++;
     });
 
@@ -3501,6 +4355,7 @@ window.renderPmgStep3ManualTable = function() {
       ? `<span class="pmg-step3-parent-cell" title="Processus père (niveau 1) : ${escAttr(rootParentName)}">🏛️ ${escHtml(rootParentName)}</span>`
       : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
 
+    const actKey = escAttr(act.uniqueId || act.id);
     const treeCard = window.buildPmgStepHierarchyCard(act, {
       depth,
       isContextOnly,
@@ -3519,10 +4374,10 @@ window.renderPmgStep3ManualTable = function() {
         </td>
         <td class="pmg-step3-meta-cell">${parentCell}</td>
         <td class="pmg-step3-field-cell">
-          <input type="text" id="pmgInputsInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(inputsVal)}" placeholder="Ex: varIn1, varIn2" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'inputs', this.value)">
+          ${window.pmgEditableField(`<input type="text" id="pmgInputsInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(inputsVal)}" placeholder="Ex: varIn1, varIn2" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'inputs', this.value)">`)}
         </td>
         <td class="pmg-step3-field-cell">
-          <input type="text" id="pmgOutputsInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(outputsVal)}" placeholder="Ex: varOut1, varOut2" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'outputs', this.value)">
+          ${window.pmgEditableField(`<input type="text" id="pmgOutputsInput_${safeIdx}" class="pmg-step3-field-input" value="${escAttr(outputsVal)}" placeholder="Ex: varOut1, varOut2" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'outputs', this.value)">`)}
         </td>
       </tr>
     `;
@@ -3738,8 +4593,8 @@ window.renderPmgStep4ManualTable = function() {
       : '<span class="pmg-step3-empty" title="Aucun processus père détecté">Processus père inconnu</span>';
     const gwCount = gwConds.length || (caseVal.includes(' ET Si ') ? caseVal.split(' ET Si ').length : (caseVal ? 1 : 0));
     const caseHint = gwCount > 1
-      ? `<span class="pmg-gateway-cond-hint" title="${escAttr(caseVal)}">${gwCount} gateways amont</span>`
-      : (gwCount === 1 ? '<span class="pmg-gateway-cond-hint">1 gateway amont</span>' : '');
+      ? `<span class="pmg-gateway-cond-hint" title="${escAttr(caseVal)}">${gwCount} conditions enchaînées</span>`
+      : (gwCount === 1 ? '<span class="pmg-gateway-cond-hint">1 condition enchaînée</span>' : '');
 
     let optionsHtml = '';
     modes.forEach(m => {
@@ -3747,6 +4602,7 @@ window.renderPmgStep4ManualTable = function() {
       optionsHtml += '<option value="' + escAttr(m) + '" ' + selected + '>' + escHtml(m) + '</option>';
     });
 
+    const actKey = escAttr(act.uniqueId || act.id);
     const treeCard = window.buildPmgStepHierarchyCard(act, {
       depth,
       isContextOnly,
@@ -3760,18 +4616,16 @@ window.renderPmgStep4ManualTable = function() {
         <td class="pmg-step3-tree-cell">${treeCard}</td>
         <td class="pmg-step3-meta-cell">${parentCell}</td>
         <td class="pmg-step3-field-cell" style="vertical-align:middle;">
-          <select id="pmgModeSelect_${safeIdx}" class="pmg-mode-select" onchange="syncPmgStepActivityField('${escAttr(act.id)}', 'realizationMode', this.value)">
-            ${optionsHtml}
-          </select>
+          ${window.pmgEditableField(`<select id="pmgModeSelect_${safeIdx}" class="pmg-mode-select" disabled onblur="lockPmgEditableField(this)" onchange="syncPmgStepActivityField('${actKey}', 'realizationMode', this.value)">${optionsHtml}</select>`)}
         </td>
         <td class="pmg-step3-field-cell" style="vertical-align:middle;">
           <div class="pmg-step5-case-wrap">
-            <textarea id="pmgCaseInput_${safeIdx}" class="pmg-step5-input pmg-step5-case-input" rows="${Math.min(Math.max(gwCount, 1), 4)}" placeholder="Ex: Si [gateway] = &quot;oui&quot; ET Si [gateway2] = &quot;non&quot;" title="${escAttr(caseVal)}" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'applicableCase', this.value)">${escHtml(caseVal)}</textarea>
+            ${window.pmgEditableField(`<textarea id="pmgCaseInput_${safeIdx}" class="pmg-step5-input pmg-step5-case-input" rows="${Math.min(Math.max(gwCount, 1), 4)}" placeholder="Ex: Si [gateway] = &quot;oui&quot; ET Si [gateway2] = &quot;non&quot;" title="${escAttr(caseVal)}" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'applicableCase', this.value)">${escHtml(caseVal)}</textarea>`)}
             ${caseHint}
           </div>
         </td>
         <td class="pmg-step3-field-cell" style="vertical-align:middle;">
-          <input type="text" id="pmgCommentInput_${safeIdx}" class="pmg-step5-input" value="${escAttr(commentVal)}" placeholder="Ex: Traitement physique" oninput="syncPmgStepActivityField('${escAttr(act.id)}', 'comment', this.value)">
+          ${window.pmgEditableField(`<input type="text" id="pmgCommentInput_${safeIdx}" class="pmg-step5-input" value="${escAttr(commentVal)}" placeholder="Ex: Traitement physique" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'comment', this.value)">`)}
         </td>
       </tr>
     `;
@@ -3802,7 +4656,11 @@ window.validatePmgStep5AndFinish = function() {
     if (entityInput) act.entity = entityInput.value.trim() || 'Non défini';
     
     const groupInput = document.getElementById(`pmgGroupInput_${idx}`);
-    if (groupInput) act.userGroup = groupInput.value.trim();
+    if (groupInput) {
+      act.userGroup = window.normalizePmgEditableValue
+        ? window.normalizePmgEditableValue('userGroup', groupInput.value)
+        : groupInput.value.trim().replace(/^—?\s*N\/A$/i, '');
+    }
 
     // Step 4 (Inputs & Outputs)
     const inInput = document.getElementById(`pmgInputsInput_${idx}`);
@@ -6087,17 +6945,9 @@ window.renderPmgMatrix = function() {
   const sorted = window.sortPmgActivities(filtered, window.pmgActivityOrderMode);
   
   tbody.innerHTML = sorted.map((act, idx) => {
-    const inputsHtml = (act.inputs || []).length > 0 
-      ? '<div class="pmg-io-container">' + act.inputs.map(i => '<span class="badge-io badge-io-in" title="' + esc(i) + '">' + esc(i) + '</span>').join('') + '</div>' 
-      : '<span style="color:var(--text-tertiary);font-size:11px;font-style:italic;">Aucune entrée</span>';
-      
-    const outputsHtml = (act.outputs || []).length > 0 
-      ? '<div class="pmg-io-container">' + act.outputs.map(o => '<span class="badge-io badge-io-out" title="' + esc(o) + '">' + esc(o) + '</span>').join('') + '</div>' 
-      : '<span style="color:var(--text-tertiary);font-size:11px;font-style:italic;">Aucune sortie</span>';
-      
     let badgeClass = 'type-task';
     if (act.type === 'callactivity' || (act.typeLabel && act.typeLabel.toLowerCase().includes('sous-processus'))) badgeClass = 'type-subprocess';
-    
+
     const indent = (act.level && act.level > 1) ? (act.level - 1) * 18 : 0;
     const arrow = indent > 0 ? '<span style="color:var(--brand-primary);margin-right:4px;font-family:sans-serif;">↳</span>' : '';
     const parentName = act.parentProcessName || act.rootParentName || 'Parent';
@@ -6108,33 +6958,43 @@ window.renderPmgMatrix = function() {
       sharedHtml = '<span class="pmg-shared-pill" style="margin-left:6px;" title="Sous-processus partagé appelé par : ' + esc(pList) + '">🔗 Partagé (' + esc(pList) + ')</span>';
     }
 
+    const actKey = escAttr(act.uniqueId || act.id);
     const groupVal = (typeof window.cleanPmgUserGroupName === 'function') ? window.cleanPmgUserGroupName(act.userGroup) : (act.userGroup || '');
-    const groupBadge = groupVal ? '<div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">👤 <code>' + esc(groupVal) + '</code></div>' : '';
-    
+    const inStr = Array.isArray(act.inputs) ? act.inputs.join(', ') : (act.inputs || '');
+    const outStr = Array.isArray(act.outputs) ? act.outputs.join(', ') : (act.outputs || '');
+
     return `
       <tr>
         <td style="padding-left: ${indent + 8}px;">
-          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:2px;">
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
             <span class="pmg-order-pill" title="Index séquentiel ${window.pmgActivityOrderMode}">#${act.orderIndex || (idx + 1)}</span>
             ${arrow}
-            <strong style="color:var(--text-primary); font-weight:600; font-size:12.5px;">${esc(act.name)}</strong>
             <span class="pmg-parent-badge">🏛️ ${esc(parentName)}</span>
             ${sharedHtml}
           </div>
-          <div class="mono" style="font-size:10px;color:var(--text-tertiary); padding-left:${indent > 0 ? 18 : 0}px;">id: ${act.id}</div>
+          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(act.name || '')}" placeholder="Nom activité" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'name', this.value)" style="width:100%; font-weight:600;">`)}
+          <div class="mono" style="font-size:10px;color:var(--text-tertiary); margin-top:2px;">id: ${esc(act.id)}</div>
         </td>
         <td>
           <span class="badge-bpmn ${badgeClass}">${esc(act.typeLabel || act.type)}</span>
         </td>
         <td>
-          <span class="badge badge-process" style="padding: 4px 8px; border-radius: 4px;">${esc(act.entity || 'Non défini')}</span>
-          ${groupBadge}
+          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(act.entity || '')}" placeholder="Entité..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'entity', this.value)">`)}
+          <div style="margin-top:4px;">
+            ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(groupVal)}" placeholder="Groupe..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'userGroup', this.value)" style="font-family:var(--font-mono); font-size:11px;">`)}
+          </div>
         </td>
-        <td>${inputsHtml}</td>
-        <td>${outputsHtml}</td>
-        <td>${esc(act.applicableCase || '—')}</td>
-        <td style="max-width: 250px; font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;">
-          ${esc(act.comment || '—')}
+        <td>
+          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(inStr)}" placeholder="Inputs (virgules)..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'inputs', this.value)" style="color:#1e40af;">`)}
+        </td>
+        <td>
+          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(outStr)}" placeholder="Outputs (virgules)..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'outputs', this.value)" style="color:#15803d;">`)}
+        </td>
+        <td>
+          ${window.pmgEditableField(`<textarea class="pmg-case pmg-matrix-field pmg-matrix-textarea" data-id="${escAttr(act.id)}" rows="2" placeholder="Condition..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'applicableCase', this.value)">${escHtml(act.applicableCase || '')}</textarea>`)}
+        </td>
+        <td>
+          ${window.pmgEditableField(`<textarea class="pmg-comment pmg-matrix-field pmg-matrix-textarea" data-id="${escAttr(act.id)}" rows="2" placeholder="Commentaire..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'comment', this.value)">${escHtml(act.comment || '')}</textarea>`)}
         </td>
       </tr>
     `;
@@ -8097,38 +8957,37 @@ window.renderPmgGlobalGridTable = function(containerId = 'pmgMatrixGlobalGridCon
     const inStr = Array.isArray(act.inputs) ? act.inputs.join(', ') : (act.inputs || '');
     const outStr = Array.isArray(act.outputs) ? act.outputs.join(', ') : (act.outputs || '');
 
+    const gridStyle = 'width:100%; height:28px; font-size:11.5px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); padding:2px 6px;';
     rowsHtml += `
       <tr style="border-bottom:1px solid var(--border-color);">
         <td style="padding:6px; text-align:center; color:var(--text-tertiary); font-weight:700; width:45px;">#${idx + 1}</td>
         <td style="padding:4px; min-width:180px;">
-          <input type="text" value="${escAttr(act.name)}" oninput="updatePmgGridCell(${idx}, 'name', this.value)" style="width:100%; height:28px; font-size:11.5px; font-weight:600; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); padding:2px 6px;">
+          ${window.pmgEditableField(`<input type="text" value="${escAttr(act.name)}" readonly onblur="lockPmgEditableField(this)" oninput="updatePmgGridCell(${idx}, 'name', this.value)" style="${gridStyle} font-weight:600;">`)}
           <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">id: <code>${escHtml(act.id)}</code> &bull; 🏛️ ${escHtml(parentProc)}</div>
         </td>
         <td style="padding:4px; width:110px;">
           <span style="font-size:10.5px; padding:2px 6px; border-radius:4px; background:rgba(0,156,215,0.1); color:var(--brand-primary); font-weight:600; display:inline-block;">${escHtml(act.typeLabel || act.type)}</span>
         </td>
         <td style="padding:4px; min-width:130px;">
-          <input type="text" value="${escAttr(act.entity || '')}" placeholder="Entité..." oninput="updatePmgGridCell(${idx}, 'entity', this.value)" style="width:100%; height:28px; font-size:11.5px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); padding:2px 6px;">
+          ${window.pmgEditableField(`<input type="text" value="${escAttr(act.entity || '')}" placeholder="Entité..." readonly onblur="lockPmgEditableField(this)" oninput="updatePmgGridCell(${idx}, 'entity', this.value)" style="${gridStyle}">`)}
         </td>
         <td style="padding:4px; min-width:140px;">
-          <input type="text" value="${escAttr(cleanGroup)}" placeholder="Groupe..." oninput="updatePmgGridCell(${idx}, 'userGroup', this.value)" style="width:100%; height:28px; font-size:11.5px; font-family:var(--font-mono); border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); padding:2px 6px;">
+          ${window.pmgEditableField(`<input type="text" value="${escAttr(cleanGroup)}" placeholder="Groupe..." readonly onblur="lockPmgEditableField(this)" oninput="updatePmgGridCell(${idx}, 'userGroup', this.value)" style="${gridStyle} font-family:var(--font-mono);">`)}
         </td>
         <td style="padding:4px; min-width:140px;">
-          <input type="text" value="${escAttr(inStr)}" placeholder="Inputs (séparés par virgule)..." oninput="updatePmgGridCell(${idx}, 'inputs', this.value)" style="width:100%; height:28px; font-size:11px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:#1e40af; padding:2px 6px;">
+          ${window.pmgEditableField(`<input type="text" value="${escAttr(inStr)}" placeholder="Inputs (séparés par virgule)..." readonly onblur="lockPmgEditableField(this)" oninput="updatePmgGridCell(${idx}, 'inputs', this.value)" style="${gridStyle} font-size:11px; color:#1e40af;">`)}
         </td>
         <td style="padding:4px; min-width:140px;">
-          <input type="text" value="${escAttr(outStr)}" placeholder="Outputs..." oninput="updatePmgGridCell(${idx}, 'outputs', this.value)" style="width:100%; height:28px; font-size:11px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:#15803d; padding:2px 6px;">
+          ${window.pmgEditableField(`<input type="text" value="${escAttr(outStr)}" placeholder="Outputs..." readonly onblur="lockPmgEditableField(this)" oninput="updatePmgGridCell(${idx}, 'outputs', this.value)" style="${gridStyle} font-size:11px; color:#15803d;">`)}
         </td>
         <td style="padding:4px; width:120px;">
-          <select onchange="updatePmgGridCell(${idx}, 'realizationMode', this.value)" style="width:100%; height:28px; font-size:11px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); padding:2px 4px;">
-            ${modeOptsHtml}
-          </select>
+          ${window.pmgEditableField(`<select disabled onblur="lockPmgEditableField(this)" onchange="updatePmgGridCell(${idx}, 'realizationMode', this.value)" style="${gridStyle} font-size:11px; padding:2px 4px;">${modeOptsHtml}</select>`)}
         </td>
         <td style="padding:4px; min-width:150px;">
-          <input type="text" value="${escAttr(act.applicableCase || '')}" placeholder="Condition..." oninput="updatePmgGridCell(${idx}, 'applicableCase', this.value)" style="width:100%; height:28px; font-size:11px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); padding:2px 6px;">
+          ${window.pmgEditableField(`<input type="text" value="${escAttr(act.applicableCase || '')}" placeholder="Condition..." readonly onblur="lockPmgEditableField(this)" oninput="updatePmgGridCell(${idx}, 'applicableCase', this.value)" style="${gridStyle} font-size:11px;">`)}
         </td>
         <td style="padding:4px; min-width:160px;">
-          <input type="text" value="${escAttr(act.comment || '')}" placeholder="Documentation..." oninput="updatePmgGridCell(${idx}, 'comment', this.value)" style="width:100%; height:28px; font-size:11px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-secondary); padding:2px 6px;">
+          ${window.pmgEditableField(`<input type="text" value="${escAttr(act.comment || '')}" placeholder="Documentation..." readonly onblur="lockPmgEditableField(this)" oninput="updatePmgGridCell(${idx}, 'comment', this.value)" style="${gridStyle} font-size:11px; color:var(--text-secondary);">`)}
         </td>
       </tr>
     `;
@@ -8191,19 +9050,16 @@ window.updatePmgGridCell = function(index, field, value) {
 
   const target = activities[index];
 
-  if (field === 'inputs' || field === 'outputs') {
-    target[field] = value ? value.split(',').map(v => v.trim()).filter(v => v) : [];
-  } else if (field === 'userGroup') {
-    target[field] = (typeof window.cleanPmgUserGroupName === 'function')
-      ? window.cleanPmgUserGroupName(value)
-      : value.trim();
-  } else {
-    target[field] = value.trim();
-  }
+  const normalized = window.normalizePmgEditableValue
+    ? window.normalizePmgEditableValue(field, value)
+    : (typeof value === 'string' ? value.trim() : value);
+  target[field] = normalized;
+  if (field === 'entity') target.isInheritedEntity = false;
 
   // Also sync in tempSubprocesses if activities is different
   if (window.pmgTempSubprocesses && window.pmgTempSubprocesses[index]) {
     window.pmgTempSubprocesses[index][field] = target[field];
+    if (field === 'entity') window.pmgTempSubprocesses[index].isInheritedEntity = false;
   }
 
   window.savePmgStateToLocalStorage();

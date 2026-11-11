@@ -13,6 +13,182 @@ const escHtml = esc;
 window.esc = esc;
 window.escHtml = escHtml;
 
+// ---------- Dialogues stylés (remplace alert / confirm natifs) ----------
+(function initAppStyledDialogs() {
+  if (window.__appDialogsReady) return;
+  window.__appDialogsReady = true;
+
+  const nativeAlert = typeof window.alert === 'function' ? window.alert.bind(window) : null;
+  const nativeConfirm = typeof window.confirm === 'function' ? window.confirm.bind(window) : null;
+  window.__nativeAlert = nativeAlert;
+  window.__nativeConfirm = nativeConfirm;
+
+  const META = {
+    success: { title: 'Succès', icon: '✅', ok: 'OK' },
+    error: { title: 'Erreur', icon: '❌', ok: 'OK' },
+    warn: { title: 'Attention', icon: '⚠️', ok: 'OK' },
+    info: { title: 'Information', icon: 'ℹ️', ok: 'OK' }
+  };
+
+  let queue = [];
+  let busy = false;
+  let confirmResolver = null;
+
+  function inferType(msg) {
+    const s = String(msg || '');
+    if (/erreur|error|échec|failed|impossible/i.test(s) || /❌|⛔/.test(s)) return 'error';
+    if (/attention|warning|veuillez|aucun|vide|manquant|invalide/i.test(s) || /⚠️/.test(s)) return 'warn';
+    if (/succès|réussi|success|appliqué|chargé|enregistr|copié|assigné|harmonisé|sauvegarde|importé|terminé|effectué/i.test(s)
+      || /✅|🚀|✨|🎉|💾|📌|🪄|🎨/.test(s)) return 'success';
+    return 'info';
+  }
+
+  function ensureRoot() {
+    let root = document.getElementById('appStyledDialog');
+    if (root) return root;
+    root = document.createElement('div');
+    root.id = 'appStyledDialog';
+    root.className = 'app-dialog-root';
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML = `
+      <div class="app-dialog-backdrop" data-app-dialog-dismiss="1"></div>
+      <div class="app-dialog-panel" role="alertdialog" aria-modal="true" aria-labelledby="appDialogTitle" aria-describedby="appDialogMessage">
+        <div class="app-dialog-accent"></div>
+        <div class="app-dialog-header">
+          <div class="app-dialog-brand">
+            <span class="app-dialog-icon" id="appDialogIcon">ℹ️</span>
+            <div>
+              <div class="app-dialog-kicker">AuditFlow Pro</div>
+              <h3 class="app-dialog-title" id="appDialogTitle">Information</h3>
+            </div>
+          </div>
+          <button type="button" class="app-dialog-close" data-app-dialog-dismiss="1" title="Fermer" aria-label="Fermer">×</button>
+        </div>
+        <div class="app-dialog-body">
+          <p class="app-dialog-message" id="appDialogMessage"></p>
+        </div>
+        <div class="app-dialog-footer" id="appDialogFooter">
+          <button type="button" class="app-dialog-btn app-dialog-btn-secondary" id="appDialogCancel" hidden>Annuler</button>
+          <button type="button" class="app-dialog-btn app-dialog-btn-primary" id="appDialogOk">OK</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    root.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.getAttribute && t.getAttribute('data-app-dialog-dismiss') === '1') {
+        // Backdrop / close : pour confirm → annuler, pour alert → OK
+        if (confirmResolver) finish(false);
+        else finish(true);
+      }
+    });
+    root.querySelector('#appDialogOk').addEventListener('click', () => finish(true));
+    root.querySelector('#appDialogCancel').addEventListener('click', () => finish(false));
+
+    document.addEventListener('keydown', (e) => {
+      if (!busy || !root.classList.contains('is-open')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (confirmResolver) finish(false);
+        else finish(true);
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        const tag = (document.activeElement && document.activeElement.tagName) || '';
+        if (tag === 'TEXTAREA' || tag === 'BUTTON') return;
+        e.preventDefault();
+        finish(true);
+      }
+    });
+
+    return root;
+  }
+
+  function finish(result) {
+    const root = document.getElementById('appStyledDialog');
+    if (root) {
+      root.classList.remove('is-open');
+      root.setAttribute('aria-hidden', 'true');
+    }
+    const resolver = confirmResolver;
+    confirmResolver = null;
+    busy = false;
+    if (typeof resolver === 'function') {
+      try { resolver(result); } catch (_) { /* ignore */ }
+    }
+    setTimeout(pump, 40);
+  }
+
+  function render(item) {
+    const root = ensureRoot();
+    const type = item.type || inferType(item.message);
+    const meta = META[type] || META.info;
+    root.setAttribute('data-type', type);
+    root.querySelector('#appDialogIcon').textContent = meta.icon;
+    root.querySelector('#appDialogTitle').textContent = item.title || meta.title;
+    root.querySelector('#appDialogMessage').textContent = item.message || '';
+    const cancelBtn = root.querySelector('#appDialogCancel');
+    const okBtn = root.querySelector('#appDialogOk');
+    okBtn.textContent = item.okLabel || (item.mode === 'confirm' ? 'Confirmer' : meta.ok);
+    if (item.mode === 'confirm') {
+      cancelBtn.hidden = false;
+      cancelBtn.textContent = item.cancelLabel || 'Annuler';
+    } else {
+      cancelBtn.hidden = true;
+    }
+    root.classList.add('is-open');
+    root.setAttribute('aria-hidden', 'false');
+    busy = true;
+    confirmResolver = item.resolve;
+    setTimeout(() => {
+      try { okBtn.focus(); } catch (_) { /* ignore */ }
+    }, 30);
+  }
+
+  function pump() {
+    if (busy || !queue.length) return;
+    render(queue.shift());
+  }
+
+  function enqueue(message, opts) {
+    opts = opts || {};
+    return new Promise((resolve) => {
+      queue.push({
+        message: String(message == null ? '' : message),
+        type: opts.type || null,
+        title: opts.title || null,
+        mode: opts.mode || 'alert',
+        okLabel: opts.okLabel || null,
+        cancelLabel: opts.cancelLabel || null,
+        resolve
+      });
+      pump();
+    });
+  }
+
+  window.appAlert = function(message, opts) {
+    return enqueue(message, Object.assign({ mode: 'alert' }, opts || {}));
+  };
+
+  window.appConfirm = function(message, opts) {
+    return enqueue(message, Object.assign({ mode: 'confirm', type: 'warn' }, opts || {}));
+  };
+
+  window.alert = function(message) {
+    // Non bloquant stylé — le code suivant continue (comportement UI moderne)
+    window.appAlert(message);
+  };
+
+  // confirm async : si l'appelant n'attend pas la Promise, on retombe sur le natif
+  // pour ne pas casser les flux synchrones existants (if (confirm(...))).
+  window.confirm = function(message) {
+    if (nativeConfirm) return nativeConfirm(message);
+    return false;
+  };
+
+  // API optionnelle pour confirmer en mode stylé (async)
+  window.confirmAsync = window.appConfirm;
+})();
+
 function escAttr(s) {
   if (s == null) return '';
   return String(s)
