@@ -103,6 +103,8 @@ window.pmgExplicitParents = null; // Set of procIds or null
 window.pmgParentFilter = 'all'; // 'all' | procId | 'shared_only'
 window.pmgActivityOrderMode = 'flow'; // 'flow' | 'diagram' | 'level' | 'xml'
 window.pmgSharedSubprocesses = [];
+/** Limite d'affichage hiérarchique (null = tous les niveaux). Appliquée étapes 2–5 + exports filtrés. */
+window.pmgMaxDisplayLevel = window.pmgMaxDisplayLevel == null ? null : window.pmgMaxDisplayLevel;
 
 // Activity Ordering Modes Definition
 window.PMG_ORDER_MODES = {
@@ -772,6 +774,7 @@ window.savePmgStateToLocalStorage = function() {
       activities: window.pmgActivities || [],
       processDetails: window.pmgProcessDetails || {},
       realizationModes: window.pmgRealizationModes || ['SP0', 'Call Activity', 'Manuelle', 'Automatique'],
+      maxDisplayLevel: window.pmgMaxDisplayLevel == null ? null : window.pmgMaxDisplayLevel,
       timestamp: new Date().toISOString()
     };
 
@@ -804,6 +807,9 @@ window.loadPmgStateFromLocalStorage = function() {
 
     if (state.realizationModes) {
       window.pmgRealizationModes = state.realizationModes;
+    }
+    if (state.maxDisplayLevel !== undefined) {
+      window.pmgMaxDisplayLevel = state.maxDisplayLevel == null ? null : parseInt(state.maxDisplayLevel, 10) || null;
     }
 
     if (state.tempSubprocesses && state.tempSubprocesses.length > 0) {
@@ -3079,9 +3085,14 @@ window.renderPmgStep2ManualTable = function() {
   const tbody = document.getElementById('pmgStep2ManualTableBody');
   if (!tbody) return;
 
-  const activities = window.pmgTempSubprocesses || [];
-  if (activities.length === 0) {
+  const allActivities = window.pmgTempSubprocesses || [];
+  if (allActivities.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord charger des activités.</td></tr>';
+    return;
+  }
+  const activities = window.filterPmgActivitiesByDisplayLevel(allActivities);
+  if (activities.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Aucune activité dans la profondeur sélectionnée. Augmentez la limite de niveaux.</td></tr>';
     return;
   }
 
@@ -3385,10 +3396,55 @@ window.isPmgTypeFilterActive = function() {
   return keys.some(k => filters[k] === false);
 };
 
+window.getPmgTreeMaxLevel = function(acts) {
+  const list = acts || window.pmgTempSubprocesses || window.pmgActivities || [];
+  if (!list.length) return 1;
+  return Math.max(1, ...list.map(a => a.level || 1));
+};
+
+/** Activités visibles selon la limite de profondeur (niveaux > limite masqués). */
+window.filterPmgActivitiesByDisplayLevel = function(acts) {
+  const list = Array.isArray(acts) ? acts : [];
+  const lim = window.pmgMaxDisplayLevel;
+  if (lim == null || lim === '' || lim === 'all') return list.slice();
+  const max = parseInt(lim, 10);
+  if (!Number.isFinite(max) || max < 1) return list.slice();
+  return list.filter(a => (a.level || 1) <= max);
+};
+
+window.getPmgMaxDisplayLevel = function() {
+  const treeMax = window.getPmgTreeMaxLevel();
+  const lim = window.pmgMaxDisplayLevel;
+  if (lim == null || lim === '' || lim === 'all') return treeMax;
+  const n = parseInt(lim, 10);
+  if (!Number.isFinite(n) || n < 1) return treeMax;
+  return Math.min(n, treeMax);
+};
+
+window.onPmgMaxDisplayLevelChange = function(value) {
+  if (value === 'all' || value === '' || value == null) {
+    window.pmgMaxDisplayLevel = null;
+  } else {
+    const n = parseInt(value, 10);
+    window.pmgMaxDisplayLevel = Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  if (typeof window.renderPmgStep2Kpis === 'function') window.renderPmgStep2Kpis();
+  if (typeof window.renderPmgVisualTree === 'function') window.renderPmgVisualTree();
+  if (typeof window.renderPmgStep2ManualTable === 'function') window.renderPmgStep2ManualTable();
+  if (typeof window.renderPmgStep3ManualTable === 'function') window.renderPmgStep3ManualTable();
+  if (typeof window.renderPmgStep4ManualTable === 'function') window.renderPmgStep4ManualTable();
+  if (typeof window.renderAllPmgStepKpis === 'function') window.renderAllPmgStepKpis();
+  if (typeof window.savePmgStateToLocalStorage === 'function') window.savePmgStateToLocalStorage();
+};
+
 window.getPmgFilteredActivities = function() {
   const all = window.pmgActivities || window.pmgTempSubprocesses || [];
-  if (!window.pmgTypeFilters) return all;
-  return all.filter(act => window.isPmgTypeVisible(act.type || act.typeLabel));
+  let list = all;
+  if (window.pmgTypeFilters) {
+    list = list.filter(act => window.isPmgTypeVisible(act.type || act.typeLabel));
+  }
+  return window.filterPmgActivitiesByDisplayLevel(list);
 };
 
 window.renderPmgTypeFilterBar = function() {
@@ -3532,6 +3588,8 @@ window.renderPmgVisualTree = function(activities) {
   } else if (parentFilter !== 'all') {
     filteredByParentActs = allActs.filter(a => a.rootParentId === parentFilter || a.parentProcessId === parentFilter);
   }
+  // Limite de profondeur (Profondeur d'Arbre) — masque les niveaux > limite
+  filteredByParentActs = window.filterPmgActivitiesByDisplayLevel(filteredByParentActs);
 
   const batch = window.pmgBatchResult;
   const rootProcesses = (batch && batch.rootProcesses && batch.rootProcesses.length > 0)
@@ -4316,9 +4374,14 @@ window.renderPmgStep3ManualTable = function() {
   const tbody = document.getElementById('pmgStep3ManualTableBody');
   if (!tbody) return;
 
-  const activities = window.pmgTempSubprocesses || [];
-  if (activities.length === 0) {
+  const allActivities = window.pmgTempSubprocesses || [];
+  if (allActivities.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord charger les activités dans l\'étape 2.</td></tr>';
+    return;
+  }
+  const activities = window.filterPmgActivitiesByDisplayLevel(allActivities);
+  if (activities.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Aucune activité dans la profondeur sélectionnée. Augmentez la limite de niveaux.</td></tr>';
     return;
   }
 
@@ -4540,9 +4603,14 @@ window.renderPmgStep4ManualTable = function() {
   const tbody = document.getElementById('pmgStep4ManualTableBody');
   if (!tbody) return;
 
-  const activities = window.pmgTempSubprocesses || [];
-  if (activities.length === 0) {
+  const allActivities = window.pmgTempSubprocesses || [];
+  if (allActivities.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Veuillez d\'abord valider les activités dans l\'étape 2.</td></tr>';
+    return;
+  }
+  const activities = window.filterPmgActivitiesByDisplayLevel(allActivities);
+  if (activities.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:15px; text-align:center; color:var(--text-tertiary);">Aucune activité dans la profondeur sélectionnée. Augmentez la limite de niveaux.</td></tr>';
     return;
   }
 
@@ -5893,8 +5961,14 @@ window.renderPmgStep2Kpis = function() {
     return;
   }
 
+  const treeMax = window.getPmgTreeMaxLevel(acts);
+  // Clamp si l'arbre a moins de niveaux que la limite mémorisée
+  if (window.pmgMaxDisplayLevel != null && window.pmgMaxDisplayLevel > treeMax) {
+    window.pmgMaxDisplayLevel = treeMax;
+  }
   const filteredActs = typeof window.getPmgFilteredActivities === 'function' ? window.getPmgFilteredActivities() : acts;
-  const maxLevel = filteredActs.length > 0 ? Math.max(...filteredActs.map(a => a.level || 1)) : 1;
+  const displayMax = window.getPmgMaxDisplayLevel();
+  const isLimited = window.pmgMaxDisplayLevel != null && window.pmgMaxDisplayLevel < treeMax;
   const userTasks = filteredActs.filter(a => (a.type || '').toLowerCase().includes('user')).length;
   const serviceTasks = filteredActs.filter(a => (a.type || '').toLowerCase().includes('service') || (a.type || '').toLowerCase().includes('script')).length;
   const callActs = filteredActs.filter(a => (a.type || '').toLowerCase().includes('call') || (a.type || '').toLowerCase().includes('sous-processus')).length;
@@ -5906,16 +5980,27 @@ window.renderPmgStep2Kpis = function() {
     ? 'Activités & flux extraits' 
     : `Activités filtrées (${acts.length} au total)`;
 
+  let levelOpts = `<option value="all"${window.pmgMaxDisplayLevel == null ? ' selected' : ''}>Tous (${treeMax})</option>`;
+  for (let n = 1; n <= treeMax; n++) {
+    const sel = window.pmgMaxDisplayLevel === n ? ' selected' : '';
+    levelOpts += `<option value="${n}"${sel}>Jusqu'au niveau ${n}</option>`;
+  }
+
   container.innerHTML = `
     <div class="pmg-kpi-item">
       <div class="pmg-kpi-label">Volume Affiché &amp; Export</div>
       <div class="pmg-kpi-val" style="color:var(--brand-primary);">${volumeLabel}</div>
       <div class="pmg-kpi-sub">${volumeSub}</div>
     </div>
-    <div class="pmg-kpi-item">
+    <div class="pmg-kpi-item pmg-kpi-item--depth">
       <div class="pmg-kpi-label">Profondeur d'Arbre</div>
-      <div class="pmg-kpi-val" style="color:${maxLevel > 3 ? '#8b5cf6' : '#009cd7'};">Niveau ${maxLevel}</div>
-      <div class="pmg-kpi-sub">Hiérarchie active</div>
+      <div class="pmg-kpi-val" style="color:${isLimited || displayMax > 3 ? '#8b5cf6' : '#009cd7'};">Niveau ${displayMax}${isLimited ? ' / ' + treeMax : ''}</div>
+      <label class="pmg-kpi-sub pmg-depth-limit-label" for="pmgMaxDisplayLevelSelect">Afficher jusqu'à
+        <select id="pmgMaxDisplayLevelSelect" class="pmg-depth-limit-select" title="Limiter l'affichage hiérarchique sur toutes les étapes" onchange="onPmgMaxDisplayLevelChange(this.value)">
+          ${levelOpts}
+        </select>
+      </label>
+      <div class="pmg-kpi-sub">${isLimited ? 'Niveaux &gt; ' + displayMax + ' masqués (toutes étapes)' : 'Hiérarchie active'}</div>
     </div>
     <div class="pmg-kpi-item">
       <div class="pmg-kpi-label">Tâches Humaines (User)</div>
