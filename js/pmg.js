@@ -6052,7 +6052,6 @@ window.renderPmgStep3Kpis = function() {
     <div class="pmg-kpi-item">
       <div class="pmg-kpi-label">Rôles &amp; Entités Distincts</div>
       <div class="pmg-kpi-val" style="color:var(--brand-primary);">${uniqueEntities.size}</div>
-      <div class="pmg-kpi-sub">Pools &amp; Lanes identifiées</div>
     </div>
   `;
 };
