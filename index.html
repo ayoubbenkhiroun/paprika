@@ -1741,7 +1741,7 @@
                     Sous-processus</span>
                   <span style="display:flex;align-items:center;gap:6px"><span
                       style="width:14px;height:14px;background:#ef4444;border-radius:3px;display:inline-block"></span>
-                    Loop Circulaire</span>
+                    Boucle Circulaire</span>
                 </div>
               </div>
             </div>
@@ -3007,10 +3007,10 @@
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                     <div>
                       <h4 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0;">
-                        Étape 3 : Entités &amp; Groupes Utilisateurs (Lanes / Pools / Rôles)
+                        Étape 3 : Entités &amp; Groupes Utilisateurs (Pools / Rôles)
                       </h4>
                       <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
-                        Entités extraites automatiquement des Lanes &amp; Pools BPMN. Modifiables si nécessaire.
+                        Entités extraites automatiquement des Pools BPMN. Modifiables si nécessaire.
                       </div>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -3456,7 +3456,7 @@
                 </div>
                 <div
                   style="border-top: 1px solid var(--border-color); padding-top: 15px; flex: 1; display: flex; flex-direction: column;">
-                  <div class="input-label" style="font-size: 11px; margin-bottom: 8px;">Entités et Lanes impliquées
+                  <div class="input-label" style="font-size: 11px; margin-bottom: 8px;">Entités impliquées
                   </div>
                   <div id="pmgLanesBreakdown"
                     style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 180px;">
@@ -3745,7 +3745,7 @@
               </select>
 
               <select class="srt" id="pmgEntityFilter" onchange="onPmgFilterChange()">
-                <option value="all">Toutes les entités (Pools/Lanes)</option>
+                <option value="all">Toutes les entités (Pools)</option>
               </select>
 
               <button class="btn-ghost" onclick="resetPmgMatrixFilters()">
@@ -4335,7 +4335,7 @@
 
               <h4 class="guide-subtitle">6.3 Matrice de gouvernance</h4>
               <div class="guide-card">
-                <p>Tableau listant chaque activité avec : type de composant, entité réalisatrice (Pool/Lane),
+                <p>Tableau listant chaque activité avec : type de composant, entité réalisatrice (Pool),
                   inputs/outputs extraits du BPMN, champ "Applicable dans quel cas ?" (éditable), commentaire
                   (éditable). Filtres et exports CSV/Excel/PDF.</p>
               </div>
@@ -4344,7 +4344,7 @@
               <div class="guide-card">
                 <p><strong>KPIs :</strong> Score de complétude, complexité globale, volume de données (I/O), total
                   activités.</p>
-                <p><strong>Diagnostics :</strong> Alertes automatiques (documentation incomplète, tâches sans Lane,
+                <p><strong>Diagnostics :</strong> Alertes automatiques (documentation incomplète, tâches sans entité,
                   tâches sans I/O, sous-processus sans paramètres, etc.).</p>
                 <p><strong>Glossaire interactif :</strong> Variables extraites avec type de flux, producteurs,
                   consommateurs, description éditable.</p>
@@ -4705,7 +4705,7 @@
     </div>
   </div>
 
-  <!-- Modal pour le Mappage Groupes Utilisateurs <-> Pools/Lanes & Entités -->
+  <!-- Modal pour le Mappage Groupes Utilisateurs <-> Pools & Entités -->
   <div class="modal" id="modalPmgUserGroupMapping"
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.65); z-index:9999; justify-content:center; align-items:center;">
     <div class="modal-content"
@@ -4715,7 +4715,7 @@
           <span style="font-size:22px;">👥</span>
           <div>
             <h3 style="font-size:16px; font-weight:700; color:var(--text-primary); margin:0;">
-              Mappage des Groupes Utilisateurs &amp; Entités Responsables (Lanes/Pools)
+              Mappage des Groupes Utilisateurs &amp; Entités Responsables (Pools)
             </h3>
             <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
               Acteurs couleurs (DCI/CDD/OPS) + candidateGroups BPMN. Modifiez la cible puis appliquez aux User Tasks.
@@ -4731,7 +4731,7 @@
 
       <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-color); padding-top:14px; flex-wrap:wrap; gap:10px;">
         <div style="font-size:11.5px; color:var(--text-secondary);">
-          💡 Ce mappage permet d'aligner les rôles opérationnels avec la structure organisationnelle (Lanes).
+          💡 Ce mappage permet d'aligner les rôles opérationnels avec la structure organisationnelle (Pools / Entités).
         </div>
         <div style="display:flex; gap:10px;">
           <button class="btn-ghost" onclick="closePmgUserGroupMappingModal()">Fermer</button>

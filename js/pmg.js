@@ -6035,7 +6035,7 @@ window.renderPmgStep3Kpis = function() {
 
   container.innerHTML = `
     <div class="pmg-kpi-item">
-      <div class="pmg-kpi-label">Couverture Entités/Lanes</div>
+      <div class="pmg-kpi-label">Couverture Entités</div>
       <div class="pmg-kpi-val" style="color:${entityCoverage >= 80 ? 'var(--ok)' : 'var(--warn)'};">${entityCoverage}%</div>
       <div class="pmg-kpi-sub">${actsWithEntity.length} / ${acts.length} tâches assignées</div>
     </div>
@@ -6733,16 +6733,7 @@ function extractPmgActivities(xmlDoc) {
       const parentProcId = getParentProcessIdLocal(el);
       const poolName = processIdToPoolName.get(parentProcId);
       
-      let entity = '';
-      if (poolName && laneName) {
-        entity = `${poolName} (Lane: ${laneName})`;
-      } else if (poolName) {
-        entity = poolName;
-      } else if (laneName) {
-        entity = laneName;
-      } else {
-        entity = 'Non défini';
-      }
+      let entity = laneName || poolName || 'Non défini';
       
       // Extract inputs & outputs
       const { inputs, outputs } = extractIoForNode(el);
@@ -7009,7 +7000,7 @@ function populateEntityFilterDropdown() {
     }
   });
   
-  filterEl.innerHTML = '<option value="all">Toutes les entités (Pools/Lanes)</option>';
+  filterEl.innerHTML = '<option value="all">Toutes les entités (Pools)</option>';
   entities.forEach(ent => {
     const opt = document.createElement('option');
     opt.value = ent;
@@ -7318,6 +7309,7 @@ window.renderPmgMatrix = function() {
     const inStr = Array.isArray(act.inputs) ? act.inputs.join(', ') : (act.inputs || '');
     const outStr = Array.isArray(act.outputs) ? act.outputs.join(', ') : (act.outputs || '');
 
+    // Matrice PMG : consultation seule (pas d'icône crayon / pas d'édition)
     return `
       <tr>
         <td style="padding-left: ${indent + 8}px;">
@@ -7327,29 +7319,27 @@ window.renderPmgMatrix = function() {
             <span class="pmg-parent-badge">🏛️ ${esc(parentName)}</span>
             ${sharedHtml}
           </div>
-          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(act.name || '')}" placeholder="Nom activité" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'name', this.value)" style="width:100%; font-weight:600;">`)}
+          <div class="pmg-matrix-field" style="width:100%; font-weight:600;">${escHtml(act.name || '—')}</div>
           <div class="mono" style="font-size:10px;color:var(--text-tertiary); margin-top:2px;">id: ${esc(act.id)}</div>
         </td>
         <td>
           <span class="badge-bpmn ${badgeClass}">${esc(act.typeLabel || act.type)}</span>
         </td>
         <td>
-          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(act.entity || '')}" placeholder="Entité..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'entity', this.value)">`)}
-          <div style="margin-top:4px;">
-            ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(groupVal)}" placeholder="Groupe..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'userGroup', this.value)" style="font-family:var(--font-mono); font-size:11px;">`)}
-          </div>
+          <div class="pmg-matrix-field">${escHtml(act.entity || '—')}</div>
+          <div class="pmg-matrix-field" style="margin-top:4px; font-family:var(--font-mono); font-size:11px;">${escHtml(groupVal || '—')}</div>
         </td>
         <td>
-          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(inStr)}" placeholder="Inputs (virgules)..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'inputs', this.value)" style="color:#1e40af;">`)}
+          <div class="pmg-matrix-field" style="color:#1e40af;">${escHtml(inStr || '—')}</div>
         </td>
         <td>
-          ${window.pmgEditableField(`<input type="text" class="pmg-matrix-field" value="${escAttr(outStr)}" placeholder="Outputs (virgules)..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'outputs', this.value)" style="color:#15803d;">`)}
+          <div class="pmg-matrix-field" style="color:#15803d;">${escHtml(outStr || '—')}</div>
         </td>
         <td>
-          ${window.pmgEditableField(`<textarea class="pmg-case pmg-matrix-field pmg-matrix-textarea" data-id="${escAttr(act.id)}" rows="2" placeholder="Condition..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'applicableCase', this.value)">${escHtml(act.applicableCase || '')}</textarea>`)}
+          <div class="pmg-matrix-field pmg-matrix-textarea" style="white-space:pre-wrap;">${escHtml(act.applicableCase || '—')}</div>
         </td>
         <td>
-          ${window.pmgEditableField(`<textarea class="pmg-comment pmg-matrix-field pmg-matrix-textarea" data-id="${escAttr(act.id)}" rows="2" placeholder="Commentaire..." readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStepActivityField('${actKey}', 'comment', this.value)">${escHtml(act.comment || '')}</textarea>`)}
+          <div class="pmg-matrix-field pmg-matrix-textarea" style="white-space:pre-wrap;">${escHtml(act.comment || '—')}</div>
         </td>
       </tr>
     `;
@@ -8022,8 +8012,8 @@ window.renderPmgDashboard = function() {
     if (orphanCount > 0) {
       alerts.push({
         type: 'warning',
-        title: 'Absence d\'entité réalisatrice (Lanes)',
-        desc: `${orphanCount} tâche${orphanCount > 1 ? 's' : ''} ne sont assignées à aucune Lane/Pool dans le BPMN. Vérifiez l'attribution des rôles opérationnels.`
+        title: 'Absence d\'entité réalisatrice',
+        desc: `${orphanCount} tâche${orphanCount > 1 ? 's' : ''} ne sont assignées à aucune entité / Pool dans le BPMN. Vérifiez l'attribution des rôles opérationnels.`
       });
     }
     
@@ -9324,7 +9314,7 @@ window.renderPmgGlobalGridTable = function(containerId = 'pmgMatrixGlobalGridCon
             <th style="padding:8px 6px; width:45px; text-align:center;">#</th>
             <th style="padding:8px 6px; min-width:180px; text-align:left;">Nom de l'Activité &amp; ID</th>
             <th style="padding:8px 6px; width:110px;">Type BPMN</th>
-            <th style="padding:8px 6px; min-width:130px;">Entité / Lane</th>
+            <th style="padding:8px 6px; min-width:130px;">Entité</th>
             <th style="padding:8px 6px; min-width:140px;">Groupe Utilisateur</th>
             <th style="padding:8px 6px; min-width:140px;">Variables In</th>
             <th style="padding:8px 6px; min-width:140px;">Variables Out</th>
@@ -9587,7 +9577,7 @@ window.renderPmgGovernanceAudit = function(containerId = 'pmgGovernanceAuditCont
           ${userTasksMissingGroup.length === 0 
             ? '<span style="color:var(--ok);">✅ Toutes les User Tasks ont un groupe candidat.</span>' 
             : `<div style="color:var(--warn); margin-bottom:6px;">⚠️ <strong>${userTasksMissingGroup.length} User Task(s) sans groupe :</strong> ${userTasksMissingGroup.map(u => `<code>${escHtml(u.name)}</code>`).slice(0, 3).join(', ')}${userTasksMissingGroup.length > 3 ? '...' : ''}</div>
-               <button class="btn-ghost" style="font-size:11px; padding:4px 8px; border:1px solid var(--brand-primary); color:var(--brand-primary);" onclick="autoFixPmgUserGroups(); renderPmgGovernanceAudit('${containerId}');">✨ Affecter automatiquement depuis les Lanes</button>`
+               <button class="btn-ghost" style="font-size:11px; padding:4px 8px; border:1px solid var(--brand-primary); color:var(--brand-primary);" onclick="autoFixPmgUserGroups(); renderPmgGovernanceAudit('${containerId}');">✨ Affecter automatiquement depuis les Entités</button>`
           }
         </div>
       </div>
@@ -9655,7 +9645,7 @@ window.renderPmgGovernanceAudit = function(containerId = 'pmgGovernanceAuditCont
       <div class="pmg-gov-card">
         <div class="pmg-gov-header">
           <div class="pmg-gov-rule-title">
-            <span>🏢</span> Règle 5 : Affectation des Pools &amp; Lanes
+            <span>🏢</span> Règle 5 : Affectation des Pools &amp; Entités
           </div>
           <span class="pmg-badge-${r5Score >= 85 ? 'ok' : 'warn'}">${r5Score}%</span>
         </div>
@@ -9665,7 +9655,7 @@ window.renderPmgGovernanceAudit = function(containerId = 'pmgGovernanceAuditCont
         <div style="font-size:11.5px;">
           ${tasksMissingEntity.length === 0 
             ? '<span style="color:var(--ok);">✅ 100% des activités sont affectées à une entité métier.</span>' 
-            : `<span style="color:var(--warn);">⚠️ <strong>${tasksMissingEntity.length} tâche(s)</strong> orphelines sans Lane définie.</span>`
+            : `<span style="color:var(--warn);">⚠️ <strong>${tasksMissingEntity.length} tâche(s)</strong> orphelines sans entité définie.</span>`
           }
         </div>
       </div>
@@ -9838,7 +9828,7 @@ window.renderPmgRaciMatrix = function(containerId = 'pmgRaciContainer') {
             👥 Matrice des Responsabilités RACI &amp; Analyse des Passations (Hand-Offs)
           </h4>
           <div style="font-size:12px; color:var(--text-secondary);">
-            Générée automatiquement par croisement des Lanes BPMN et du lignage des flux de données I/O.
+            Générée automatiquement par croisement des Entités BPMN et du lignage des flux de données I/O.
           </div>
         </div>
         <div style="display:flex; gap:12px; align-items:center;">
@@ -10418,7 +10408,7 @@ window.exportPmgMultiSheetExcel = function() {
 
   // --- FEUILLE 2 : Matrice PMG Officielle ---
   const ws2Data = [
-    ["Activité / Call Activity", "ID Technique", "Type de Composant", "Entité / Lane Réalisatrice", "Groupe d'Utilisateurs", "Inputs (Entrées)", "Outputs (Sorties)", "Mode de Réalisation", "Applicable dans quel cas ?", "Commentaires / Documentation"]
+    ["Activité / Call Activity", "ID Technique", "Type de Composant", "Entité Réalisatrice", "Groupe d'Utilisateurs", "Inputs (Entrées)", "Outputs (Sorties)", "Mode de Réalisation", "Applicable dans quel cas ?", "Commentaires / Documentation"]
   ];
   activities.forEach(act => {
     ws2Data.push([
@@ -10569,7 +10559,7 @@ window.renderPmgInteractiveFlow = function(containerId = 'pmgInteractiveFlowCont
           🗺️ Flow Chart Hiérarchique
         </button>
         <button class="btn-ghost" style="${activeTab === 'dataflow' ? 'background:rgba(0,156,215,0.15); color:var(--brand-primary); font-weight:700; border-color:var(--brand-primary);' : ''} padding:6px 14px; font-size:12px;" onclick="switchPmgFlowTab('dataflow')">
-          🔀 Flux de Données Inter-Entités (Lanes)
+          🔀 Flux de Données Inter-Entités
         </button>
         <button class="btn-ghost" style="${activeTab === 'journey' ? 'background:rgba(0,156,215,0.15); color:var(--brand-primary); font-weight:700; border-color:var(--brand-primary);' : ''} padding:6px 14px; font-size:12px;" onclick="switchPmgFlowTab('journey')">
           👤 Parcours Opérateur (User Tasks &amp; Formulaires)
@@ -10718,7 +10708,7 @@ function renderPmgDataFlowContent(activities) {
 
   return `
     <div style="margin-bottom:12px; font-size:12px; color:var(--text-secondary);">
-      Traçabilité complète des données échangées entre chaque Entité / Lane du processus BPMN.
+      Traçabilité complète des données échangées entre chaque Entité du processus BPMN.
     </div>
     ${cardsHtml}
   `;
@@ -10828,7 +10818,7 @@ window.openPmgActivityInspector = function(actId) {
         <div style="display:flex; flex-direction:column; gap:12px; font-size:12.5px;">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
             <div style="background:var(--bg-hover); padding:10px; border-radius:8px;">
-              <strong>🏢 Entité / Lane :</strong>
+              <strong>🏢 Entité :</strong>
               <div style="margin-top:2px; color:var(--text-primary);">${escHtml(act.entity || 'Non spécifiée')}</div>
             </div>
             <div style="background:var(--bg-hover); padding:10px; border-radius:8px;">
