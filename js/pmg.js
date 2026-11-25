@@ -111,8 +111,8 @@ window.PMG_ORDER_MODES = {
   flow: {
     id: 'flow',
     label: '🌊 Flux BPMN (Flow)',
-    title: 'Parcours séquentiel DAG du flux BPMN depuis les débuts',
-    desc: 'Tri par flux d\'exécution séquentiel (StartEvent &rarr; SequenceFlow)'
+    title: 'Compte des flèches // sortantes/entrantes (lanes ignorés)',
+    desc: 'Flux BPMN : compter les sorties d\'un Split // (N chemins) jusqu\'à Merge (entrées) ou End ; ne continuer après un Merge que si toutes ses flèches entrantes sont satisfaites ; puis re-tester s\'il est aussi Split'
   },
   diagram: {
     id: 'diagram',
@@ -5123,9 +5123,10 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
         const reverseAdj = new Map(); // target -> [{ sourceRef, composedCond, fromGateway, gwLabel, isBypass }]
         const incomingCount = new Map();
 
-        // Index des activités + gateways parallèles du process
+        // Index des activités + gateways parallèles + end events du process
         const activityNodeNames = new Map();
         const parallelGatewayIds = new Set();
+        const endEventIds = new Set();
         Array.from(procEl.getElementsByTagName('*')).forEach(el => {
           if (el.prefix === 'zeebe' || el.prefix === 'camunda' || el.prefix === 'modeler') return;
           const ln = (el.localName || '').toLowerCase();
@@ -5133,6 +5134,10 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           if (!id) return;
           if (ln === 'parallelgateway') {
             parallelGatewayIds.add(id);
+            return;
+          }
+          if (ln === 'endevent') {
+            endEventIds.add(id);
             return;
           }
           if (!['usertask', 'servicetask', 'manualtask', 'scripttask', 'sendtask', 'receivetask', 'businessruletask', 'task', 'callactivity', 'subprocess'].includes(ln)) return;
@@ -5425,31 +5430,265 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           if (label) targetToCondition.set(nodeId, label);
         });
 
-        // Compute Execution Flow Topological Order (BFS from startEvents)
+        // Ordre Flux BPMN — compte des flèches // (lanes/pools ignorés) :
+        // 1) Split = flèches SORTANTES : N = outDeg → N chemins à parcourir
+        //    (activités + XOR). Fin d'un chemin = flèche ENTRANTE vers un //
+        //    (Merge) OU End Event. (Captures 1–5)
+        // 2) Phase Split terminée quand les N chemins sont clos (ex. Merge à
+        //    N entrées, ou Merge + End). (Capture 2)
+        // 3) Sur un Merge : ne continuer APRÈS (ex. → SP OPS) que si TOUTES
+        //    ses flèches entrantes ont un prédécesseur déjà parcouru
+        //    (jaune OK + vert pas encore → on ne fait PAS SP OPS). (Capture 6)
+        // 4) Puis re-tester le même gateway : des sorties ? → nouveau Split
+        //    (compter N, etc.). (Capture 3)
         const startEvents = [];
         const startNodes = procEl.querySelectorAll('startEvent, bpmn\\:startEvent');
         startNodes.forEach(sn => {
           const sId = sn.getAttribute('id');
-          if (sId) startEvents.push(sId);
+          if (!sId) return;
+          let p = sn.parentElement;
+          while (p && p !== procEl) {
+            const ln = (p.localName || '').toLowerCase();
+            if (ln === 'subprocess' || ln === 'sub-process') return;
+            p = p.parentElement;
+          }
+          startEvents.push(sId);
         });
 
+        const decisionGatewayIds = new Set(gatewayNames.keys());
         const flowRank = new Map();
         const visitedFlow = new Set();
+        const resumedPoints = new Set();
         let currentRank = 1;
-        const queue = startEvents.length > 0 ? [...startEvents] : [];
 
-        while (queue.length > 0) {
-          const currId = queue.shift();
-          if (visitedFlow.has(currId)) continue;
-          visitedFlow.add(currId);
-          flowRank.set(currId, currentRank++);
-          const targets = flowAdj.get(currId) || [];
-          targets.forEach(tgt => {
-            if (!visitedFlow.has(tgt)) {
-              queue.push(tgt);
+        const outDeg = (id) => (flowAdj.get(id) || []).length;
+        const inDeg = (id) => (reverseAdj.get(id) || []).length;
+        const isParallelGateway = (id) => parallelGatewayIds.has(id);
+        const isParallelSplit = (id) => parallelGatewayIds.has(id) && outDeg(id) > 1;
+        const isParallelMerge = (id) => parallelGatewayIds.has(id) && inDeg(id) > 1;
+        const isDecisionSplit = (id) => decisionGatewayIds.has(id) && outDeg(id) > 1;
+        const isDecisionJoin = (id) => decisionGatewayIds.has(id) && inDeg(id) > 1;
+        const isEndEvent = (id) => endEventIds.has(id);
+
+        const parallelPredIds = (gwId) =>
+          (reverseAdj.get(gwId) || []).map((e) => (e && e.sourceRef) || e).filter(Boolean);
+
+        /** Merge prêt ? toutes les flèches entrantes ont un prédécesseur visité. */
+        const mergeInputsSatisfied = (mergeId) => {
+          const preds = parallelPredIds(mergeId);
+          if (!preds.length) return true;
+          return preds.every((p) => visitedFlow.has(p));
+        };
+
+        const sortFlowTargets = (targets) => {
+          return [...targets].sort((a, b) => {
+            const sa = shapeMap.get(a) || {};
+            const sb = shapeMap.get(b) || {};
+            const ya = sa.y != null ? sa.y : 99999;
+            const yb = sb.y != null ? sb.y : 99999;
+            if (Math.abs(ya - yb) > 15) return ya - yb;
+            const xa = sa.x != null ? sa.x : 99999;
+            const xb = sb.x != null ? sb.x : 99999;
+            if (Math.abs(xa - xb) > 15) return xa - xb;
+            return String(a).localeCompare(String(b));
+          });
+        };
+
+        const findMatchingDecisionMerge = (splitId, hardStops) => {
+          const outs = flowAdj.get(splitId) || [];
+          if (outs.length < 2) return null;
+          const mergeCounts = new Map();
+          const mergeDist = new Map();
+          outs.forEach((start) => {
+            const q = [{ id: start, d: 0 }];
+            const seen = new Set([splitId]);
+            while (q.length) {
+              const { id: n, d } = q.shift();
+              if (seen.has(n)) continue;
+              seen.add(n);
+              if (hardStops && hardStops.has(n)) continue;
+              if (isParallelGateway(n)) continue;
+              if (isDecisionJoin(n)) {
+                mergeCounts.set(n, (mergeCounts.get(n) || 0) + 1);
+                mergeDist.set(n, Math.min(mergeDist.get(n) ?? 99999, d));
+                continue;
+              }
+              (flowAdj.get(n) || []).forEach((t) => {
+                if (!seen.has(t)) q.push({ id: t, d: d + 1 });
+              });
             }
           });
+          let best = null;
+          let bestCount = 1;
+          let bestD = 99999;
+          mergeCounts.forEach((cnt, mid) => {
+            if (cnt < 2) return;
+            const d = mergeDist.get(mid) ?? 99999;
+            if (cnt > bestCount || (cnt === bestCount && d < bestD)) {
+              best = mid;
+              bestCount = cnt;
+              bestD = d;
+            }
+          });
+          return best;
+        };
+
+        const assignFlowNode = (id) => {
+          if (!id || visitedFlow.has(id)) return;
+          visitedFlow.add(id);
+          flowRank.set(id, currentRank++);
+        };
+
+        const pushUnique = (arr, id) => {
+          if (!id || arr.includes(id)) return;
+          arr.push(id);
+        };
+
+        /**
+         * Reprise après un parallel GW :
+         * - flèches sortantes (out>1) → nouveau Split (compter N)
+         * - sinon → successeur(s) unique(s)
+         */
+        const resumeParallelPoint = (gwId) => {
+          if (!gwId || resumedPoints.has(gwId)) return;
+          resumedPoints.add(gwId);
+
+          if (isParallelSplit(gwId)) {
+            handleParallelSplit(gwId, null);
+            return;
+          }
+
+          if (!visitedFlow.has(gwId)) assignFlowNode(gwId);
+          sortFlowTargets(flowAdj.get(gwId) || []).forEach((t) => {
+            walkFlow(t, null, null);
+          });
+        };
+
+        /**
+         * Capture 6 — ne passer un Merge (→ SP OPS) que si toutes les entrées
+         * sont satisfaites (chaque prédécesseur déjà parcouru).
+         */
+        const tryResumeMerge = (mergeId) => {
+          if (!mergeId || resumedPoints.has(mergeId)) return;
+          if (!mergeInputsSatisfied(mergeId)) return;
+          resumeParallelPoint(mergeId);
+        };
+
+        /** Split // : compter N sorties, parcourir N chemins jusqu'à Merge ou End. */
+        const handleParallelSplit = (splitId, stopAt) => {
+          if (!visitedFlow.has(splitId)) assignFlowNode(splitId);
+          const outs = sortFlowTargets(flowAdj.get(splitId) || []);
+          // N = nombre de flèches sortantes
+          const resumePts = [];
+          outs.forEach((t) => {
+            walkFlow(t, stopAt, { untilMerge: true, resumePts, splitOutCount: outs.length });
+          });
+          // N chemins clos → tenter reprise de chaque parallel GW atteint
+          sortFlowTargets(resumePts).forEach((id) => {
+            if (isParallelMerge(id)) {
+              // Merge : seulement si toutes les flèches entrantes sont OK
+              tryResumeMerge(id);
+            } else {
+              // Split imbriqué (out>1, in=1) ou pass-through → reprendre
+              resumeParallelPoint(id);
+            }
+          });
+        };
+
+        /**
+         * @param {string} nodeId
+         * @param {Set<string>|null} stopAt
+         * @param {{ untilMerge: boolean, resumePts: string[], splitOutCount?: number }|null} ctx
+         */
+        const walkFlow = (nodeId, stopAt, ctx) => {
+          if (!nodeId || visitedFlow.has(nodeId)) return;
+          if (stopAt && stopAt.has(nodeId)) return;
+
+          // Sur une branche de Split : End Event = fin de ce chemin (compte pour N)
+          if (ctx && ctx.untilMerge && isEndEvent(nodeId)) {
+            assignFlowNode(nodeId);
+            return;
+          }
+
+          // Sur une branche de Split : parallel GW = flèche rentrante (ou split imbriqué)
+          // → fin de ce chemin, retour aux autres sorties (Captures 4–5)
+          if (ctx && ctx.untilMerge && isParallelGateway(nodeId)) {
+            pushUnique(ctx.resumePts, nodeId);
+            return;
+          }
+
+          // Split // hors branche
+          if (isParallelSplit(nodeId)) {
+            handleParallelSplit(nodeId, stopAt);
+            return;
+          }
+
+          if (isParallelGateway(nodeId)) {
+            if (isParallelMerge(nodeId)) {
+              tryResumeMerge(nodeId);
+              return;
+            }
+            assignFlowNode(nodeId);
+            sortFlowTargets(flowAdj.get(nodeId) || []).forEach((t) => {
+              walkFlow(t, stopAt, ctx);
+            });
+            return;
+          }
+
+          // XOR / OR (autorisés entre Split et Merge)
+          if (isDecisionSplit(nodeId)) {
+            assignFlowNode(nodeId);
+            const hardStops = new Set(stopAt || []);
+            if (ctx && ctx.resumePts) ctx.resumePts.forEach((j) => hardStops.add(j));
+            const mergeId = findMatchingDecisionMerge(nodeId, hardStops);
+            const branchStop = new Set(hardStops);
+            if (mergeId) branchStop.add(mergeId);
+            sortFlowTargets(flowAdj.get(nodeId) || []).forEach((t) => {
+              walkFlow(t, branchStop, ctx);
+            });
+            if (mergeId) walkFlow(mergeId, stopAt, ctx);
+            return;
+          }
+
+          // Activité : assigner puis continuer le parcours sur la même branche
+          assignFlowNode(nodeId);
+          sortFlowTargets(flowAdj.get(nodeId) || []).forEach((t) => {
+            walkFlow(t, stopAt, ctx);
+          });
+        };
+
+        const seeds = startEvents.length > 0
+          ? startEvents
+          : [...flowAdj.keys()].filter((id) => inDeg(id) === 0);
+        seeds.forEach((s) => walkFlow(s, null, null));
+
+        // Balayage restant + re-tentative des merges en attente (2ᵉ flèche entrante)
+        let guard = 0;
+        while (guard++ < 50) {
+          let progressed = false;
+          parallelGatewayIds.forEach((id) => {
+            if (resumedPoints.has(id)) return;
+            if (!isParallelMerge(id)) return;
+            if (!mergeInputsSatisfied(id)) return;
+            // Au moins un prédécesseur déjà vu (sinon merge hors graphe atteint)
+            if (!parallelPredIds(id).some((p) => visitedFlow.has(p))) return;
+            tryResumeMerge(id);
+            progressed = true;
+          });
+          flowAdj.forEach((_, id) => {
+            if (!visitedFlow.has(id) && !isParallelGateway(id)) {
+              walkFlow(id, null, null);
+              if (visitedFlow.has(id)) progressed = true;
+            }
+          });
+          if (!progressed) break;
         }
+        flowAdj.forEach((_, id) => {
+          if (!visitedFlow.has(id)) walkFlow(id, null, null);
+        });
+        reverseAdj.forEach((_, id) => {
+          if (!visitedFlow.has(id)) walkFlow(id, null, null);
+        });
 
         // 5. Extract Tasks & Activities with deep metadata
         const activities = [];
@@ -5798,6 +6037,35 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
         });
       });
     }
+  }
+
+  // Remap flowOrder en DFS arbre : parent → descendants → frère suivant.
+  // Les FO des process appelés (souvent 1,2,3…) ne doivent pas s'intercaler
+  // avant/entre les frères du process père (ex. SP OPS entre CSG et Qualité).
+  if (typeof window.buildPmgActivityForest === 'function' && structuredActivities.length) {
+    const { roots } = window.buildPmgActivityForest(structuredActivities);
+    const byUid = new Map(structuredActivities.map((a) => [a.uniqueId || a.id, a]));
+    let hierRank = 1;
+    const remapDfs = (nodes) => {
+      const sorted = [...(nodes || [])].sort((a, b) => {
+        if (a.rootParentId && b.rootParentId && a.rootParentId !== b.rootParentId) {
+          return String(a.rootParentId).localeCompare(String(b.rootParentId));
+        }
+        const foA = a.flowOrder != null ? a.flowOrder : 9999;
+        const foB = b.flowOrder != null ? b.flowOrder : 9999;
+        if (foA !== foB) return foA - foB;
+        return (a.xmlOrder || 0) - (b.xmlOrder || 0);
+      });
+      sorted.forEach((node) => {
+        const key = node.uniqueId || node.id;
+        const src = byUid.get(key);
+        if (src) src.flowOrder = hierRank;
+        node.flowOrder = hierRank;
+        hierRank++;
+        if (node.children && node.children.length) remapDfs(node.children);
+      });
+    };
+    remapDfs(roots);
   }
 
   return {
