@@ -1,6 +1,5 @@
 /**
- * Simulation locale du walkFlow (compte outs/ins + sync merge)
- * sur Process VDR AvecAjoutDeCouche.bpmn
+ * Simulation walkFlow unifié (// → OR → XOR, compte outs/ins + sync merge)
  */
 const fs = require('fs');
 const path = require('path');
@@ -33,16 +32,13 @@ function allElements(root) {
 
 const processes = allElements(doc).filter((el) => localName(el) === 'process');
 const procEl =
-  processes.find((p) => (p.getAttribute('id') || '').includes('AvecAjout') || p.getAttribute('isExecutable') === 'true') ||
-  processes[0];
-if (!procEl) {
-  console.error('No process found');
-  process.exit(1);
-}
+  processes.find((p) => (p.getAttribute('id') || '').includes('AvecAjout')) || processes[0];
 console.log('Process:', procEl.getAttribute('id'));
 
 const activityNodeNames = new Map();
 const parallelGatewayIds = new Set();
+const exclusiveGatewayIds = new Set();
+const inclusiveGatewayIds = new Set();
 const endEventIds = new Set();
 const gatewayNames = new Map();
 const shapeMap = new Map();
@@ -55,12 +51,22 @@ allElements(procEl).forEach((el) => {
     parallelGatewayIds.add(id);
     return;
   }
-  if (ln === 'endevent') {
-    endEventIds.add(id);
+  if (ln === 'exclusivegateway') {
+    exclusiveGatewayIds.add(id);
+    gatewayNames.set(id, el.getAttribute('name') || '');
     return;
   }
-  if (['exclusivegateway', 'inclusivegateway', 'complexgateway', 'eventbasedgateway'].includes(ln)) {
-    gatewayNames.set(id, el.getAttribute('name') || id);
+  if (ln === 'inclusivegateway') {
+    inclusiveGatewayIds.add(id);
+    gatewayNames.set(id, el.getAttribute('name') || '');
+    return;
+  }
+  if (['complexgateway', 'eventbasedgateway'].includes(ln)) {
+    gatewayNames.set(id, el.getAttribute('name') || '');
+    return;
+  }
+  if (ln === 'endevent') {
+    endEventIds.add(id);
     return;
   }
   if (
@@ -81,7 +87,6 @@ allElements(procEl).forEach((el) => {
   }
 });
 
-// BPMNDI shapes (document-wide)
 allElements(doc).forEach((el) => {
   if (localName(el) !== 'bpmnshape') return;
   const bpmnEl = el.getAttribute('bpmnElement');
@@ -107,7 +112,6 @@ allElements(procEl).forEach((el) => {
   reverseAdj.get(targetRef).push({ sourceRef, id: el.getAttribute('id') });
 });
 
-const decisionGatewayIds = new Set(gatewayNames.keys());
 const flowRank = new Map();
 const visitedFlow = new Set();
 const resumedPoints = new Set();
@@ -115,18 +119,28 @@ let currentRank = 1;
 
 const outDeg = (id) => (flowAdj.get(id) || []).length;
 const inDeg = (id) => (reverseAdj.get(id) || []).length;
-const isParallelGateway = (id) => parallelGatewayIds.has(id);
-const isParallelSplit = (id) => parallelGatewayIds.has(id) && outDeg(id) > 1;
-const isParallelMerge = (id) => parallelGatewayIds.has(id) && inDeg(id) > 1;
-const isDecisionSplit = (id) => decisionGatewayIds.has(id) && outDeg(id) > 1;
-const isDecisionJoin = (id) => decisionGatewayIds.has(id) && inDeg(id) > 1;
 const isEndEvent = (id) => endEventIds.has(id);
 
-const parallelPredIds = (gwId) =>
+const gatewayKind = (id) => {
+  if (parallelGatewayIds.has(id)) return 'parallel';
+  if (inclusiveGatewayIds.has(id)) return 'inclusive';
+  if (exclusiveGatewayIds.has(id)) return 'exclusive';
+  return null;
+};
+const isStructGateway = (id) => gatewayKind(id) != null;
+const isStructSplit = (id) => isStructGateway(id) && outDeg(id) > 1;
+const isStructMerge = (id) => isStructGateway(id) && inDeg(id) > 1;
+
+const isLegacyDecisionSplit = (id) =>
+  gatewayNames.has(id) && !isStructGateway(id) && outDeg(id) > 1;
+const isLegacyDecisionJoin = (id) =>
+  gatewayNames.has(id) && !isStructGateway(id) && inDeg(id) > 1;
+
+const structPredIds = (gwId) =>
   (reverseAdj.get(gwId) || []).map((e) => (e && e.sourceRef) || e).filter(Boolean);
 
 const mergeInputsSatisfied = (mergeId) => {
-  const preds = parallelPredIds(mergeId);
+  const preds = structPredIds(mergeId);
   if (!preds.length) return true;
   return preds.every((p) => visitedFlow.has(p));
 };
@@ -144,7 +158,7 @@ const sortFlowTargets = (targets) =>
     return String(a).localeCompare(String(b));
   });
 
-const findMatchingDecisionMerge = (splitId, hardStops) => {
+const findMatchingLegacyMerge = (splitId, hardStops) => {
   const outs = flowAdj.get(splitId) || [];
   if (outs.length < 2) return null;
   const mergeCounts = new Map();
@@ -157,8 +171,8 @@ const findMatchingDecisionMerge = (splitId, hardStops) => {
       if (seen.has(n)) continue;
       seen.add(n);
       if (hardStops && hardStops.has(n)) continue;
-      if (isParallelGateway(n)) continue;
-      if (isDecisionJoin(n)) {
+      if (isStructGateway(n)) continue;
+      if (isLegacyDecisionJoin(n)) {
         mergeCounts.set(n, (mergeCounts.get(n) || 0) + 1);
         mergeDist.set(n, Math.min(mergeDist.get(n) ?? 99999, d));
         continue;
@@ -194,37 +208,62 @@ const pushUnique = (arr, id) => {
   arr.push(id);
 };
 
-let handleParallelSplit;
+let handleStructSplit;
 let walkFlow;
 
-const resumeParallelPoint = (gwId) => {
+const resumeStructPoint = (gwId, stopAt, outerCtx) => {
   if (!gwId || resumedPoints.has(gwId)) return;
   resumedPoints.add(gwId);
-  if (isParallelSplit(gwId)) {
-    handleParallelSplit(gwId, null);
+  if (isStructSplit(gwId)) {
+    handleStructSplit(gwId, stopAt, outerCtx);
     return;
   }
   if (!visitedFlow.has(gwId)) assignFlowNode(gwId);
-  sortFlowTargets(flowAdj.get(gwId) || []).forEach((t) => walkFlow(t, null, null));
+  sortFlowTargets(flowAdj.get(gwId) || []).forEach((t) => walkFlow(t, stopAt, outerCtx || null));
 };
 
-const tryResumeMerge = (mergeId) => {
+const tryResumeMerge = (mergeId, stopAt, outerCtx) => {
   if (!mergeId || resumedPoints.has(mergeId)) return;
   if (!mergeInputsSatisfied(mergeId)) return;
-  resumeParallelPoint(mergeId);
+  resumeStructPoint(mergeId, stopAt, outerCtx);
 };
 
-handleParallelSplit = (splitId, stopAt) => {
+handleStructSplit = (splitId, stopAt, outerCtx) => {
   if (!visitedFlow.has(splitId)) assignFlowNode(splitId);
+  const kind = gatewayKind(splitId);
   const outs = sortFlowTargets(flowAdj.get(splitId) || []);
   const resumePts = [];
-  outs.forEach((t) => {
-    walkFlow(t, stopAt, { untilMerge: true, resumePts, splitOutCount: outs.length });
-  });
+  const branchCtx = {
+    untilMerge: true,
+    resumePts,
+    splitKind: kind,
+    splitOutCount: outs.length,
+    parentCtx: outerCtx || null
+  };
+  outs.forEach((t) => walkFlow(t, stopAt, branchCtx));
   sortFlowTargets(resumePts).forEach((id) => {
-    if (isParallelMerge(id)) tryResumeMerge(id);
-    else resumeParallelPoint(id);
+    if (isStructMerge(id)) tryResumeMerge(id, stopAt, outerCtx);
+    else resumeStructPoint(id, stopAt, outerCtx);
   });
+};
+
+const stopBranchAtStructGateway = (nodeId, ctx) => {
+  if (!ctx || !ctx.untilMerge || !ctx.resumePts) return false;
+  if (!isStructGateway(nodeId)) return false;
+  const kind = gatewayKind(nodeId);
+  if (kind === ctx.splitKind) {
+    pushUnique(ctx.resumePts, nodeId);
+    return true;
+  }
+  let p = ctx.parentCtx;
+  while (p) {
+    if (p.untilMerge && p.splitKind === kind && p.resumePts) {
+      pushUnique(p.resumePts, nodeId);
+      return true;
+    }
+    p = p.parentCtx;
+  }
+  return false;
 };
 
 walkFlow = (nodeId, stopAt, ctx) => {
@@ -235,28 +274,26 @@ walkFlow = (nodeId, stopAt, ctx) => {
     assignFlowNode(nodeId);
     return;
   }
-  if (ctx && ctx.untilMerge && isParallelGateway(nodeId)) {
-    pushUnique(ctx.resumePts, nodeId);
+  if (stopBranchAtStructGateway(nodeId, ctx)) return;
+
+  if (isStructSplit(nodeId)) {
+    handleStructSplit(nodeId, stopAt, ctx || null);
     return;
   }
-  if (isParallelSplit(nodeId)) {
-    handleParallelSplit(nodeId, stopAt);
-    return;
-  }
-  if (isParallelGateway(nodeId)) {
-    if (isParallelMerge(nodeId)) {
-      tryResumeMerge(nodeId);
+  if (isStructGateway(nodeId)) {
+    if (isStructMerge(nodeId)) {
+      tryResumeMerge(nodeId, stopAt, ctx || null);
       return;
     }
     assignFlowNode(nodeId);
     sortFlowTargets(flowAdj.get(nodeId) || []).forEach((t) => walkFlow(t, stopAt, ctx));
     return;
   }
-  if (isDecisionSplit(nodeId)) {
+  if (isLegacyDecisionSplit(nodeId)) {
     assignFlowNode(nodeId);
     const hardStops = new Set(stopAt || []);
     if (ctx && ctx.resumePts) ctx.resumePts.forEach((j) => hardStops.add(j));
-    const mergeId = findMatchingDecisionMerge(nodeId, hardStops);
+    const mergeId = findMatchingLegacyMerge(nodeId, hardStops);
     const branchStop = new Set(hardStops);
     if (mergeId) branchStop.add(mergeId);
     sortFlowTargets(flowAdj.get(nodeId) || []).forEach((t) => walkFlow(t, branchStop, ctx));
@@ -282,25 +319,35 @@ allElements(procEl).forEach((el) => {
 
 startEvents.forEach((s) => walkFlow(s, null, null));
 
+const allStruct = new Set([...parallelGatewayIds, ...inclusiveGatewayIds, ...exclusiveGatewayIds]);
+const blockedByPendingMerge = (id) => {
+  const preds = structPredIds(id);
+  return preds.some((p) => isStructMerge(p) && !resumedPoints.has(p));
+};
 let guard = 0;
 while (guard++ < 50) {
   let progressed = false;
-  parallelGatewayIds.forEach((id) => {
+  allStruct.forEach((id) => {
     if (resumedPoints.has(id)) return;
-    if (!isParallelMerge(id)) return;
+    if (!isStructMerge(id)) return;
     if (!mergeInputsSatisfied(id)) return;
-    if (!parallelPredIds(id).some((p) => visitedFlow.has(p))) return;
-    tryResumeMerge(id);
+    if (!structPredIds(id).some((p) => visitedFlow.has(p))) return;
+    tryResumeMerge(id, null, null);
     progressed = true;
   });
   flowAdj.forEach((_, id) => {
-    if (!visitedFlow.has(id) && !isParallelGateway(id)) {
-      walkFlow(id, null, null);
-      if (visitedFlow.has(id)) progressed = true;
-    }
+    if (visitedFlow.has(id) || isStructGateway(id)) return;
+    if (blockedByPendingMerge(id)) return;
+    walkFlow(id, null, null);
+    if (visitedFlow.has(id)) progressed = true;
   });
   if (!progressed) break;
 }
+flowAdj.forEach((_, id) => {
+  if (visitedFlow.has(id)) return;
+  if (blockedByPendingMerge(id)) return;
+  walkFlow(id, null, null);
+});
 flowAdj.forEach((_, id) => {
   if (!visitedFlow.has(id)) walkFlow(id, null, null);
 });
@@ -309,46 +356,17 @@ const activities = [...activityNodeNames.entries()]
   .map(([id, name]) => ({ id, name, rank: flowRank.get(id) ?? 999999 }))
   .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
 
-console.log('\n=== Activity order (flowRank) ===');
-activities.forEach((a, i) => {
-  console.log(`${String(i + 1).padStart(3)} | #${String(a.rank).padStart(4)} | ${a.name} (${a.id})`);
+console.log('\n=== Top activities ===');
+activities.slice(0, 15).forEach((a, i) => {
+  console.log(`${String(i + 1).padStart(3)} | #${String(a.rank).padStart(4)} | ${a.name}`);
 });
 
-const focus = [
-  'VDR_verifierEtParametrerInstance',
-  'VDR_recupererLesEvolutionsDemandees',
-  'VDR_verifierEtatDuProjet',
-  'VDR_planificationVerifierMigrationCsg',
-  'VDR_verifierMigrationCsg',
-  'VDR_verifierLaQualiteDesDonnees',
-  'VDR_realiserLaVisiteTechnique',
-  'Activity_0kuin4a',
-  'Gateway_11vyw6v',
-  'Gateway_146gkue',
-  'Gateway_0uzh8cg',
-  'Gateway_0ouyvky'
-];
-
-console.log('\n=== Focus ranks ===');
-focus.forEach((id) => {
-  const name = activityNodeNames.get(id) || id;
-  console.log(
-    `${id} | ${name} | rank=${flowRank.get(id)} visited=${visitedFlow.has(id)} resumed=${resumedPoints.has(id)}`
-  );
-});
-
-console.log('\n=== Gateway_11vyw6v preds ===');
-console.log(
-  parallelPredIds('Gateway_11vyw6v').map((p) => `${p} visited=${visitedFlow.has(p)}`)
-);
-console.log('mergeInputsSatisfied:', mergeInputsSatisfied('Gateway_11vyw6v'));
-console.log('out/in Gateway_0ouyvky:', outDeg('Gateway_0ouyvky'), inDeg('Gateway_0ouyvky'));
-console.log('out/in Gateway_0uzh8cg:', outDeg('Gateway_0uzh8cg'), inDeg('Gateway_0uzh8cg'));
-console.log('out/in Gateway_11vyw6v:', outDeg('Gateway_11vyw6v'), inDeg('Gateway_11vyw6v'));
-console.log('out/in Gateway_146gkue:', outDeg('Gateway_146gkue'), inDeg('Gateway_146gkue'));
-
-const csg = activities.find((a) => /migration CSG/i.test(a.name));
+const csg = activities.find((a) => a.id === 'VDR_verifierMigrationCsg');
 const spOps = activities.find((a) => a.id === 'Activity_0kuin4a');
-if (csg && spOps) {
-  console.log(`\nCSG (#${csg.rank}) ${csg.rank < spOps.rank ? 'BEFORE' : 'AFTER'} SP OPS (#${spOps.rank})`);
-}
+const visite = activities.find((a) => a.id === 'VDR_realiserLaVisiteTechnique');
+console.log('\n=== Focus ===');
+console.log('parallel/inclusive/exclusive counts:', parallelGatewayIds.size, inclusiveGatewayIds.size, exclusiveGatewayIds.size);
+console.log('CSG', csg && csg.rank, 'Visite', visite && visite.rank, 'SP OPS', spOps && spOps.rank);
+console.log('Gateway_11vyw6v resumed', resumedPoints.has('Gateway_11vyw6v'), 'rank', flowRank.get('Gateway_11vyw6v'));
+console.log('preds 11vyw6v', structPredIds('Gateway_11vyw6v').map((p) => `${p}:${visitedFlow.has(p)}`));
+if (csg && spOps) console.log(`CSG ${csg.rank < spOps.rank ? 'BEFORE' : 'AFTER'} SP OPS`);

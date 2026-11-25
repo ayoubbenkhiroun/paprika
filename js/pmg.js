@@ -5662,7 +5662,7 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           : [...flowAdj.keys()].filter((id) => inDeg(id) === 0);
         seeds.forEach((s) => walkFlow(s, null, null));
 
-        // Balayage restant + re-tentative des merges en attente (2ᵉ flèche entrante)
+        // Balayage restant + re-tentative des merges // en attente (2ᵉ flèche entrante)
         let guard = 0;
         while (guard++ < 50) {
           let progressed = false;
