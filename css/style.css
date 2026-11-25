@@ -3867,6 +3867,39 @@ tr:hover td {
   box-shadow: 0 2px 8px rgba(0, 156, 215, 0.3);
 }
 
+.pmg-camunda-viewer-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.pmg-camunda-viewer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(90deg, rgba(0, 156, 215, 0.06), rgba(99, 102, 241, 0.04));
+}
+
+.pmg-camunda-viewer-canvas {
+  height: min(62vh, 560px);
+  min-height: 360px;
+  background: #f8fafc;
+  position: relative;
+}
+
+.pmg-camunda-viewer-canvas .djs-palette,
+.pmg-camunda-viewer-canvas .djs-context-pad,
+.pmg-camunda-viewer-canvas .djs-popup,
+.pmg-camunda-viewer-canvas .djs-direct-editing-parent {
+  display: none !important;
+}
+
 .pmg-alert-card {
   display: flex;
   align-items: flex-start;

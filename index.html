@@ -2941,6 +2941,9 @@
                         <button class="pmg-order-segmented-btn active" id="btnOrderFlow" onclick="setPmgActivityOrderMode('flow')" title="Parcours séquentiel DAG du flux BPMN depuis les débuts">
                           🌊 Flux BPMN (Flow)
                         </button>
+                        <button class="pmg-order-segmented-btn" id="btnOrderCamunda" onclick="setPmgCamundaView()" title="Visualisation Camunda BPMN en lecture seule (zoom uniquement)">
+                          🗺️ Camunda BPMN
+                        </button>
                         <button class="pmg-order-segmented-btn" id="btnOrderDiagram" onclick="setPmgActivityOrderMode('diagram')" title="Position géométrique réelle (coordonnées X, Y sur le diagramme BPMNDI)">
                           📐 Visuel Diagramme (BPMNDI)
                         </button>
@@ -2952,6 +2955,23 @@
                         </button>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- Vue Camunda BPMN (lecture seule : zoom / pan) -->
+                  <div id="pmgCamundaViewerContainer" class="pmg-camunda-viewer-container" style="display: none; margin-top: 10px;">
+                    <div class="pmg-camunda-viewer-toolbar">
+                      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-weight: 600; font-size: 13px; color: var(--text-primary);">🗺️ Diagramme Camunda (lecture seule)</span>
+                        <select id="pmgCamundaFileSelect" class="pmg-input-field" style="height: 32px; font-size: 12px; min-width: 220px; max-width: 360px;"
+                          onchange="pmgCamundaLoadSelectedFile()" title="Fichier BPMN à afficher"></select>
+                      </div>
+                      <div style="display: flex; gap: 6px; align-items: center;">
+                        <button type="button" class="btn-ghost" style="padding: 4px 10px; font-size: 11px; height: 32px;" onclick="pmgCamundaZoomIn()" title="Zoom avant">🔍 +</button>
+                        <button type="button" class="btn-ghost" style="padding: 4px 10px; font-size: 11px; height: 32px;" onclick="pmgCamundaZoomOut()" title="Zoom arrière">🔍 −</button>
+                        <button type="button" class="btn-ghost" style="padding: 4px 10px; font-size: 11px; height: 32px;" onclick="pmgCamundaZoomFit()" title="Ajuster à la vue">📐 Ajuster</button>
+                      </div>
+                    </div>
+                    <div id="pmgCamundaViewerCanvas" class="pmg-camunda-viewer-canvas"></div>
                   </div>
 
                   <!-- Composant Arborescence Visuelle Intelligente (Tree View) -->
@@ -5532,6 +5552,15 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="https://unpkg.com/bpmn-js@17.11.1/dist/bpmn-modeler.production.min.js"></script>
+  <script>
+    // Préserver le Modeler (Academy Studio) puis exposer NavigatedViewer en lecture seule
+    window.BpmnModeler = window.BpmnJS;
+  </script>
+  <script src="https://unpkg.com/bpmn-js@17.11.1/dist/bpmn-navigated-viewer.production.min.js"></script>
+  <script>
+    window.BpmnNavigatedViewer = window.BpmnJS;
+    window.BpmnJS = window.BpmnModeler || window.BpmnJS;
+  </script>
   <script src="js/db.js?v=2026_c8_v3.0.0"></script>
   <script src="js/rules.js?v=2026_c8_v3.0.0"></script>
   <script src="js/bpmn_rules.js?v=2026_c8_v3.0.0"></script>

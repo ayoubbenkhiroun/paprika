@@ -102,6 +102,9 @@ window.pmgRootProcesses = [];
 window.pmgExplicitParents = null; // Set of procIds or null
 window.pmgParentFilter = 'all'; // 'all' | procId | 'shared_only'
 window.pmgActivityOrderMode = 'flow'; // 'flow' | 'diagram' | 'level' | 'xml'
+window.pmgUiViewMode = 'order'; // 'order' | 'camunda'
+window.pmgCamundaViewerInstance = null;
+window.pmgCamundaSelectedFile = null;
 window.pmgSharedSubprocesses = [];
 /** Limite d'affichage hiérarchique (null = tous les niveaux). Appliquée étapes 2–5 + exports filtrés. */
 window.pmgMaxDisplayLevel = window.pmgMaxDisplayLevel == null ? null : window.pmgMaxDisplayLevel;
@@ -330,6 +333,9 @@ window.buildPmgStepHierarchyCard = function(act, opts) {
 window.setPmgActivityOrderMode = function(mode) {
   if (!window.PMG_ORDER_MODES[mode]) return;
   window.pmgActivityOrderMode = mode;
+  window.pmgUiViewMode = 'order';
+
+  if (window.hidePmgCamundaView) window.hidePmgCamundaView();
 
   document.querySelectorAll('.pmg-order-segmented-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -354,6 +360,144 @@ window.setPmgActivityOrderMode = function(mode) {
   if (window.renderPmgStep3ManualTable) window.renderPmgStep3ManualTable();
   if (window.renderPmgStep4ManualTable) window.renderPmgStep4ManualTable();
   if (window.renderPmgMatrix) window.renderPmgMatrix();
+};
+
+/** Vue Camunda BPMN lecture seule (zoom / pan) — n'altère pas le mode de tri. */
+window.setPmgCamundaView = function() {
+  window.pmgUiViewMode = 'camunda';
+
+  document.querySelectorAll('.pmg-order-segmented-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  const camundaBtn = document.getElementById('btnOrderCamunda');
+  if (camundaBtn) camundaBtn.classList.add('active');
+
+  const descEl = document.getElementById('pmgActiveOrderModeDesc');
+  if (descEl) {
+    descEl.textContent = 'Visualisation Camunda BPMN en lecture seule — zoom / panoramique uniquement (tri inchangé)';
+  }
+
+  const treeContainer = document.getElementById('pmgVisualTreeContainer');
+  if (treeContainer) treeContainer.style.display = 'none';
+
+  const viewerContainer = document.getElementById('pmgCamundaViewerContainer');
+  if (viewerContainer) viewerContainer.style.display = 'block';
+
+  window.pmgCamundaPopulateFileSelect();
+  window.pmgCamundaLoadSelectedFile();
+};
+
+window.hidePmgCamundaView = function() {
+  const viewerContainer = document.getElementById('pmgCamundaViewerContainer');
+  if (viewerContainer) viewerContainer.style.display = 'none';
+
+  const treeContainer = document.getElementById('pmgVisualTreeContainer');
+  if (treeContainer) treeContainer.style.display = '';
+
+  if (window.pmgCamundaViewerInstance) {
+    try { window.pmgCamundaViewerInstance.destroy(); } catch (e) {}
+    window.pmgCamundaViewerInstance = null;
+  }
+};
+
+window.pmgCamundaPopulateFileSelect = function() {
+  const select = document.getElementById('pmgCamundaFileSelect');
+  if (!select) return;
+
+  const entries = window.pmgCurrentFileEntries || [];
+  const prev = window.pmgCamundaSelectedFile || select.value || '';
+
+  // Priorité : fichier du process parent filtré, sinon 1er fichier
+  let preferred = prev;
+  if (!preferred && window.pmgBatchResult && window.pmgBatchResult.rootProcesses) {
+    const parentFilter = window.pmgParentFilter || 'all';
+    const roots = window.pmgBatchResult.rootProcesses;
+    const match = parentFilter !== 'all' && parentFilter !== 'shared_only'
+      ? roots.find((r) => r.id === parentFilter)
+      : roots[0];
+    if (match && match.fileName) preferred = match.fileName;
+  }
+  if (!preferred && entries[0]) preferred = entries[0].fileName;
+
+  select.innerHTML = '';
+  if (!entries.length) {
+    select.innerHTML = '<option value="">Aucun fichier BPMN importé</option>';
+    window.pmgCamundaSelectedFile = null;
+    return;
+  }
+
+  entries.forEach((entry) => {
+    const opt = document.createElement('option');
+    opt.value = entry.fileName;
+    opt.textContent = entry.fileName;
+    if (entry.fileName === preferred) opt.selected = true;
+    select.appendChild(opt);
+  });
+  window.pmgCamundaSelectedFile = select.value || preferred || entries[0].fileName;
+};
+
+window.pmgCamundaGetViewerCtor = function() {
+  return window.BpmnNavigatedViewer || window.BpmnJS || null;
+};
+
+window.pmgCamundaLoadSelectedFile = async function() {
+  const select = document.getElementById('pmgCamundaFileSelect');
+  const canvasEl = document.getElementById('pmgCamundaViewerCanvas');
+  if (!canvasEl) return;
+
+  const fileName = (select && select.value) || window.pmgCamundaSelectedFile;
+  window.pmgCamundaSelectedFile = fileName || null;
+
+  const entries = window.pmgCurrentFileEntries || [];
+  const entry = entries.find((e) => e.fileName === fileName) || entries[0];
+
+  if (window.pmgCamundaViewerInstance) {
+    try { window.pmgCamundaViewerInstance.destroy(); } catch (e) {}
+    window.pmgCamundaViewerInstance = null;
+  }
+  canvasEl.innerHTML = '';
+
+  if (!entry || !entry.content) {
+    canvasEl.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-tertiary);">Importez des fichiers BPMN à l’étape 1 pour afficher le diagramme.</div>';
+    return;
+  }
+
+  const ViewerCtor = window.pmgCamundaGetViewerCtor();
+  if (!ViewerCtor) {
+    canvasEl.innerHTML = '<div style="padding:40px; text-align:center; color:var(--err);">Bibliothèque bpmn-js (NavigatedViewer) indisponible.</div>';
+    return;
+  }
+
+  try {
+    window.pmgCamundaViewerInstance = new ViewerCtor({
+      container: canvasEl
+    });
+    await window.pmgCamundaViewerInstance.importXML(entry.content);
+    const canvas = window.pmgCamundaViewerInstance.get('canvas');
+    canvas.zoom('fit-viewport');
+  } catch (err) {
+    console.error('Erreur vue Camunda PMG:', err);
+    canvasEl.innerHTML = `<div style="padding:40px; text-align:center; color:#dc2626;"><strong>Erreur d’affichage :</strong><p>${String(err && err.message ? err.message : err)}</p></div>`;
+    window.pmgCamundaViewerInstance = null;
+  }
+};
+
+window.pmgCamundaZoomIn = function() {
+  if (!window.pmgCamundaViewerInstance) return;
+  const canvas = window.pmgCamundaViewerInstance.get('canvas');
+  canvas.zoom(canvas.zoom() * 1.25);
+};
+
+window.pmgCamundaZoomOut = function() {
+  if (!window.pmgCamundaViewerInstance) return;
+  const canvas = window.pmgCamundaViewerInstance.get('canvas');
+  canvas.zoom(canvas.zoom() * 0.8);
+};
+
+window.pmgCamundaZoomFit = function() {
+  if (!window.pmgCamundaViewerInstance) return;
+  const canvas = window.pmgCamundaViewerInstance.get('canvas');
+  canvas.zoom('fit-viewport');
 };
 
 window.openPmgParentProcessModal = function() {
@@ -536,7 +680,13 @@ window.renderPmgParentFilterBar = function() {
 window.setPmgParentFilter = function(filterVal) {
   window.pmgParentFilter = filterVal;
   window.renderPmgParentFilterBar();
-  if (window.renderPmgVisualTree) window.renderPmgVisualTree();
+  if (window.pmgUiViewMode === 'camunda') {
+    window.pmgCamundaSelectedFile = null;
+    window.pmgCamundaPopulateFileSelect();
+    window.pmgCamundaLoadSelectedFile();
+  } else {
+    if (window.renderPmgVisualTree) window.renderPmgVisualTree();
+  }
   if (window.renderPmgStep2ManualTable) window.renderPmgStep2ManualTable();
 };
 
@@ -6155,7 +6305,13 @@ window.populatePmgAllStepsFromBpmnBatch = function(batchResult) {
   window.syncPmgStep1Metadata();
 
   if (window.renderPmgParentFilterBar) window.renderPmgParentFilterBar();
-  if (window.renderPmgVisualTree) window.renderPmgVisualTree(activities);
+  if (window.pmgUiViewMode === 'camunda') {
+    window.pmgCamundaSelectedFile = null;
+    window.pmgCamundaPopulateFileSelect();
+    window.pmgCamundaLoadSelectedFile();
+  } else if (window.renderPmgVisualTree) {
+    window.renderPmgVisualTree(activities);
+  }
   if (window.renderPmgStep2ManualTable) window.renderPmgStep2ManualTable();
   if (window.renderPmgStep3ManualTable) window.renderPmgStep3ManualTable();
   if (window.renderPmgDataLineageAudit) window.renderPmgDataLineageAudit();
