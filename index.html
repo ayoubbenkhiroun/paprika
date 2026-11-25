@@ -2809,7 +2809,16 @@
                           <button type="button" class="pmg-edit-toggle" onclick="event.preventDefault(); togglePmgEditableField(this);" title="Modifier ce champ" aria-label="Modifier ce champ">✏️</button>
                         </div>
                       </div>
-                      <div class="form-group" style="margin:0">
+                                            <div class="form-group" style="margin:0">
+                        <label class="input-label">Version plateforme Camunda</label>
+                        <div class="pmg-editable-wrap">
+                          <input type="text" id="pmgPlatformVersionStep" class="pmg-input-field" value=""
+                            placeholder="Ex: Camunda Cloud 8.8.0" readonly onblur="lockPmgEditableField(this)" oninput="syncPmgStep1Metadata()"
+                            title="modeler:executionPlatform + modeler:executionPlatformVersion">
+                          <button type="button" class="pmg-edit-toggle" onclick="event.preventDefault(); togglePmgEditableField(this);" title="modifier ce champ" aria-label="modifier ce champ">✏️</button>
+                        </div>
+                      </div>
+<div class="form-group" style="margin:0">
                         <label class="input-label">Acronymes / Badges projet (En-tête Excel)</label>
                         <div class="pmg-editable-wrap">
                           <input type="text" id="pmgProjectBadgesStep" class="pmg-input-field"
@@ -3627,6 +3636,11 @@
               <div class="form-group" style="margin:0">
                 <label class="input-label">Version du Processus</label>
                 <input type="text" id="pmgProcessVersion" placeholder="Ex: v1.0.0" oninput="savePmgDetails()">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="input-label">Version plateforme Camunda</label>
+                <input type="text" id="pmgPlatformVersion" placeholder="Ex: Camunda Cloud 8.8.0" oninput="savePmgDetails()"
+                  title="modeler:executionPlatformVersion">
               </div>
               <div class="form-group" style="margin:0">
                 <label class="input-label">Propriétaire Métier (Owner)</label>

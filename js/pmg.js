@@ -912,6 +912,7 @@ window.savePmgStateToLocalStorage = function() {
       owner: document.getElementById('pmgProcessOwnerStep')?.value || document.getElementById('pmgProcessOwner')?.value || '',
       exporter: document.getElementById('pmgExporterStep')?.value || document.getElementById('pmgExporter')?.value || '',
       version: document.getElementById('pmgProcessVersionStep')?.value || document.getElementById('pmgProcessVersion')?.value || '',
+      platformVersion: document.getElementById('pmgPlatformVersionStep')?.value || document.getElementById('pmgPlatformVersion')?.value || '',
       badges: document.getElementById('pmgProjectBadgesStep')?.value || '',
       defaultFille: document.getElementById('pmgDefaultProcessFilleStep')?.value || '',
       desc: document.getElementById('pmgProcessDescStep')?.value || document.getElementById('pmgProcessDesc')?.value || ''
@@ -949,6 +950,7 @@ window.loadPmgStateFromLocalStorage = function() {
       if (document.getElementById('pmgProcessOwnerStep')) document.getElementById('pmgProcessOwnerStep').value = state.meta.owner || '';
       if (document.getElementById('pmgExporterStep')) document.getElementById('pmgExporterStep').value = state.meta.exporter || '';
       if (document.getElementById('pmgProcessVersionStep')) document.getElementById('pmgProcessVersionStep').value = state.meta.version || '';
+      if (document.getElementById('pmgPlatformVersionStep')) document.getElementById('pmgPlatformVersionStep').value = state.meta.platformVersion || '';
       if (document.getElementById('pmgProjectBadgesStep')) document.getElementById('pmgProjectBadgesStep').value = state.meta.badges || '';
       if (document.getElementById('pmgDefaultProcessFilleStep')) document.getElementById('pmgDefaultProcessFilleStep').value = state.meta.defaultFille || '';
       if (document.getElementById('pmgProcessDescStep')) document.getElementById('pmgProcessDescStep').value = state.meta.desc || '';
@@ -1018,6 +1020,7 @@ window.syncPmgStep1Metadata = function() {
     owner: document.getElementById('pmgProcessOwnerStep')?.value || 'Direction Métier',
     exporter: document.getElementById('pmgExporterStep')?.value || 'Équipe PMG / Modélisateur',
     version: document.getElementById('pmgProcessVersionStep')?.value || 'v1.0.0',
+    platformVersion: document.getElementById('pmgPlatformVersionStep')?.value || '',
     badges: document.getElementById('pmgProjectBadgesStep')?.value || 'CDD / CPE / SGP / SP0 / DMN',
     defaultFille: document.getElementById('pmgDefaultProcessFilleStep')?.value || 'NA',
     desc: document.getElementById('pmgProcessDescStep')?.value || ''
@@ -1028,6 +1031,7 @@ window.syncPmgStep1Metadata = function() {
   if (document.getElementById('pmgProcessOwner')) document.getElementById('pmgProcessOwner').value = window.pmgProcessDetails.owner;
   if (document.getElementById('pmgExporter')) document.getElementById('pmgExporter').value = window.pmgProcessDetails.exporter;
   if (document.getElementById('pmgProcessVersion')) document.getElementById('pmgProcessVersion').value = window.pmgProcessDetails.version;
+  if (document.getElementById('pmgPlatformVersion')) document.getElementById('pmgPlatformVersion').value = window.pmgProcessDetails.platformVersion || '';
   if (document.getElementById('pmgProcessDesc')) document.getElementById('pmgProcessDesc').value = window.pmgProcessDetails.desc;
 
   window.savePmgStateToLocalStorage();
@@ -5003,6 +5007,49 @@ window.validatePmgStep4AndFinish = window.validatePmgStep5AndFinish; // backward
 // ONE-SHOT BPMN BATCH IMPORT & MULTI-PROCESS HIERARCHY RESOLUTION ENGINE
 // =========================================================================
 
+/** Normalise <zeebe:versionTag value="version 17.2.0" /> → "v17.2.0". */
+window.normalizePmgZeebeVersionTag = function(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const withoutPrefix = s.replace(/^version\s+/i, '').trim();
+  if (!withoutPrefix) return '';
+  return /^v/i.test(withoutPrefix) ? withoutPrefix : `v${withoutPrefix}`;
+};
+
+/** Extrait zeebe:versionTag depuis un élément <process> (niveau process uniquement). */
+window.extractPmgProcessVersionTag = function(procEl) {
+  if (!procEl) return '';
+
+  const local = (el) => (el.localName || el.nodeName || '').replace(/^.*:/, '').toLowerCase();
+
+  // process > extensionElements > versionTag (enfants directs uniquement)
+  const children = procEl.children || procEl.childNodes || [];
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (!child || child.nodeType !== 1) continue;
+    if (local(child) !== 'extensionelements') continue;
+    const extKids = child.children || child.childNodes || [];
+    for (let j = 0; j < extKids.length; j++) {
+      const tag = extKids[j];
+      if (!tag || tag.nodeType !== 1) continue;
+      if (local(tag) !== 'versiontag') continue;
+      const raw = (tag.getAttribute('value') || tag.textContent || '').trim();
+      return window.normalizePmgZeebeVersionTag(raw);
+    }
+  }
+
+  // Fallback querySelector
+  if (procEl.querySelector) {
+    const q = procEl.querySelector(
+      ':scope > extensionElements > versionTag, :scope > extensionElements > zeebe\\:versionTag, :scope > bpmn\\:extensionElements > zeebe\\:versionTag'
+    );
+    if (q) {
+      return window.normalizePmgZeebeVersionTag((q.getAttribute('value') || q.textContent || '').trim());
+    }
+  }
+  return '';
+};
+
 window.handlePmgOneShotBpmnFiles = function(files) {
   if (!files || files.length === 0) return;
 
@@ -5241,6 +5288,22 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
         const defs = xmlDoc.documentElement;
         const exporter = defs.getAttribute('exporter') || 'Camunda Modeler';
         const exporterVersion = defs.getAttribute('exporterVersion') || '5.x';
+        const executionPlatform =
+          defs.getAttribute('modeler:executionPlatform') ||
+          defs.getAttribute('executionPlatform') ||
+          (typeof defs.getAttributeNS === 'function'
+            ? (defs.getAttributeNS('http://camunda.org/schema/modeler/1.0', 'executionPlatform') || '')
+            : '');
+        const executionPlatformVersion =
+          defs.getAttribute('modeler:executionPlatformVersion') ||
+          defs.getAttribute('executionPlatformVersion') ||
+          (typeof defs.getAttributeNS === 'function'
+            ? (defs.getAttributeNS('http://camunda.org/schema/modeler/1.0', 'executionPlatformVersion') || '')
+            : '');
+        const platformVersionLabel = [executionPlatform, executionPlatformVersion].filter(Boolean).join(' ').trim();
+
+        // Version métier Zeebe : <zeebe:versionTag value="version 17.2.0" />
+        const versionTag = window.extractPmgProcessVersionTag(procEl);
 
         // 3. Lane Mapping
         const nodeToLane = new Map();
@@ -6014,6 +6077,10 @@ window.parseBpmnBatchForPmg = function(fileEntries) {
           isExecutable,
           exporter,
           exporterVersion,
+          executionPlatform,
+          executionPlatformVersion,
+          platformVersion: platformVersionLabel,
+          versionTag,
           description: procDoc,
           activities,
           callActivities,
@@ -6288,7 +6355,10 @@ window.populatePmgAllStepsFromBpmnBatch = function(batchResult) {
     name: parentNamesTitle || 'Processus Multi-Parents',
     owner: '',
     exporter: root.exporter ? `${root.exporter} ${root.exporterVersion || ''}`.trim() : '',
-    version: root.isExecutable === 'true' ? 'v1.0.0' : '',
+    // Version = zeebe:versionTag du process parent (plus de placeholder v1.0.0)
+    version: root.versionTag || '',
+    // Plateforme = modeler:executionPlatform + executionPlatformVersion
+    platformVersion: root.platformVersion || [root.executionPlatform, root.executionPlatformVersion].filter(Boolean).join(' ').trim(),
     badges: batchResult.rootProcesses.length > 1 ? `Multi-Parents (${batchResult.rootProcesses.length})` : 'CDD / CPE / SGP / SP0',
     defaultFille: '',
     desc: root.description || `Cartographie multi-processus (${batchResult.rootProcesses.length} parents, ${batchResult.structuredActivities.length} activités).`
@@ -6299,6 +6369,7 @@ window.populatePmgAllStepsFromBpmnBatch = function(batchResult) {
   if (document.getElementById('pmgProcessOwnerStep')) document.getElementById('pmgProcessOwnerStep').value = window.pmgProcessDetails.owner;
   if (document.getElementById('pmgExporterStep')) document.getElementById('pmgExporterStep').value = window.pmgProcessDetails.exporter;
   if (document.getElementById('pmgProcessVersionStep')) document.getElementById('pmgProcessVersionStep').value = window.pmgProcessDetails.version;
+  if (document.getElementById('pmgPlatformVersionStep')) document.getElementById('pmgPlatformVersionStep').value = window.pmgProcessDetails.platformVersion || '';
   if (document.getElementById('pmgProjectBadgesStep')) document.getElementById('pmgProjectBadgesStep').value = window.pmgProcessDetails.badges;
   if (document.getElementById('pmgDefaultProcessFilleStep')) document.getElementById('pmgDefaultProcessFilleStep').value = window.pmgProcessDetails.defaultFille;
   if (document.getElementById('pmgProcessDescStep')) document.getElementById('pmgProcessDescStep').value = window.pmgProcessDetails.desc;
@@ -6347,7 +6418,7 @@ window.renderPmgStep1Kpis = function() {
   if (!container) return;
 
   const details = window.pmgProcessDetails || {};
-  const fields = [details.name, details.id, details.owner, details.exporter, details.version, details.desc];
+  const fields = [details.name, details.id, details.owner, details.exporter, details.version, details.platformVersion, details.desc];
   const filledCount = fields.filter(f => f && f.trim().length > 0).length;
   const pct = Math.round((filledCount / fields.length) * 100);
 
@@ -6372,7 +6443,7 @@ window.renderPmgStep1Kpis = function() {
     <div class="pmg-kpi-item">
       <div class="pmg-kpi-label">Outil Modélisateur</div>
       <div class="pmg-kpi-val" style="font-size:13.5px; color:#64748b;">${escHtml(details.exporter ? (details.exporter.length > 22 ? details.exporter.substring(0, 20) + '...' : details.exporter) : 'Camunda Modeler')}</div>
-      <div class="pmg-kpi-sub">Version : ${escHtml(details.version || 'v1.0.0')}</div>
+      <div class="pmg-kpi-sub">Process : ${escHtml(details.version || '—')} · Plateforme : ${escHtml(details.platformVersion || '—')}</div>
     </div>
   `;
 };
@@ -7008,13 +7079,29 @@ window.handlePmgFile = function(file) {
       const processes = window.pmgXmlDoc.getElementsByTagNameNS ? window.pmgXmlDoc.getElementsByTagNameNS('*', 'process') : window.pmgXmlDoc.getElementsByTagName('process');
       if (processes.length > 0) {
         const proc = processes[0];
+        const defs = window.pmgXmlDoc.documentElement;
+        const exporter = defs.getAttribute('exporter') || '';
+        const exporterVersion = defs.getAttribute('exporterVersion') || '';
+        const executionPlatform =
+          defs.getAttribute('modeler:executionPlatform') ||
+          defs.getAttribute('executionPlatform') ||
+          (typeof defs.getAttributeNS === 'function'
+            ? (defs.getAttributeNS('http://camunda.org/schema/modeler/1.0', 'executionPlatform') || '')
+            : '');
+        const executionPlatformVersion =
+          defs.getAttribute('modeler:executionPlatformVersion') ||
+          defs.getAttribute('executionPlatformVersion') ||
+          (typeof defs.getAttributeNS === 'function'
+            ? (defs.getAttributeNS('http://camunda.org/schema/modeler/1.0', 'executionPlatformVersion') || '')
+            : '');
         window.pmgProcessDetails = {
           id: proc.getAttribute('id') || '',
           name: proc.getAttribute('name') || proc.getAttribute('id') || '',
           isExecutable: proc.getAttribute('isExecutable') || 'false',
-          exporter: window.pmgXmlDoc.documentElement.getAttribute('exporter') || '',
-          exporterVersion: window.pmgXmlDoc.documentElement.getAttribute('exporterVersion') || '',
-          version: '',
+          exporter: exporterVersion ? `${exporter} ${exporterVersion}`.trim() : exporter,
+          exporterVersion,
+          version: window.extractPmgProcessVersionTag(proc),
+          platformVersion: [executionPlatform, executionPlatformVersion].filter(Boolean).join(' ').trim(),
           owner: '',
           desc: ''
         };
@@ -7026,6 +7113,7 @@ window.handlePmgFile = function(file) {
           exporter: '',
           exporterVersion: '',
           version: '',
+          platformVersion: '',
           owner: '',
           desc: ''
         };
@@ -7300,6 +7388,7 @@ window.savePmgDetails = function() {
     id: processId,
     name: document.getElementById('pmgProcessName').value,
     version: document.getElementById('pmgProcessVersion').value,
+    platformVersion: document.getElementById('pmgPlatformVersion')?.value || '',
     owner: document.getElementById('pmgProcessOwner').value,
     exporter: document.getElementById('pmgExporter').value,
     isExecutable: document.getElementById('pmgIsExecutable').value,
@@ -7378,6 +7467,9 @@ function loadPmgData(processId) {
       document.getElementById('pmgProcessName').value = details.name || '';
       document.getElementById('pmgProcessId').value = details.id || '';
       document.getElementById('pmgProcessVersion').value = details.version || '';
+      if (document.getElementById('pmgPlatformVersion')) {
+        document.getElementById('pmgPlatformVersion').value = details.platformVersion || '';
+      }
       document.getElementById('pmgProcessOwner').value = details.owner || '';
       document.getElementById('pmgExporter').value = details.exporter || '';
       document.getElementById('pmgIsExecutable').value = details.isExecutable || 'false';
