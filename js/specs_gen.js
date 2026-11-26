@@ -932,7 +932,7 @@
           <!-- Couloirs / Acteurs (Lanes) -->
           ${proc.lanes.length > 0 ? `
             <div style="margin-top:14px; padding:10px 14px; background:#fff; border:1px solid var(--border-color); border-radius:var(--border-radius-sm);">
-              <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-secondary);">Acteurs &amp; Couloirs Responsables (Lanes) :</span>
+              <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-secondary);">Acteurs &amp; Couloirs Responsables :</span>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
                 ${proc.lanes.map(l => `<span class="badge" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px;">👤 ${lintEsc(l.name)}</span>`).join('')}
               </div>
@@ -1349,7 +1349,7 @@
       md += `- **Objectif** : ${proc.documentation}\n\n`;
 
       if (proc.lanes.length > 0) {
-        md += `### Rôles & Couloirs (Lanes)\n`;
+        md += `### Rôles & Couloirs\n`;
         proc.lanes.forEach(l => {
           md += `- **${l.name}** (\`${l.id}\`)\n`;
         });
@@ -1357,7 +1357,7 @@
       }
 
       md += `### Chronologie des Étapes & Contrats de Données\n\n`;
-      md += `| # | Étape | Type BPMN | Acteur / Lane | Données Entrantes (In) | Données Sortantes (Out) |\n`;
+      md += `| # | Étape | Type BPMN | Acteur / Entité | Données Entrantes (In) | Données Sortantes (Out) |\n`;
       md += `|---|-------|-----------|---------------|------------------------|-------------------------|\n`;
 
       proc.steps.forEach(s => {
@@ -1416,7 +1416,7 @@
               <th>#</th>
               <th>Nom de l'étape</th>
               <th>Type BPMN</th>
-              <th>Rôle / Lane</th>
+              <th>Rôle / Entité</th>
               <th>Inputs</th>
               <th>Outputs</th>
             </tr>
@@ -1473,7 +1473,7 @@
 
     // Onglet 2 : Catalogue des Étapes
     const stepRows = [
-      ['Processus', 'Index', 'ID Élément', 'Nom de l’Étape', 'Type BPMN', 'Acteur / Lane', 'Worker / Topic', 'Formulaire IHM', 'Inputs', 'Outputs', 'Description']
+      ['Processus', 'Index', 'ID Élément', 'Nom de l’Étape', 'Type BPMN', 'Acteur / Entité', 'Worker / Topic', 'Formulaire IHM', 'Inputs', 'Outputs', 'Description']
     ];
 
     currentSpecsDoc.processes.forEach(p => {

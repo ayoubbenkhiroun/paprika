@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="57aa69a" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="VDR_Obtenir_Lautorisation_Administrative" name="VDR Obtenir l&#39;autorisation administrative" isExecutable="true">
+    <bpmn:startEvent id="Event_0l5lp17" name="Autorisation demandée">
+      <bpmn:outgoing>Flow_06n4huf</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_06n4huf" sourceRef="Event_0l5lp17" targetRef="VDR_saveMigrationVariableValue" />
+    <bpmn:callActivity id="VDR_deposerLeIaEtAa" name="Déposer le IA &#38;AA">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="=&#34;Déposer les IA : &#34;+ livrable" target="nomDeTache" />
+          <zeebe:input source="=idProjet" target="idProjet" />
+          <zeebe:input source="=groupeRELANCE" target="groupeRELANCE" />
+          <zeebe:input source="=groupeSUPPORT" target="groupeSUPPORT" />
+          <zeebe:input source="=objectInstanceId" target="objectInstanceId" />
+          <zeebe:input source="=region" target="region" />
+        </zeebe:ioMapping>
+        <zeebe:calledElement processId="itres-reso-tache-atteint" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_08crhyd</bpmn:incoming>
+      <bpmn:outgoing>Flow_0hk47ap</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="Event_03jldmy" name="autorisation obtenue">
+      <bpmn:incoming>Flow_01w7p7s</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0hk47ap" sourceRef="VDR_deposerLeIaEtAa" targetRef="Gateway_0ahn97h" />
+    <bpmn:sequenceFlow id="Flow_1gakztd" sourceRef="VDR_constituerLeIaEtAa" targetRef="Gateway_07u5ye0" />
+    <bpmn:callActivity id="VDR_constituerLeIaEtAa" name="Constituer le IA &#38;AA">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="VDR_Constituer_IA_AA" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=groupeRELANCE" target="groupeRELANCE" />
+          <zeebe:input source="=groupeSUPPORT" target="groupeSUPPORT" />
+          <zeebe:input source="=idProjet" target="idProjet" />
+          <zeebe:input source="=objectInstanceId" target="objectInstanceId" />
+          <zeebe:input source="=region" target="region" />
+          <zeebe:input source="=migration_loop" target="migration_loop" />
+          <zeebe:input source="=migration_max_wait_loop" target="migration_max_wait_loop" />
+          <zeebe:output source="=livrable" target="livrable" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0houi1l</bpmn:incoming>
+      <bpmn:outgoing>Flow_1gakztd</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:exclusiveGateway id="Gateway_05suees" name="s&#39;agit-il d&#39;une Bypass migration ?" default="Flow_0houi1l">
+      <bpmn:incoming>Flow_0eifon8</bpmn:incoming>
+      <bpmn:outgoing>Flow_0houi1l</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0svu7jp</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0houi1l" name="non" sourceRef="Gateway_05suees" targetRef="VDR_constituerLeIaEtAa" />
+    <bpmn:exclusiveGateway id="Gateway_07u5ye0">
+      <bpmn:incoming>Flow_1gakztd</bpmn:incoming>
+      <bpmn:incoming>Flow_0svu7jp</bpmn:incoming>
+      <bpmn:outgoing>Flow_1n1jq64</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1n1jq64" sourceRef="Gateway_07u5ye0" targetRef="Gateway_0ba9deg" />
+    <bpmn:exclusiveGateway id="Gateway_0ba9deg" name="s&#39;agit-il d&#39;un Bypass migration ?" default="Flow_08crhyd">
+      <bpmn:incoming>Flow_1n1jq64</bpmn:incoming>
+      <bpmn:outgoing>Flow_08crhyd</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1c3dhxb</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_08crhyd" name="non" sourceRef="Gateway_0ba9deg" targetRef="VDR_deposerLeIaEtAa" />
+    <bpmn:exclusiveGateway id="Gateway_0ahn97h">
+      <bpmn:incoming>Flow_0hk47ap</bpmn:incoming>
+      <bpmn:incoming>Flow_1c3dhxb</bpmn:incoming>
+      <bpmn:outgoing>Flow_01w7p7s</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_01w7p7s" sourceRef="Gateway_0ahn97h" targetRef="Event_03jldmy" />
+    <bpmn:sequenceFlow id="Flow_0svu7jp" name="oui" sourceRef="Gateway_05suees" targetRef="Gateway_07u5ye0">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=migration = "O" and list contains(migrationActivities,"Constituer le IA &amp;AA")</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1c3dhxb" name="oui" sourceRef="Gateway_0ba9deg" targetRef="Gateway_0ahn97h">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=migration = "O" and list contains(migrationActivities,"Déposer le IA &amp;AA")</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_11hn2og" sourceRef="VDR_saveMigrationVariableValue" targetRef="Gateway_0h8mw14" />
+    <bpmn:exclusiveGateway id="Gateway_0h8mw14" default="Flow_024fp1f">
+      <bpmn:incoming>Flow_11hn2og</bpmn:incoming>
+      <bpmn:incoming>Flow_0pwgivv</bpmn:incoming>
+      <bpmn:outgoing>Flow_024fp1f</bpmn:outgoing>
+      <bpmn:outgoing>Flow_07kfwbe</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_024fp1f" sourceRef="Gateway_0h8mw14" targetRef="VDR_restMigrationVariableValue" />
+    <bpmn:sequenceFlow id="Flow_0eifon8" sourceRef="VDR_restMigrationVariableValue" targetRef="Gateway_05suees" />
+    <bpmn:exclusiveGateway id="Gateway_1mu30c5" default="Flow_1vuzm8q">
+      <bpmn:incoming>Flow_07kfwbe</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ire2ni</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1vuzm8q</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_07kfwbe" sourceRef="Gateway_0h8mw14" targetRef="Gateway_1mu30c5">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=migration="O" and migration_loop &lt; number(migration_max_wait_loop)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="Event_0icvx9y">
+      <bpmn:incoming>Flow_0ire2ni</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0ire2ni" sourceRef="Gateway_1mu30c5" targetRef="Event_0icvx9y">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=how_migration_stop = "true"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:intermediateCatchEvent id="Event_1jsknqz" name="attendre 2 secondes">
+      <bpmn:incoming>Flow_1vuzm8q</bpmn:incoming>
+      <bpmn:outgoing>Flow_07nimy7</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1aq8pqw">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">="PT2S"</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_1vuzm8q" sourceRef="Gateway_1mu30c5" targetRef="Event_1jsknqz" />
+    <bpmn:sequenceFlow id="Flow_07nimy7" sourceRef="Event_1jsknqz" targetRef="VDR_incLoop" />
+    <bpmn:sequenceFlow id="Flow_0pwgivv" sourceRef="VDR_incLoop" targetRef="Gateway_0h8mw14" />
+    <bpmn:scriptTask id="VDR_incLoop" name="inc loop">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=migration_loop + 1" resultVariable="migration_loop" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_07nimy7</bpmn:incoming>
+      <bpmn:outgoing>Flow_0pwgivv</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="VDR_saveMigrationVariableValue" name="save migration variable value">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=migration" resultVariable="old_migration" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_06n4huf</bpmn:incoming>
+      <bpmn:outgoing>Flow_11hn2og</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="VDR_restMigrationVariableValue" name="reset migration variable value">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=old_migration" resultVariable="migration" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_024fp1f</bpmn:incoming>
+      <bpmn:outgoing>Flow_0eifon8</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:group id="Group_0lsbg41" categoryValueRef="CategoryValue_16xaqbk" />
+  </bpmn:process>
+  <bpmn:category id="Category_0t5hfno">
+    <bpmn:categoryValue id="CategoryValue_16xaqbk" value="Partie de blocage" />
+  </bpmn:category>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="VDR_Obtenir_Lautorisation_Administrative">
+      <bpmndi:BPMNShape id="BPMNShape_1gxrseq" bpmnElement="Event_0l5lp17">
+        <dc:Bounds x="-568" y="62" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="-578" y="105" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_17zshnm" bpmnElement="VDR_deposerLeIaEtAa">
+        <dc:Bounds x="650" y="40" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_03jldmy_di" bpmnElement="Event_03jldmy">
+        <dc:Bounds x="932" y="62" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="922" y="105" width="57" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03kvu3v_di" bpmnElement="VDR_constituerLeIaEtAa">
+        <dc:Bounds x="300" y="40" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_05suees_di" bpmnElement="Gateway_05suees" isMarkerVisible="true">
+        <dc:Bounds x="195" y="55" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="178" y="112" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_07u5ye0_di" bpmnElement="Gateway_07u5ye0" isMarkerVisible="true">
+        <dc:Bounds x="445" y="55" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0ba9deg_di" bpmnElement="Gateway_0ba9deg" isMarkerVisible="true">
+        <dc:Bounds x="545" y="55" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="528" y="112" width="85" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0ahn97h_di" bpmnElement="Gateway_0ahn97h" isMarkerVisible="true">
+        <dc:Bounds x="805" y="55" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0h8mw14_di" bpmnElement="Gateway_0h8mw14" isMarkerVisible="true" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="-165" y="55" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1mu30c5_di" bpmnElement="Gateway_1mu30c5" isMarkerVisible="true" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="-165" y="-75" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0icvx9y_di" bpmnElement="Event_0icvx9y" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="-58" y="-68" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1jsknqz_di" bpmnElement="Event_1jsknqz" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="-228" y="-218" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="-235" y="-254" width="50" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0e03yz6_di" bpmnElement="VDR_incLoop">
+        <dc:Bounds x="-320" y="-120" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1a9t9yt_di" bpmnElement="VDR_saveMigrationVariableValue" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="-390" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_007pw7v_di" bpmnElement="VDR_restMigrationVariableValue" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="-70" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Group_0lsbg41_di" bpmnElement="Group_0lsbg41">
+        <dc:Bounds x="-440" y="-270" width="510" height="400" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="-228" y="-297" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_06n4huf_di" bpmnElement="Flow_06n4huf">
+        <di:waypoint x="-532" y="80" />
+        <di:waypoint x="-390" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0hk47ap_di" bpmnElement="Flow_0hk47ap">
+        <di:waypoint x="750" y="80" />
+        <di:waypoint x="805" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1gakztd_di" bpmnElement="Flow_1gakztd">
+        <di:waypoint x="400" y="80" />
+        <di:waypoint x="445" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0houi1l_di" bpmnElement="Flow_0houi1l">
+        <di:waypoint x="245" y="80" />
+        <di:waypoint x="300" y="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="263" y="62" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1n1jq64_di" bpmnElement="Flow_1n1jq64">
+        <di:waypoint x="495" y="80" />
+        <di:waypoint x="545" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_08crhyd_di" bpmnElement="Flow_08crhyd">
+        <di:waypoint x="595" y="80" />
+        <di:waypoint x="650" y="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="613" y="62" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_01w7p7s_di" bpmnElement="Flow_01w7p7s">
+        <di:waypoint x="855" y="80" />
+        <di:waypoint x="932" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0svu7jp_di" bpmnElement="Flow_0svu7jp">
+        <di:waypoint x="220" y="55" />
+        <di:waypoint x="220" y="-20" />
+        <di:waypoint x="470" y="-20" />
+        <di:waypoint x="470" y="55" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="338" y="-38" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1c3dhxb_di" bpmnElement="Flow_1c3dhxb">
+        <di:waypoint x="570" y="55" />
+        <di:waypoint x="570" y="-20" />
+        <di:waypoint x="830" y="-20" />
+        <di:waypoint x="830" y="55" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="693" y="-38" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11hn2og_di" bpmnElement="Flow_11hn2og">
+        <di:waypoint x="-290" y="80" />
+        <di:waypoint x="-165" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_024fp1f_di" bpmnElement="Flow_024fp1f">
+        <di:waypoint x="-115" y="80" />
+        <di:waypoint x="-70" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0eifon8_di" bpmnElement="Flow_0eifon8">
+        <di:waypoint x="30" y="80" />
+        <di:waypoint x="195" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07kfwbe_di" bpmnElement="Flow_07kfwbe">
+        <di:waypoint x="-140" y="55" />
+        <di:waypoint x="-140" y="-25" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ire2ni_di" bpmnElement="Flow_0ire2ni">
+        <di:waypoint x="-115" y="-50" />
+        <di:waypoint x="-58" y="-50" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1vuzm8q_di" bpmnElement="Flow_1vuzm8q">
+        <di:waypoint x="-140" y="-75" />
+        <di:waypoint x="-140" y="-200" />
+        <di:waypoint x="-192" y="-200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07nimy7_di" bpmnElement="Flow_07nimy7">
+        <di:waypoint x="-228" y="-200" />
+        <di:waypoint x="-360" y="-200" />
+        <di:waypoint x="-360" y="-80" />
+        <di:waypoint x="-320" y="-80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0pwgivv_di" bpmnElement="Flow_0pwgivv">
+        <di:waypoint x="-240" y="-40" />
+        <di:waypoint x="-240" y="80" />
+        <di:waypoint x="-165" y="80" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
