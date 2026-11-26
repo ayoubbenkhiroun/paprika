@@ -1,4 +1,4 @@
-const BPMN_LINT_RULES_KEY = 'auditflow_bpmn_lint_rules_v6';
+const BPMN_LINT_RULES_KEY = 'auditflow_bpmn_lint_rules_v9';
 
 const DEFAULT_BPMN_LINT_RULES = [
   // Structure & Intégrité BPMN 2.0 (OMG)
@@ -33,7 +33,7 @@ const DEFAULT_BPMN_LINT_RULES = [
   { id: 'call-activity-input-propagation-off', label: 'Call Activity : Désactiver la propagation des variables parentes (Input propagation = Off)', category: 'Modélisation', severity: 'error', enabled: true },
   { id: 'call-activity-output-propagation-off', label: 'Call Activity : Désactiver la propagation des variables filles (Output propagation = Off)', category: 'Modélisation', severity: 'error', enabled: true },
   { id: 'call-activity-contract-input', label: 'Call Activity : Contrat d’entrée (variables requises par le sous-processus injectées)', category: 'Dépendances', severity: 'error', enabled: true },
-  { id: 'call-activity-source-undefined', label: 'Call Activity : Source du mapping d’entrée définie dans le processus parent', category: 'Dépendances', severity: 'error', enabled: true },
+  { id: 'call-activity-source-undefined', label: 'Call Activity : Source du mapping d’entrée définie dans le processus parent', category: 'Dépendances', severity: 'info', enabled: true },
   { id: 'call-activity-contract-output', label: 'Call Activity : Contrat de sortie (source de sortie produite par le sous-processus)', category: 'Dépendances', severity: 'warning', enabled: true },
 
   // Modélisation & Bonnes Pratiques BPMN 2.0
@@ -45,7 +45,7 @@ const DEFAULT_BPMN_LINT_RULES = [
   { id: 'parallel-gateway-default', label: 'Passerelle parallèle (AND) sans branche par défaut', category: 'Modélisation', severity: 'error', enabled: true },
   { id: 'exclusive-gateway-default', label: 'Passerelle exclusive (XOR) : Branche par défaut (Default Flow) obligatoire', category: 'Modélisation', severity: 'error', enabled: true },
   { id: 'exclusive-gateway-conditions', label: 'Passerelle exclusive (XOR) : Expression de condition sur chaque branche non par défaut', category: 'Modélisation', severity: 'error', enabled: true },
-  { id: 'loop-max-counter-timer', label: 'Boucles & Cycles : Compteur maximal (max) et temporisation (Timer ≥ 1 minute)', category: 'Modélisation', severity: 'error', enabled: true },
+  { id: 'loop-max-counter-timer', label: 'Boucles d’activités : Compteur maximal obligatoire (Multi-Instance & Standard Loop)', category: 'Modélisation', severity: 'error', enabled: true },
   { id: 'zeebe-multi-instance-loop', label: 'Multi-Instance Zeebe / C8 : Paramétrage complet de boucle (Collection & Élément)', category: 'Modélisation', severity: 'error', enabled: true },
   { id: 'zeebe-multi-instance-completion-condition', label: 'Multi-Instance : Condition de complétion (completionCondition) sur boucle parallèle', category: 'Modélisation', severity: 'warning', enabled: true },
   { id: 'event-based-gateway-targets', label: 'Passerelle événementielle ciblant uniquement des événements ou Receive Tasks', category: 'Modélisation', severity: 'error', enabled: true },
@@ -56,6 +56,9 @@ const DEFAULT_BPMN_LINT_RULES = [
   { id: 'process-complexity', label: 'Complexité et taille du processus maîtrisées (< 35 nœuds par scope)', category: 'Modélisation', severity: 'info', enabled: true },
 
   // Conventions de Nommage BPMN 2.0 & Sémantique
+  { id: 'process-id-convention', label: 'Process ID : Formalisme d’entité et LP/SP ([entité]-[lp(s)/sp]-[nom])', category: 'Nommage', severity: 'error', enabled: true },
+  { id: 'process-name-convention', label: 'Nom de processus : Formalisme d’entité et LP/SP ([ENTITÉ] [LP(s)/SP] [Nom])', category: 'Nommage', severity: 'error', enabled: true },
+  { id: 'process-no-version', label: 'Processus : Interdiction de numéro de version (v1, v2...) dans l’ID et le nom', category: 'Nommage', severity: 'error', enabled: true },
   { id: 'process-id-kebab', label: 'Process ID : kebab-case (ex: process-metier)', category: 'Nommage', severity: 'error', enabled: true },
   { id: 'process-name-capital', label: 'Nom de processus : Majuscule initiale', category: 'Nommage', severity: 'warning', enabled: true },
   { id: 'empty-name', label: 'Libellés des éléments renseignés', category: 'Nommage', severity: 'warning', enabled: true },
@@ -76,6 +79,7 @@ const DEFAULT_BPMN_LINT_RULES = [
   // Déploiement Camunda / Zeebe & Exécution
   { id: 'process-name', label: 'Nom de processus documenté', category: 'Documentation', severity: 'warning', enabled: true },
   { id: 'process-executable', label: 'Processus marqué exécutable (isExecutable="true")', category: 'Déploiement', severity: 'warning', enabled: true },
+  { id: 'process-version-tag', label: 'Version Tag de processus renseigné et conforme (format x.X.x)', category: 'Déploiement', severity: 'error', enabled: true },
   { id: 'feel-expression-syntax', label: 'Expressions FEEL : Préfixe "=" obligatoire et syntaxe conforme (Zeebe/C8)', category: 'Déploiement', severity: 'error', enabled: true },
   { id: 'service-implementation', label: 'Implémentation des tâches de service (ServiceTask/SendTask) définie', category: 'Déploiement', severity: 'warning', enabled: true },
   { id: 'business-rule-implementation', label: 'Implémentation des tâches de règle métier (DMN / Worker) définie', category: 'Déploiement', severity: 'warning', enabled: true },
@@ -104,7 +108,16 @@ function getBpmnLintFiles() {
   return bpmnLintFiles;
 }
 function setBpmnLintFiles(files) {
-  bpmnLintFiles = Array.isArray(files) ? files : [];
+  bpmnLintFiles = (Array.isArray(files) ? files : []).map(f => {
+    if (!f) return f;
+    if (f.isParent === undefined) {
+      const isSub = /\bsp\b|[-_]sp[-_]|^sp[-_]|sous[-_]?processus|subprocess/i.test(f.fileName || f.name || '');
+      f.isParent = !isSub;
+      f.isRoot = !isSub;
+      f.isSubProcess = isSub;
+    }
+    return f;
+  });
   if (typeof window !== 'undefined') window.bpmnLintFiles = bpmnLintFiles;
   return bpmnLintFiles;
 }
@@ -180,11 +193,11 @@ function buildBpmnAstIndex(xmlDoc) {
       elementsById.get(id).push(el);
     }
 
-    if (flowNodeNames.has(type)) flowNodes.push(el);
-    if (type === 'sequenceflow') sequenceFlows.push(el);
-    if (type === 'messageflow') messageFlows.push(el);
-    if (type === 'process') processes.push(el);
-    if (type === 'callactivity') callActivities.push(el);
+    if (flowNodeNames.has(type) && !lintIsExtensionElement(el)) flowNodes.push(el);
+    if (type === 'sequenceflow' && !lintIsExtensionElement(el)) sequenceFlows.push(el);
+    if (type === 'messageflow' && !lintIsExtensionElement(el)) messageFlows.push(el);
+    if (type === 'process' && !lintIsExtensionElement(el)) processes.push(el);
+    if (type === 'callactivity' && !lintIsExtensionElement(el)) callActivities.push(el);
   });
 
   sequenceFlows.forEach(flow => {
@@ -301,6 +314,64 @@ function lintAttribute(element, names) {
     if (attr && attr.value.trim()) return attr.value.trim();
   }
   return '';
+}
+
+function lintIsExtensionElement(element) {
+  if (!element) return false;
+  const prefix = (element.prefix || (element.tagName || '').split(':')[0] || '').toLowerCase();
+  if (['zeebe', 'camunda', 'modeler'].includes(prefix)) return true;
+  if (element.namespaceURI && (element.namespaceURI.includes('camunda') || element.namespaceURI.includes('zeebe') || element.namespaceURI.includes('modeler'))) return true;
+  let cur = element.parentElement;
+  while (cur) {
+    if (lintLocalName(cur) === 'extensionelements') return true;
+    cur = cur.parentElement;
+  }
+  return false;
+}
+
+function lintGetProcessVersionTag(process) {
+  if (!process) return null;
+  // 1. Attribut direct sur <bpmn:process> (camunda:versionTag="1.0.0", zeebe:versionTag="1.0.0", versionTag="1.0.0")
+  const attrTag = lintAttribute(process, ['camunda:versionTag', 'zeebe:versionTag', 'versionTag', 'versiontag']);
+  if (attrTag && attrTag.trim()) return attrTag.trim();
+
+  // 2. Balise d'extension <zeebe:versionTag value="1.0.0" /> ou <camunda:versionTag value="1.0.0" />
+  const vTagEls = lintDescendants(process, ['versiontag']);
+  for (const el of vTagEls) {
+    const val = lintAttribute(el, ['value']) || (el.textContent || '').trim();
+    if (val) return val;
+  }
+
+  // 3. Propriété d'extension <zeebe:property key="versionTag" value="1.0.0" />
+  const props = lintDescendants(process, ['property']);
+  for (const p of props) {
+    const key = lintAttribute(p, ['key', 'name']);
+    if (key && key.toLowerCase() === 'versiontag') {
+      const val = lintAttribute(p, ['value']) || (p.textContent || '').trim();
+      if (val) return val;
+    }
+  }
+
+  return null;
+}
+
+function lintDetermineProcessRole(process, file) {
+  // 1. Statut explicite du fichier (configuré par l'utilisateur ou pré-détecté par le nom de fichier)
+  if (file && file.isParent === true) return 'parent';
+  if (file && (file.isParent === false || file.isSubProcess === true)) return 'subprocess';
+  if (file && /\bsp\b|[-_]sp[-_]|^sp[-_]|sous[-_]?processus|subprocess/i.test(file.fileName || file.name || '')) return 'subprocess';
+
+  // 2. Détection par préfixe d'ID
+  const id = (lintAttribute(process, ['id']) || '').trim().toLowerCase();
+  if (/-sp-|^[a-z0-9]+-sp\b/.test(id)) return 'subprocess';
+  if (/-lps?-|^[a-z0-9]+-lps?\b/.test(id)) return 'parent';
+
+  // 3. Détection par nom
+  const name = (lintAttribute(process, ['name']) || '').trim();
+  if (/\bSP\b/i.test(name)) return 'subprocess';
+  if (/\bLPs?\b/i.test(name)) return 'parent';
+
+  return 'parent';
 }
 
 function lintDescendants(element, localNames) {
@@ -495,7 +566,7 @@ function lintFindClosestGraphicalElement(element) {
   let cur = element;
   while (cur && cur.nodeType === 1) {
     const lName = lintLocalName(cur);
-    if (flowNodeTypes.has(lName) && lintAttribute(cur, ['id'])) {
+    if (flowNodeTypes.has(lName) && lintAttribute(cur, ['id']) && !lintIsExtensionElement(cur)) {
       return cur;
     }
     cur = cur.parentElement;
@@ -511,7 +582,7 @@ function lintAddIssue(issues, ruleId, element, message, fileName, severityOverri
   let targetEl = element;
   let elementId = element ? lintAttribute(element, ['id']) : '';
   const rawType = element ? lintLocalName(element) : 'document';
-  const isProcessLevel = ['process', 'definitions', 'collaboration'].includes(rawType) || ['process-id', 'process-id-kebab', 'process-name', 'process-name-capital', 'process-executable', 'definitions-root', 'definitions-namespace'].includes(ruleId);
+  const isProcessLevel = ['process', 'definitions', 'collaboration'].includes(rawType) || ['process-id', 'process-id-kebab', 'process-name', 'process-name-capital', 'process-executable', 'process-version-tag', 'process-id-convention', 'process-name-convention', 'process-no-version', 'definitions-root', 'definitions-namespace'].includes(ruleId);
 
   // Si c'est un sous-élément (ex: conditionExpression, inputParameter, property, script) sans ID graphique, trouver son conteneur graphique direct
   if (element && !isProcessLevel && (!elementId || ['conditionexpression', 'property', 'script', 'inputparameter', 'outputparameter', 'in', 'out', 'input', 'output'].includes(rawType))) {
@@ -561,10 +632,14 @@ function lintIssueGuidance(ruleId, element, message) {
     'call-activity-input-propagation-off': ['Désactiver « Propagate all parent process variables » (propagateAllParentVariables="false") sur la Call Activity et déclarer des Input Mappings explicites.', 'Équipe Camunda', 'Vérifier dans le Camunda Modeler que Input propagation est sur Off et que seules les variables nécessaires sont injectées.'],
     'call-activity-output-propagation-off': ['Désactiver « Propagate all child process variables » (propagateAllChildVariables="false") sur la Call Activity et déclarer des Output Mappings explicites.', 'Équipe Camunda', 'Vérifier dans le Camunda Modeler que Output propagation est sur Off et que seules les variables attendues retournent au parent.'],
     'call-activity-contract-input': ['Ajouter les balises <zeebe:input source="= varParente" target="varRequise" /> manquantes pour satisfaire le contrat du sous-processus.', 'Équipe Camunda', 'Vérifier que toutes les variables consommées par le sous-processus sans valeur par défaut sont injectées.'],
-    'call-activity-source-undefined': ['Vérifier l’expression source du mapping d’entrée et s’assurer que la variable existe en amont dans le processus parent.', 'Équipe Camunda', 'Tracer l’origine de la variable dans le processus parent ou corriger le nom de la variable.'],
+    'call-activity-source-undefined': ['Vérifier l’expression source du mapping d’entrée et s’assurer que la variable existe en amont dans le processus parent ou qu’elle est injectée au lancement de l’instance.', 'Équipe Camunda', 'Tracer l’origine de la variable dans le processus parent ou confirmer sa présence dans le jeu de données d’instanciation.'],
     'call-activity-contract-output': ['Corriger la source du mapping de sortie pour référencer une variable réellement produite par le sous-processus.', 'Équipe Camunda', 'Consulter le diagramme du sous-processus pour identifier le nom exact de la variable de sortie retournée.'],
     'process-name': ['Ajouter un nom métier compréhensible au processus.', 'Product Owner', 'Faire confirmer le nom et le périmètre du processus par le métier.'],
     'process-executable': ['Vérifier la cible de déploiement, puis définir isExecutable à true si le processus doit être exécuté.', 'Équipe Camunda', 'Déployer sur le moteur cible et démarrer une instance de test.'],
+    'process-version-tag': ['Renseigner le champ Version Tag du processus avec une version sémantique au format x.X.x (ex: 1.0.0).', 'Équipe Camunda', 'Vérifier dans le Camunda Modeler que le Version Tag est renseigné au format x.X.x et correspond à la version livrée.'],
+    'process-id-convention': ['Renommer l’ID technique du processus selon le formalisme attendu ([entité]-[lp]-[nom] ou [entité]-[sp]-[nom]).', 'Équipe modélisation', 'Vérifier dans le Camunda Modeler que l’ID est en kebab-case et respecte la nomenclature des LPs/SPs.'],
+    'process-name-convention': ['Renommer le libellé du processus selon le formalisme attendu ([ENTITÉ] [LP(s)] [Nom] ou [ENTITÉ] SP [Nom]).', 'Product Owner + Camunda', 'Faire confirmer le libellé du processus par les équipes métier et respecter le préfixe d’entité.'],
+    'process-no-version': ['Supprimer le numéro de version (v1, v2...) de l’ID et du nom du processus, et renseigner le Version Tag dédié.', 'Équipe Camunda', 'Vérifier que l’ID et le nom restent pérennes et que le versioning est porté par le Version Tag (x.X.x).'],
     'start-event': ['Définir les événements de déclenchement du processus et leurs conditions.', 'Product Owner + Camunda', 'Tester chaque déclencheur métier prévu, y compris les événements alternatifs.'],
     'multiple-none-start-events': ['Ne conserver qu’un seul événement de début sans type (None) par processus ou sous-processus.', 'Équipe modélisation', 'Démarrer une instance et vérifier qu’il n’y a aucune ambiguïté de déclenchement.'],
     'end-event': ['Ajouter une issue explicite à chaque chemin normal et d’exception.', 'Product Owner', 'Parcourir les scénarios nominaux et d’erreur et vérifier leur état final métier.'],
@@ -582,11 +657,11 @@ function lintIssueGuidance(ruleId, element, message) {
     'parallel-gateway-default': ['Supprimer l’attribut default sur la passerelle parallèle (AND) : toutes les branches parallèles s’exécutent obligatoirement sans notion de défaut.', 'Équipe Camunda', 'Vérifier l’activation conjointe de toutes les branches sortantes.'],
     'exclusive-gateway-default': ['Définir un flux par défaut (attribut default) sur la passerelle exclusive pour garantir une issue en cas d’absence de condition satisfaite.', 'Équipe Camunda + métier', 'Tester un scénario hors-cadre et confirmer la prise du chemin par défaut.'],
     'exclusive-gateway-conditions': ['Renseigner une expression de condition (conditionExpression) sur chaque branche sortante non par défaut de la passerelle exclusive.', 'Équipe Camunda', 'Vérifier le routage conditionnel sur chaque branche lors des tests unitaires.'],
-    'loop-max-counter-timer': ['Définir une condition de sortie avec compteur maximal (ex: retryCount < 3) et insérer un Timer d’attente ≥ 1 minute (ex: PT1M).', 'Équipe modélisation + Camunda', 'Simuler l’itération de boucle jusqu’au seuil maximal et vérifier la durée de temporisation.'],
+    'loop-max-counter-timer': ['Définir un compteur maximal (loopCardinality ou completionCondition) sur l’activité en boucle.', 'Équipe modélisation + Camunda', 'Simuler l’itération de boucle jusqu’au seuil maximal.'],
     'event-based-gateway-targets': ['Connecter les sorties de la passerelle événementielle uniquement vers des événements intermédiaires de capture (Message, Timer, Signal) ou des Receive Tasks.', 'Équipe modélisation', 'Vérifier que la première occurrence d’événement déclenche la bonne branche.'],
     'gateway-mixed': ['Séparer la passerelle en une passerelle de fusion (Join) suivie d’une passerelle de décision (Split).', 'Équipe modélisation', 'Vérifier la bonne synchronisation des jetons en amont et leur distribution en aval.'],
     'conditional-flow-source': ['Insérer une passerelle exclusive (XOR) ou inclusive (OR) après l’activité au lieu d’utiliser des flux conditionnels directs.', 'Équipe modélisation', 'Vérifier la lisibilité du diagramme et le routage des jetons selon la condition.'],
-    'gateway-flow-label': ['Documenter la condition de chaque branche ou désigner le flux par défaut.', 'Équipe Camunda + métier', 'Tester les valeurs aux frontières et vérifier une seule branche prise par scénario.'],
+    'gateway-flow-label': ['Documenter la condition de chaque branche de décision divergente (outCount > 1) ou désigner le flux par défaut.', 'Équipe Camunda + métier', 'Tester les valeurs aux frontières et vérifier une seule branche prise par scénario.'],
     'multiple-end-events-labeled': ['Attribuer un libellé clair et descriptif à chaque événement de fin pour distinguer les états nominaux et d’exception.', 'Product Owner', 'Revoir l’ensemble des états de terminaison avec les parties prenantes métier.'],
     'process-complexity': ['Découper le processus en sous-processus ou Call Activities pour maintenir une lisibilité et une maintenabilité optimales (< 35 nœuds).', 'Équipe architecture', 'Vérifier la clarté et la modularité de la cartographie globale.'],
     'default-flow-reference': ['Pointer le flux par défaut vers une branche sortante existante du même scope.', 'Équipe Camunda', 'Tester le cas où aucune condition explicite ne correspond.'],
@@ -744,6 +819,12 @@ function lintPriorities(issues) {
 
 function auditBpmnLintFile(file) {
   if (!bpmnLintRules || !bpmnLintRules.length) loadBpmnLintRules();
+  if (file.isParent === undefined) {
+    const isSub = /\bsp\b|[-_]sp[-_]|^sp[-_]|sous[-_]?processus|subprocess/i.test(file.fileName || file.name || '');
+    file.isParent = !isSub;
+    file.isRoot = !isSub;
+    file.isSubProcess = isSub;
+  }
   const issues = [];
   if (file.parseError || !file.xmlDoc) {
     issues.push({ fileName: file.fileName, ruleId: 'xml-parse', rule: 'XML BPMN analysable', category: 'Structure', severity: 'blocker', elementType: 'document', elementId: '', elementName: '', message: file.parseError || 'Document XML vide.' });
@@ -752,12 +833,12 @@ function auditBpmnLintFile(file) {
 
   const root = file.xmlDoc.documentElement;
   const all = lintElements(file.xmlDoc);
-  const processes = all.filter(element => lintLocalName(element) === 'process');
+  const processes = all.filter(element => lintLocalName(element) === 'process' && !lintIsExtensionElement(element));
   const participants = all.filter(element => lintLocalName(element) === 'participant');
-  const messageFlows = all.filter(element => lintLocalName(element) === 'messageflow');
+  const messageFlows = all.filter(element => lintLocalName(element) === 'messageflow' && !lintIsExtensionElement(element));
   const flowNodeNames = new Set(['task', 'servicetask', 'usertask', 'scripttask', 'sendtask', 'receivetask', 'manualtask', 'businessruletask', 'callactivity', 'subprocess', 'startevent', 'endevent', 'intermediatecatchevent', 'intermediatethrowevent', 'boundaryevent', 'exclusivegateway', 'inclusivegateway', 'parallelgateway', 'eventbasedgateway', 'complexgateway']);
-  const flowNodes = all.filter(element => flowNodeNames.has(lintLocalName(element)));
-  const sequenceFlows = all.filter(element => lintLocalName(element) === 'sequenceflow');
+  const flowNodes = all.filter(element => flowNodeNames.has(lintLocalName(element)) && !lintIsExtensionElement(element));
+  const sequenceFlows = all.filter(element => lintLocalName(element) === 'sequenceflow' && !lintIsExtensionElement(element));
   const nodesByScope = new Map();
   const flowsByScope = new Map();
   flowNodes.forEach(node => {
@@ -769,6 +850,13 @@ function auditBpmnLintFile(file) {
     const scope = lintFlowScope(flow);
     if (!flowsByScope.has(scope)) flowsByScope.set(scope, []);
     flowsByScope.get(scope).push(flow);
+  });
+  const outgoingFlowsCountBySource = new Map();
+  sequenceFlows.forEach(flow => {
+    const sId = lintAttribute(flow, ['sourceRef']);
+    if (sId) {
+      outgoingFlowsCountBySource.set(sId, (outgoingFlowsCountBySource.get(sId) || 0) + 1);
+    }
   });
   const idOwners = new Map();
   const idElements = all.filter(element => lintAttribute(element, ['id']));
@@ -830,6 +918,90 @@ function auditBpmnLintFile(file) {
     if (lintAttribute(process, ['isExecutable']).toLowerCase() !== 'true') lintAddIssue(issues, 'process-executable', process, 'isExecutable n’est pas à true ; vérifier le profil de déploiement visé.', file.fileName);
 
     const processFlowNodes = nodesByScope.get(process) || [];
+
+    // Contrôle Version Tag du processus (obligatoire et conforme au format x.X.x, ex: 1.0.0)
+    const isExec = lintAttribute(process, ['isExecutable']).toLowerCase() === 'true';
+    if (lintRule('process-version-tag') && (isExec || processFlowNodes.length > 0)) {
+      const versionTag = lintGetProcessVersionTag(process);
+      if (!versionTag) {
+        lintAddIssue(issues, 'process-version-tag', process, `Le processus « ${processName || processId || 'Processus'} » ne possède aucun Version Tag. Renseignez un numéro de version conforme au format x.X.x (ex: 1.0.0).`, file.fileName);
+      } else if (!/^\d+\.\d+\.\d+$/.test(versionTag)) {
+        lintAddIssue(issues, 'process-version-tag', process, `Le Version Tag « ${versionTag} » du processus « ${processName || processId || 'Processus'} » ne respecte pas le format x.X.x (ex: 1.0.0).`, file.fileName);
+      }
+    }
+
+    const isRealProcess = isExec || processFlowNodes.length > 0;
+    if (isRealProcess) {
+      // 1. Règle : Interdiction de numéro de version (v1, v2...) dans processId ou processName
+      if (lintRule('process-no-version')) {
+        if (processId) {
+          const vMatchId = processId.match(/(?:^|-)(v\d+(\.\d+)*|version-?\d+)(?:-|$)/i);
+          if (vMatchId) {
+            lintAddIssue(issues, 'process-no-version', process, `L’ID de processus « ${processId} » intègre un numéro de version (« ${vMatchId[1]} »). N’intégrez jamais de version dans l’identifiant : le versioning est géré nativement par le moteur via le Version Tag.`, file.fileName);
+          }
+        }
+        if (processName) {
+          const vMatchName = processName.match(/(?:\b|_|\()(v\d+(\.\d+)*|version\s*\d+)(?:\b|_|\))/i);
+          if (vMatchName) {
+            lintAddIssue(issues, 'process-no-version', process, `Le nom du processus « ${processName} » intègre un numéro de version (« ${vMatchName[1]} »). N’intégrez jamais de version dans le libellé : le versioning est géré nativement par le moteur via le Version Tag.`, file.fileName);
+          }
+        }
+      }
+
+      // Détermination du rôle : Processus Parent vs Sous-processus
+      const processRole = lintDetermineProcessRole(process, file);
+
+      // Regex de validation des conventions
+      const PARENT_ID_REGEX = /^([a-z0-9]+)-(lps|lp(-[0-9]+)+|lp[0-9]+(-[0-9]+)*|lp)-([a-z0-9]+(-[a-z0-9]+)*)$/;
+      const PARENT_NAME_REGEX = /^([A-Z0-9]{2,10})\s+(LPs|LPS|LP\s*\d+(\.\d+)*|LP\s*\d+([-_]\d+)*|LP)\s+(.+)$/;
+      const SP_ID_REGEX = /^([a-z0-9]+)-sp-([a-z0-9]+(-[a-z0-9]+)*)$/;
+      const SP_NAME_REGEX = /^([A-Z0-9]{2,10})\s*(?:\|\s*|\-\s*|\s+)(SP|sp)\s*(?:\|\s*|\-\s*|\s+)(.+)$/;
+
+      // 2. Règle : Format de l'ID (processId)
+      let parsedEntityId = null;
+      if (lintRule('process-id-convention') && processId) {
+        if (processRole === 'parent') {
+          const matchId = processId.match(PARENT_ID_REGEX);
+          if (!matchId) {
+            lintAddIssue(issues, 'process-id-convention', process, `L’ID du processus parent « ${processId} » ne respecte pas le formalisme attendu [entité]-[lp]-[nom-metier-en-kebab] (ex: cdd-lps-vdr-avec-ajout-de-couche ou cdd-lp-5-1-di-crozon).`, file.fileName);
+          } else {
+            parsedEntityId = matchId[1];
+          }
+        } else {
+          const matchId = processId.match(SP_ID_REGEX);
+          if (!matchId) {
+            lintAddIssue(issues, 'process-id-convention', process, `L’ID du sous-processus « ${processId} » ne respecte pas le formalisme attendu [entité]-[sp]-[nom-metier-en-kebab] (ex: cdd-sp-autorisation-administrative).`, file.fileName);
+          } else {
+            parsedEntityId = matchId[1];
+          }
+        }
+      }
+
+      // 3. Règle : Format du Nom (Display Name)
+      if (lintRule('process-name-convention') && processName) {
+        let parsedEntityName = null;
+        if (processRole === 'parent') {
+          const matchName = processName.trim().match(PARENT_NAME_REGEX);
+          if (!matchName) {
+            lintAddIssue(issues, 'process-name-convention', process, `Le nom du processus parent « ${processName} » ne respecte pas le formalisme attendu [ENTITÉ] [LP(s)] [Nom du processus] (ex: CDD LPs VDR avec ajout de couche ou CDD LP5.1 DI Crozon).`, file.fileName);
+          } else {
+            parsedEntityName = matchName[1];
+          }
+        } else {
+          const matchName = processName.trim().match(SP_NAME_REGEX);
+          if (!matchName) {
+            lintAddIssue(issues, 'process-name-convention', process, `Le nom du sous-processus « ${processName} » ne respecte pas le formalisme attendu [ENTITÉ] SP [Nom du SP] (ex: CDD SP Autorisation administrative ou CDD | SP | Autorisation administrative).`, file.fileName);
+          } else {
+            parsedEntityName = matchName[1];
+          }
+        }
+
+        // Contrôle de cohérence entre l'entité de l'ID et l'entité du Nom
+        if (parsedEntityId && parsedEntityName && parsedEntityId.toLowerCase() !== parsedEntityName.toLowerCase()) {
+          lintAddIssue(issues, 'process-name-convention', process, `Incohérence d’entité : l’entité du nom (« ${parsedEntityName} ») ne correspond pas à l’entité de l’ID technique (« ${parsedEntityId.toUpperCase()} »).`, file.fileName);
+        }
+      }
+    }
     const starts = processFlowNodes.filter(node => lintLocalName(node) === 'startevent');
     const ends = processFlowNodes.filter(node => lintLocalName(node) === 'endevent');
     if (!starts.length) lintAddIssue(issues, 'start-event', process, 'Aucun événement de début n’a été trouvé dans ce processus.', file.fileName);
@@ -1049,126 +1221,8 @@ function auditBpmnLintFile(file) {
       }
     });
 
-    // Contrôle des boucles de séquence (cycles de flux / retry)
-    const adjacency = new Map(scopedNodes.map(node => [lintAttribute(node, ['id']), []]));
-    scopedFlows.forEach(flow => {
-      const source = lintAttribute(flow, ['sourceRef']);
-      const target = lintAttribute(flow, ['targetRef']);
-      if (adjacency.has(source) && adjacency.has(target)) {
-        adjacency.get(source).push({ target, flow });
-      }
-    });
-
-    const cycleNodesMap = new Map();
-    const visitedCycle = new Map();
-    const cyclePath = [];
-    let cycleCounter = 0;
-
-    function detectScopeCycles(nId) {
-      visitedCycle.set(nId, 1);
-      cyclePath.push(nId);
-      const neighbors = adjacency.get(nId) || [];
-      for (const edge of neighbors) {
-        const t = edge.target;
-        const state = visitedCycle.get(t) || 0;
-        if (state === 1) {
-          const startIdx = cyclePath.indexOf(t);
-          if (startIdx !== -1) {
-            const nodesInCycle = cyclePath.slice(startIdx);
-            cycleCounter++;
-            cycleNodesMap.set(`cycle-${cycleCounter}`, nodesInCycle);
-          }
-        } else if (state === 0) {
-          detectScopeCycles(t);
-        }
-      }
-      cyclePath.pop();
-      visitedCycle.set(nId, 2);
-    }
-
-    scopedNodes.forEach(node => {
-      const nId = lintAttribute(node, ['id']);
-      if ((visitedCycle.get(nId) || 0) === 0) {
-        detectScopeCycles(nId);
-      }
-    });
-
-    cycleNodesMap.forEach((nodeIds) => {
-      const cycleNodeElements = nodeIds.map(id => scopedNodes.find(n => lintAttribute(n, ['id']) === id)).filter(Boolean);
-      
-      // 1. Minuteur / Timer ≥ 1 min dans la boucle
-      let hasValidTimer = false;
-      let shortTimerNode = null;
-      let shortTimerVal = '';
-      const timerNodesInCycle = [];
-
-      cycleNodeElements.forEach(nodeEl => {
-        const timerDefs = lintDescendants(nodeEl, ['timereventdefinition', 'timerEventDefinition']);
-        if (timerDefs.length > 0) {
-          timerNodesInCycle.push(nodeEl);
-          timerDefs.forEach(tDef => {
-            const durationEl = lintDescendants(tDef, ['timeduration', 'timeDuration'])[0];
-            const dateEl = lintDescendants(tDef, ['timedate', 'timeDate'])[0];
-            const cycleEl = lintDescendants(tDef, ['timecycle', 'timeCycle'])[0];
-            const durText = (durationEl?.textContent || dateEl?.textContent || cycleEl?.textContent || '').trim();
-            if (durText) {
-              if (lintCheckDurationAtLeastOneMinute(durText)) {
-                hasValidTimer = true;
-              } else {
-                shortTimerNode = nodeEl;
-                shortTimerVal = durText;
-              }
-            } else {
-              hasValidTimer = true;
-            }
-          });
-        }
-      });
-
-      // Détection de boucle technique de migration tolérée (Camunda 8 / Zeebe 8.x)
-      let isMigrationLoop = false;
-      cycleNodeElements.forEach(nodeEl => {
-        const scripts = lintDescendants(nodeEl, ['script']);
-        scripts.forEach(s => {
-          const expr = lintAttribute(s, ['expression']) || s.textContent || '';
-          const resVar = lintAttribute(s, ['resultVariable']);
-          if (resVar === 'migration_loop' || expr.includes('migration_loop') || resVar === 'old_migration' || expr.includes('old_migration')) {
-            isMigrationLoop = true;
-          }
-        });
-      });
-
-      // 2. Compteur maximal / condition de sortie de boucle
-      const gatewaysInCycle = cycleNodeElements.filter(n => ['exclusivegateway', 'inclusivegateway'].includes(lintLocalName(n)));
-      let hasCounterCondition = false;
-      gatewaysInCycle.forEach(gw => {
-        const gwId = lintAttribute(gw, ['id']);
-        const flows = scopedFlows.filter(f => lintAttribute(f, ['sourceRef']) === gwId);
-        flows.forEach(f => {
-          const condText = (f.textContent || '') + ' ' + lintAttribute(f, ['conditionExpression', 'condition', 'expression']);
-          if (/migration_loop/i.test(condText) || /migration_max_wait_loop/i.test(condText)) {
-            isMigrationLoop = true;
-            hasCounterCondition = true;
-          } else if (/count|retry|tentative|iteration|index|max|compteur|nb|limit|loop|\b[ijk]\s*[<>=]/i.test(condText)) {
-            hasCounterCondition = true;
-          }
-        });
-      });
-
-      // Émission des alertes uniquement si hors boucle de migration
-      if (isMigrationLoop) {
-        // Boucle technique de migration tolérée : throttle PT2S et garde migration_loop validés
-      } else if (shortTimerNode) {
-        lintAddIssue(issues, 'loop-max-counter-timer', shortTimerNode, `Le minuteur de la boucle (« ${shortTimerVal} ») est inférieur à 1 minute. La temporisation doit être ≥ 1 minute (ex: PT1M).`, file.fileName);
-      } else if (!timerNodesInCycle.length) {
-        const rep = cycleNodeElements.find(n => ['exclusivegateway', 'task', 'servicetask', 'callactivity'].includes(lintLocalName(n))) || cycleNodeElements[0] || scope;
-        lintAddIssue(issues, 'loop-max-counter-timer', rep, 'Cette boucle de séquence (cycle de retry) ne comporte aucun minuteur d’attente. Insérez un Timer ≥ 1 minute (ex: PT1M).', file.fileName);
-      }
-
-      if (gatewaysInCycle.length && !hasCounterCondition && !isMigrationLoop) {
-        lintAddIssue(issues, 'loop-max-counter-timer', gatewaysInCycle[0], 'La boucle de séquence ne comporte pas de condition explicite de compteur maximal (ex: retryCount < 3 ou maxAttempts).', file.fileName);
-      }
-    });
+    // Les boucles de séquence (cycles de flux / retry via sequenceFlows) sont tolérées sans restriction de Timer/compteur.
+    // Le contrôle loop-max-counter-timer s'applique uniquement aux boucles d'activités (multi-instance / standard loops).
   });
 
   flowNodes.forEach(node => {
@@ -1247,7 +1301,9 @@ function auditBpmnLintFile(file) {
         (id && /migration|loop/i.test(id)) ||
         lintDescendants(node, ['script']).some(s => (s.textContent || '').includes('migration_loop') || lintAttribute(s, ['expression', 'resultVariable']).includes('migration_loop'));
 
-      const isSubprocessScope = isInsideEmbeddedSubprocess || isCalledSubprocess || file.isRoot === false || file.isSubProcess === true;
+      // Applicable UNIQUEMENT sur le processus parent (coché comme tel ou détecté comme parent)
+      const isExplicitlyParent = file.isParent !== undefined ? (file.isParent === true) : (file.isRoot !== false && !file.isSubProcess && !isCalledSubprocess);
+      const isSubprocessScope = !isExplicitlyParent || isInsideEmbeddedSubprocess || isCalledSubprocess || file.isRoot === false || file.isSubProcess === true;
 
       if (!isSubprocessScope && !isTechMigrationActivity) {
         lintAddIssue(issues, 'activity-only-callactivity', node, `L’activité « ${name || id || type} » est de type <${type}>. Les règles d’architecture imposent d’utiliser des Call Activities au niveau du processus parent pour modulariser les traitements.`, file.fileName);
@@ -1406,9 +1462,16 @@ function auditBpmnLintFile(file) {
     }
 
     if (source && ['exclusivegateway', 'inclusivegateway', 'eventbasedgateway'].includes(lintLocalName(source))) {
-      const defaultFlow = lintAttribute(source, ['default']) === lintAttribute(flow, ['id']);
-      if (!lintAttribute(flow, ['name']) && !defaultFlow && !hasCondition) {
-        lintAddIssue(issues, 'gateway-flow-label', flow, 'Cette branche de décision n’a ni libellé, ni condition, ni indication de flux par défaut.', file.fileName);
+      const sourceOutCount = Math.max(
+        outgoingFlowsCountBySource.get(sourceId) || 0,
+        lintDescendants(source, ['outgoing']).length
+      );
+      // Règle active uniquement s'il y a plusieurs flux sortants (bifurcation / décision). Pour une branche unique (join), pas besoin de libellé.
+      if (sourceOutCount > 1) {
+        const defaultFlow = lintAttribute(source, ['default']) === lintAttribute(flow, ['id']);
+        if (!lintAttribute(flow, ['name']) && !defaultFlow && !hasCondition) {
+          lintAddIssue(issues, 'gateway-flow-label', flow, 'Cette branche de décision n’a ni libellé, ni condition, ni indication de flux par défaut.', file.fileName);
+        }
       }
     }
 
@@ -1454,29 +1517,8 @@ function auditBpmnLintFile(file) {
 
     const parentProp = zeebeCalled ? lintAttribute(zeebeCalled, ['propagateAllParentVariables']) : '';
     const childProp = zeebeCalled ? lintAttribute(zeebeCalled, ['propagateAllChildVariables']) : '';
-    const isInputPropOff = parentProp === 'false';
-    const isOutputPropOff = childProp === 'false';
 
-    if (zeebeCalled) {
-      if (parentProp !== 'false') {
-        lintAddIssue(issues, 'call-activity-input-propagation-off', activity, `La Call Activity « ${actName} » a « Input propagation » activé (propagateAllParentVariables="${parentProp || 'true (par défaut)'}"). Vous devez désactiver « Propagate all parent process variables » (Off) pour isoler les variables d’entrée.`, file.fileName);
-      }
-      if (childProp !== 'false') {
-        lintAddIssue(issues, 'call-activity-output-propagation-off', activity, `La Call Activity « ${actName} » a « Output propagation » activé (propagateAllChildVariables="${childProp || 'true (par défaut)'}"). Vous devez désactiver « Propagate all child process variables » (Off) pour éviter l’écrasement des variables du processus parent.`, file.fileName);
-      }
-    }
-
-    // Camunda 7 legacy check
-    const inVarsAll = lintDescendants(activity, ['in']).some(el => lintAttribute(el, ['variables']) === 'all');
-    if (inVarsAll) {
-      lintAddIssue(issues, 'call-activity-input-propagation-off', activity, `La Call Activity « ${actName} » propage toutes les variables parentes (<camunda:in variables="all">). Supprimez cette directive et déclarez des mappings de variables explicites.`, file.fileName);
-    }
-    const outVarsAll = lintDescendants(activity, ['out']).some(el => lintAttribute(el, ['variables']) === 'all');
-    if (outVarsAll) {
-      lintAddIssue(issues, 'call-activity-output-propagation-off', activity, `La Call Activity « ${actName} » propage toutes les variables filles (<camunda:out variables="all">). Supprimez cette directive et déclarez des mappings de variables explicites.`, file.fileName);
-    }
-
-    // Extraction des balises ioMapping Zeebe
+    // Extraction préalable des balises ioMapping Zeebe
     const ioMappingEl = lintDescendants(activity, ['iomapping']).find(el => {
       const p = (el.prefix || '').toLowerCase();
       const tn = (el.tagName || '').toLowerCase();
@@ -1507,6 +1549,29 @@ function auditBpmnLintFile(file) {
       const tgt = lintAttribute(el, ['target']);
       if (src || tgt) outputMappings.push({ source: src, target: tgt, element: el });
     });
+
+    // En Zeebe / Camunda 8, définir des mappings explicites désactive la propagation automatique globale dans le Modeler et le moteur
+    const isInputPropOff = parentProp === 'false' || (inputMappings.length > 0 && parentProp !== 'true');
+    const isOutputPropOff = childProp === 'false' || (outputMappings.length > 0 && childProp !== 'true');
+
+    if (zeebeCalled) {
+      if (!isInputPropOff) {
+        lintAddIssue(issues, 'call-activity-input-propagation-off', activity, `La Call Activity « ${actName} » a « Input propagation » activé (propagateAllParentVariables="${parentProp || 'true (par défaut)'}"). Vous devez désactiver « Propagate all parent process variables » (Off) pour isoler les variables d’entrée.`, file.fileName);
+      }
+      if (!isOutputPropOff) {
+        lintAddIssue(issues, 'call-activity-output-propagation-off', activity, `La Call Activity « ${actName} » a « Output propagation » activé (propagateAllChildVariables="${childProp || 'true (par défaut)'}"). Vous devez désactiver « Propagate all child process variables » (Off) pour éviter l’écrasement des variables du processus parent.`, file.fileName);
+      }
+    }
+
+    // Camunda 7 legacy check
+    const inVarsAll = lintDescendants(activity, ['in']).some(el => lintAttribute(el, ['variables']) === 'all');
+    if (inVarsAll) {
+      lintAddIssue(issues, 'call-activity-input-propagation-off', activity, `La Call Activity « ${actName} » propage toutes les variables parentes (<camunda:in variables="all">). Supprimez cette directive et déclarez des mappings de variables explicites.`, file.fileName);
+    }
+    const outVarsAll = lintDescendants(activity, ['out']).some(el => lintAttribute(el, ['variables']) === 'all');
+    if (outVarsAll) {
+      lintAddIssue(issues, 'call-activity-output-propagation-off', activity, `La Call Activity « ${actName} » propage toutes les variables filles (<camunda:out variables="all">). Supprimez cette directive et déclarez des mappings de variables explicites.`, file.fileName);
+    }
 
     // Résolution du contrat de données du sous-processus cible
     let targetProcEl = idToProcess.get(target) || null;
@@ -1810,13 +1875,13 @@ function auditBpmnLintFile(file) {
   const score = lintScore(issues, all.length + flowNodes.length);
 
   // Calcul des métriques typologiques
-  const serviceTasks = all.filter(el => ['servicetask', 'sendtask', 'receivetask', 'businessruletask'].includes(lintLocalName(el))).length;
-  const userTasks = all.filter(el => ['usertask', 'manualtask'].includes(lintLocalName(el))).length;
-  const scriptTasks = all.filter(el => lintLocalName(el) === 'scripttask').length;
-  const callActivities = all.filter(el => lintLocalName(el) === 'callactivity').length;
-  const subProcesses = all.filter(el => lintLocalName(el) === 'subprocess').length;
-  const gateways = all.filter(el => ['exclusivegateway', 'inclusivegateway', 'parallelgateway', 'eventbasedgateway', 'complexgateway'].includes(lintLocalName(el)));
-  const events = all.filter(el => ['startevent', 'endevent', 'intermediatecatchevent', 'intermediatethrowevent', 'boundaryevent'].includes(lintLocalName(el))).length;
+  const serviceTasks = all.filter(el => ['servicetask', 'sendtask', 'receivetask', 'businessruletask'].includes(lintLocalName(el)) && !lintIsExtensionElement(el)).length;
+  const userTasks = all.filter(el => ['usertask', 'manualtask'].includes(lintLocalName(el)) && !lintIsExtensionElement(el)).length;
+  const scriptTasks = all.filter(el => lintLocalName(el) === 'scripttask' && !lintIsExtensionElement(el)).length;
+  const callActivities = all.filter(el => lintLocalName(el) === 'callactivity' && !lintIsExtensionElement(el)).length;
+  const subProcesses = all.filter(el => lintLocalName(el) === 'subprocess' && !lintIsExtensionElement(el)).length;
+  const gateways = all.filter(el => ['exclusivegateway', 'inclusivegateway', 'parallelgateway', 'eventbasedgateway', 'complexgateway'].includes(lintLocalName(el)) && !lintIsExtensionElement(el));
+  const events = all.filter(el => ['startevent', 'endevent', 'intermediatecatchevent', 'intermediatethrowevent', 'boundaryevent'].includes(lintLocalName(el)) && !lintIsExtensionElement(el)).length;
 
   // Complexité Cyclomatique V(G) = E - N + 2P
   const cyclomatic = Math.max(1, sequenceFlows.length - flowNodes.length + (2 * Math.max(1, processes.length)));
@@ -2341,12 +2406,12 @@ const BPMN_LINT_RULE_KNOWLEDGE = {
   "call-activity-source-undefined": {
     "standard": "Intégrité des Données Camunda 8",
     "badge": "Résolution Source",
-    "explanation": "L'expression source d'un mapping d'entrée (<zeebe:input source=\"...\" target=\"...\" />) doit référencer des variables existantes et produites en amont dans le processus parent.",
-    "badDesc": "Source de mapping d'entrée référençant une variable inexistante dans le processus parent.",
-    "badSnippet": "<!-- ❌ Mauvaise Pratique : variable_inexistante n'est jamais produite -->\n<zeebe:input source=\"= variable_inexistante\" target=\"monParam\" />",
-    "goodDesc": "La source référence une variable initialisée ou produite par une tâche amont.",
+    "explanation": "L'expression source d'un mapping d'entrée (<zeebe:input source=\"...\" target=\"...\" />) fait référence à une variable non produite par les activités amont du processus parent. Cette règle est indicative (INFO) car les variables peuvent provenir du jeu de données injecté lors du lancement de l'instance.",
+    "badDesc": "Source de mapping d'entrée référençant une variable absente du flux amont.",
+    "badSnippet": "<!-- ℹ️ Mapping d'entrée d'une variable issue du payload de démarrage -->\n<zeebe:input source=\"= variableInstanciation\" target=\"monParam\" />",
+    "goodDesc": "La source référence une variable initialisée ou produite par une tâche amont, ou injectée à l'instanciation.",
     "goodSnippet": "<!-- ✅ Bonne Pratique : variable existante -->\n<zeebe:input source=\"= clientId\" target=\"monParam\" />",
-    "impact": "🚨 Évaluation de l'expression FEEL à null ou incident d'exécution à l'instanciation.",
+    "impact": "ℹ️ Information : la variable peut provenir du jeu de données injecté à l'instanciation de l'instance.",
     "autoFixable": false
   },
   "call-activity-contract-output": {
@@ -2722,6 +2787,50 @@ const BPMN_LINT_RULE_KNOWLEDGE = {
     "goodSnippet": "<!-- ✅ Bonne Pratique : Processus exécutable -->\n<bpmn:process id=\"process-1\" isExecutable=\"true\">",
     "impact": "🚨 Le moteur refuse d'exécuter le processus après déploiement.",
     "autoFixable": true
+  },
+  "process-id-convention": {
+    "standard": "Charte d'Architecture & Nommage Processus",
+    "badge": "Convention ID Processus",
+    "explanation": "L'identifiant technique du processus (processId) doit refléter l'entité et le niveau d'orchestration : [entité]-[lp]-[nom-metier-en-kebab] pour un processus parent (ex: cdd-lps-vdr-avec-ajout-de-couche, cdd-lp-5-1-di-crozon), ou [entité]-[sp]-[nom-metier-en-kebab] pour un sous-processus (ex: cdd-sp-autorisation-administrative).",
+    "badDesc": "ID de processus sans préfixe d'entité ou sans distinction LP/SP.",
+    "badSnippet": "<!-- ❌ Mauvaise Pratique : ID sans formalisme entité/LP/SP -->\n<bpmn:process id=\"process-commande\" isExecutable=\"true\">",
+    "goodDesc": "ID conforme en kebab-case avec entité et LP/SP.",
+    "goodSnippet": "<!-- ✅ Bonne Pratique : ID parent ou sous-processus conforme -->\n<bpmn:process id=\"cdd-lp-68-05-migration-mo-prov-vers-mo-cible\" isExecutable=\"true\">\n<!-- ou pour un SP : id=\"cdd-sp-autorisation-administrative\" -->",
+    "impact": "🚨 Conflits de déploiement dans le cluster Zeebe, rupture de traçabilité inter-applicative et gouvernance dégradée.",
+    "autoFixable": false
+  },
+  "process-name-convention": {
+    "standard": "Charte d'Architecture & Nommage Processus",
+    "badge": "Convention Nom Processus",
+    "explanation": "Le nom métier (Display Name) doit identifier clairement l'entité et le périmètre : [ENTITÉ] [LP(s)] [Nom du processus] pour un processus parent (ex: CDD LPs VDR avec ajout de couche, CDD LP5.1 DI Crozon), ou [ENTITÉ] SP [Nom du SP] pour un sous-processus (ex: CDD SP Autorisation administrative).",
+    "badDesc": "Nom de processus sans entité ou sans mention LP/SP.",
+    "badSnippet": "<!-- ❌ Mauvaise Pratique : Nom sans formalisme d'entité -->\n<bpmn:process id=\"cdd-sp-changement\" name=\"Changement de module\" isExecutable=\"true\">",
+    "goodDesc": "Nom de processus conforme avec entité et LP/SP.",
+    "goodSnippet": "<!-- ✅ Bonne Pratique : Nom avec entité et LP ou SP -->\n<bpmn:process id=\"cdd-sp-changement\" name=\"CDD SP Changement module\" isExecutable=\"true\">",
+    "impact": "🟡 Manque de lisibilité et confusion dans les tableaux de bord Operate et les rapports métier.",
+    "autoFixable": false
+  },
+  "process-no-version": {
+    "standard": "Gouvernance Versioning Camunda 8",
+    "badge": "Interdiction Version dans Nom/ID",
+    "explanation": "N'intégrez jamais de numéro de version (v1, v2, etc.) dans le processId ou le nom du processus. Le versioning est géré nativement par le moteur Zeebe/Camunda lors du déploiement. Utilisez le champ Version Tag (x.X.x) pour assurer le suivi.",
+    "badDesc": "Numéro de version présent dans l'ID ou le nom (ex: cdd-sp-v1, Processus V2).",
+    "badSnippet": "<!-- ❌ Mauvaise Pratique : Numéro de version dans l'ID ou le nom -->\n<bpmn:process id=\"cdd-sp-autorisation-v1\" name=\"CDD SP Autorisation V1\" isExecutable=\"true\">",
+    "goodDesc": "Nom et ID stables dans le temps, versioning délégué au Version Tag.",
+    "goodSnippet": "<!-- ✅ Bonne Pratique : ID et nom stables + Version Tag -->\n<bpmn:process id=\"cdd-sp-autorisation\" name=\"CDD SP Autorisation\" isExecutable=\"true\">\n  <bpmn:extensionElements>\n    <zeebe:versionTag value=\"1.0.0\" />\n  </bpmn:extensionElements>\n</bpmn:process>",
+    "impact": "🚨 Rupture des historiques dans Optimize et Operate lors des montées de version, prolifération d'identifiants éphémères.",
+    "autoFixable": false
+  },
+  "process-version-tag": {
+    "standard": "Gouvernance Versioning & Camunda 8 Zeebe",
+    "badge": "Versioning SemVer",
+    "explanation": "Chaque processus doit comporter un Version Tag au format sémantique x.X.x (ex: 1.0.0). Ce tag permet d'identifier et tracer avec certitude les versions déployées dans le moteur Camunda / Zeebe (Operate & Optimize).",
+    "badDesc": "Version tag absent ou ne respectant pas le format x.X.x (ex: v1, 1.0, test).",
+    "badSnippet": "<!-- ❌ Mauvaise Pratique : Processus sans version tag ou format invalide -->\n<bpmn:process id=\"process-1\" isExecutable=\"true\">\n  <!-- Pas de version tag ou versionTag=\"v1\" -->\n</bpmn:process>",
+    "goodDesc": "Version tag renseigné au format x.X.x (ex: 1.0.0).",
+    "goodSnippet": "<!-- ✅ Bonne Pratique : Version tag conforme x.X.x -->\n<bpmn:process id=\"process-1\" isExecutable=\"true\">\n  <bpmn:extensionElements>\n    <zeebe:versionTag value=\"1.0.0\" />\n  </bpmn:extensionElements>\n</bpmn:process>",
+    "impact": "🚨 Traçabilité compromise : impossible de relier formellement les instances de processus exécutées à une version de release logicielle.",
+    "autoFixable": false
   },
   "service-implementation": {
     "standard": "Camunda 8 Zeebe Specification",
@@ -3662,12 +3771,33 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   });
 }
 
+window.toggleBpmnLintFileParent = function(index, isChecked) {
+  if (bpmnLintFiles[index]) {
+    bpmnLintFiles[index].isParent = Boolean(isChecked);
+    bpmnLintFiles[index].isRoot = Boolean(isChecked);
+    bpmnLintFiles[index].isSubProcess = !isChecked;
+    window.bpmnLintFiles = bpmnLintFiles;
+
+    // Si des résultats d'audit ont déjà été calculés, réactualiser l'analyse pour mettre à jour les alertes
+    if (bpmnLintResults && bpmnLintResults.length > 0) {
+      lintBuildReport();
+      renderBpmnLintResults();
+    }
+    renderBpmnLintFiles();
+  }
+};
+
 function renderBpmnLintFiles() {
   const body = document.getElementById('bpmnLintFilesBody');
   if (!body) return;
   const count = document.getElementById('bpmnLintFileCount');
   if (count) count.textContent = bpmnLintFiles.length;
-  body.innerHTML = bpmnLintFiles.map((file, index) => `
+  body.innerHTML = bpmnLintFiles.map((file, index) => {
+    const isParent = file.isParent !== undefined ? file.isParent : !(/\bsp\b|[-_]sp[-_]|^sp[-_]|sous[-_]?processus|subprocess/i.test(file.fileName));
+    file.isParent = isParent;
+    file.isRoot = isParent;
+    file.isSubProcess = !isParent;
+    return `
     <tr>
       <td>
         <a href="javascript:void(0)" class="bpmn-lint-clickable-file" onclick="openBpmnLintViewer('${lintEscape(file.fileName)}')" title="Cliquer pour afficher le diagramme BPMN">
@@ -3676,6 +3806,14 @@ function renderBpmnLintFiles() {
       </td>
       <td>${file.xmlDoc ? lintElements(file.xmlDoc).length : '—'}</td>
       <td>${file.xmlDoc ? lintElements(file.xmlDoc).filter(element => lintLocalName(element) === 'process').length : '—'}</td>
+      <td style="text-align:center;">
+        <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; padding:4px 10px; border-radius:6px; background:${isParent ? 'rgba(13, 67, 114, 0.1)' : 'rgba(0,0,0,0.04)'}; border:1px solid ${isParent ? '#0d4372' : '#d0d7de'}; transition:all 0.2s;" title="Cocher si ce fichier est le Processus Parent (orchestrateur). Décocher pour les sous-processus.">
+          <input type="checkbox" ${isParent ? 'checked' : ''} onchange="toggleBpmnLintFileParent(${index}, this.checked)" style="cursor:pointer; width:16px; height:16px; accent-color:#0d4372;">
+          <span style="font-size:12px; font-weight:${isParent ? '700' : '500'}; color:${isParent ? '#0d4372' : '#57606a'};">
+            ${isParent ? '👑 Processus Parent' : '📦 Sous-processus'}
+          </span>
+        </label>
+      </td>
       <td><span class="badge ${file.parseError ? 'err' : 'ok'}">${file.parseError ? 'XML invalide' : 'Prêt'}</span></td>
       <td>
         <div style="display:flex; gap:6px; align-items:center;">
@@ -3685,7 +3823,8 @@ function renderBpmnLintFiles() {
           <button class="btn-ghost" onclick="removeBpmnLintFile(${index})">Retirer</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   const runButton = document.getElementById('runBpmnLintBtn');
   if (runButton) runButton.disabled = !bpmnLintFiles.length;
   const exportButton = document.getElementById('exportBpmnLintBtn');
@@ -4645,12 +4784,30 @@ window.addBpmnLintFiles = async function(fileList) {
       bpmnLintFiles = bpmnLintFiles.filter(item => item.fileName.toLowerCase() !== file.name.toLowerCase());
     }
     const source = await file.text();
+    const isSub = /\bsp\b|[-_]sp[-_]|^sp[-_]|sous[-_]?processus|subprocess/i.test(file.name);
+    const isParent = !isSub;
     try {
       const xmlDoc = new DOMParser().parseFromString(source, 'application/xml');
       const parserError = xmlDoc.querySelector('parsererror');
-      bpmnLintFiles.push({ fileName: file.name, source, xmlDoc: parserError ? null : xmlDoc, parseError: parserError ? parserError.textContent.trim() : '' });
+      bpmnLintFiles.push({
+        fileName: file.name,
+        source,
+        xmlDoc: parserError ? null : xmlDoc,
+        parseError: parserError ? parserError.textContent.trim() : '',
+        isParent: isParent,
+        isRoot: isParent,
+        isSubProcess: !isParent
+      });
     } catch (error) {
-      bpmnLintFiles.push({ fileName: file.name, source, xmlDoc: null, parseError: error.message });
+      bpmnLintFiles.push({
+        fileName: file.name,
+        source,
+        xmlDoc: null,
+        parseError: error.message,
+        isParent: isParent,
+        isRoot: isParent,
+        isSubProcess: !isParent
+      });
     }
   }
   window.bpmnLintFiles = bpmnLintFiles;
