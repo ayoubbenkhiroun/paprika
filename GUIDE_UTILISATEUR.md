@@ -261,7 +261,7 @@ Déposez en une seule fois dans la zone de dépôt :
 1. **Résolution hiérarchique** : Identification automatique du processus parent et des sous-processus via les `Call Activities` (`calledElement`, `zeebe:calledElement`).
 2. **Étape 1 (Métadonnées)** : Nom, ID technique, version, modélisateur, documentation et drapeau exécutable extraits automatiquement.
 3. **Étape 2 (Activités & Arborescence)** : Extraction de l'ensemble des tâches (User Tasks, Service Tasks, Call Activities...) et construction immédiate du Tree View multi-niveaux.
-4. **Étape 3 (Entités & Groupes)** : Extraction des Pools, Lanes et groupes utilisateurs candidats (`candidateGroups`, assignees).
+4. **Étape 3 (Entités & Groupes)** : Extraction des Pools, entités et groupes utilisateurs candidats (`candidateGroups`, assignees).
 5. **Étape 4 (Variables I/O)** : Extraction des flux de données Zeebe `ioMapping`, Camunda 7 `inputOutput`, `camunda:in`/`out`, formulaires et calcul du lignage de données.
 6. **Étape 5 (Modes & Conditions)** : Déduction automatique des modes de réalisation (`Call Activity`, `Automatique`, `Manuelle`), conditions FEEL sur flux entrants et commentaires de documentation.
 
@@ -279,7 +279,7 @@ Toutes les informations extraites et ajustées sont automatiquement persistées 
 
 Tableau complet listant chaque activité avec :
 - Type de composant (User Task, Service Task, Call Activity...)
-- Entité réalisatrice (Pool/Lane)
+- Entité réalisatrice (Pool)
 - Inputs (Entrées) et Outputs (Sorties) extraits du BPMN
 - Champ "Applicable dans quel cas ?" (éditable)
 - Commentaire (éditable)
@@ -298,7 +298,7 @@ Tableau complet listant chaque activité avec :
 #### Diagnostics & Aide à la Décision
 Alertes automatiques :
 - Documentation incomplète
-- Tâches sans Lane (orphelines)
+- Tâches sans entité (orphelines)
 - Tâches de service sans I/O
 - Sous-processus sans paramètres d'appel
 - Opportunité d'automatisation
@@ -306,7 +306,7 @@ Alertes automatiques :
 
 #### Structure & Acteurs
 - Répartition des composants par type
-- Barres de progression par entité (Lane) montrant le taux de documentation
+- Barres de progression par entité montrant le taux de documentation
 
 #### Glossaire Interactif & Lignage des Variables
 

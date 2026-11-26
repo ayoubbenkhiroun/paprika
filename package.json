@@ -35,5 +35,8 @@
       ],
       "icon": "img/app_icon.png"
     }
+  },
+  "allowScripts": {
+    "electron@34.5.8": true
   }
 }
